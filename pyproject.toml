@@ -1,0 +1,47 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ouncemcp"
+version = "0.0.0"
+description = "Build MCP servers and clients that are fast, low-noise, and safe for agents by default."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+authors = [{ name = "Subbusainath Rengasamy" }]
+keywords = ["mcp", "model-context-protocol", "agents", "llm", "fastmcp"]
+classifiers = [
+  "Development Status :: 1 - Planning",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Libraries :: Application Frameworks",
+]
+# Runtime dependencies (FastMCP 4, MCP Python SDK v2, Pydantic, tokenizer) are
+# pinned to exact versions in M0 after compatibility checks. See docs/spec.md 6.2.
+dependencies = []
+
+[project.optional-dependencies]
+client = []
+eval = []
+ui = []
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[project.scripts]
+ouncemcp = "ouncemcp.cli:main"
+
+[project.urls]
+Repository = "https://github.com/subbusainath/ouncemcp"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ouncemcp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

@@ -1,0 +1,18 @@
+# ouncemcp.toml (proposed; values are starting points to validate in benchmarks)
+[budget]
+tool_definition_warn = 500
+tool_definition_fail = 1000
+startup_warn = 4000
+result_default = 2000
+result_ceiling = 8000
+
+[discovery]
+mode = "auto"
+pinned = ["inventory.search"]
+
+[tokenizer]
+default = "o200k_base"
+
+[security]
+http_bind = "127.0.0.1"
+redact = ["authorization", "password", "token"]
