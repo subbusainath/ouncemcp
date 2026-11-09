@@ -84,7 +84,7 @@ Measured on the inventory example with the `o200k_base` tokenizer. Full method a
 | Four-task session, definitions plus results | 1,510 tokens | 32,280 tokens |
 | Added server time per call, p50 / p95 | 0.14–0.44 ms / 0.07–0.47 ms (1.44 / 1.32 ms when truncating) | baseline |
 
-After the M1 schema-safe shaping work, truncated calls add 1.85 / 1.94 ms (p50 / p95) because every change is checked against the output schema. Other calls are unchanged. See [proposal 0002](docs/proposals/0002-schema-safe-shaping-and-pagination.md).
+In M1, results that are trimmed must still match the output schema. Truncated calls now add 0.70 / 0.80 ms (p50 / p95) and other calls 0.14 to 0.31 ms. Shaping a 36,000-token result down to a 2,000-token budget takes 7.3 ms. See [proposal 0002](docs/proposals/0002-schema-safe-shaping-and-pagination.md) and `benchmarks/scripts/m1_truncation.py`.
 
 Typed output schemas make definitions larger. Results are where the savings come from. Servers that don't need output schemas can pass `output_schemas=False` (247 tokens for this example).
 

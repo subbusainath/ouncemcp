@@ -1,6 +1,6 @@
 # 0002: Schema-safe shaping and budget-aware pagination
 
-Status: proposed for M1. Covers spec RES-8, RES-9 and RES-10 (see [spec section 15.2](../spec.md)).
+Status: accepted for M1 (PR #3); follow-ups resolved in PR #4. Covers spec RES-8, RES-9 and RES-10 (see [spec section 15.2](../spec.md)).
 
 ## Problem
 
@@ -70,12 +70,12 @@ Measured on the inventory example (Python 3.12.15, x86_64, 2 vCPU, 5,000 calls p
 
 | Case | M0 added p50 / p95 | M1 added p50 / p95 |
 | --- | ---: | ---: |
-| Truncated to 300 tokens | 1.44 / 1.32 ms | 1.85 / 1.94 ms |
+| Truncated to 300 tokens | 1.44 / 1.32 ms | 1.85 / 1.94 ms (0.70 / 0.80 ms after the follow-ups) |
 | limit=5 | 0.14 ms p50 | 0.15 / 0.04 ms |
 | limit=20 | | 0.25 / 0.12 ms |
 | limit=50 | 0.44 ms p50 | 0.45 / 0.54 ms |
 
-- Truncated calls cost about 0.4 ms more because each change is validated. Before `assume_valid`, the cost was 3.4 ms. The result still meets PERF-1 (p50 under 2 ms) but not yet PERF-7 (truncation under 1 ms p50).
+- Truncated calls cost about 0.4 ms more because each change is validated. Before `assume_valid`, the cost was 3.4 ms. That met PERF-1 (p50 under 2 ms) but not PERF-7 (truncation under 1 ms p50). The follow-ups below bring it to 0.70 ms.
 - Session tokens on the four-task benchmark: 1,512 vs 1,510 in M0, because of the new cursor format. Definition tokens are unchanged (488).
 
 Tests:
@@ -89,8 +89,50 @@ Tests:
 - Clients that read `null` optional fields from detailed results should treat a missing key the same way.
 - Tools that relied on text-only fallback with schemas enabled now get `isError` results. Lower `limit` defaults or raise `result_tokens` for those tools.
 
-## Open questions
+## Resolved questions
 
-- `NOTE_RESERVE` (80 tokens) is a large share of small budgets such as 300 tokens. Should it scale with the budget, or be computed from the actual note?
-- When `min_items` items alone are over budget, the error asks for a lower limit that can't help. The advice should say to narrow filters or raise the tool's `result_tokens`.
-- PERF-7: cache the token count of unchanged subtrees during the binary search, and validate only the changed path where the schema allows it.
+These were open when PR #3 merged. All three are resolved in the follow-up change.
+
+### Note reserve
+
+The fixed 80-token `NOTE_RESERVE` is gone. Shaping now reserves the note's real size:
+
+- Before fitting, it builds the note this result will most likely get: the largest top-level list trimmed, with kept counts written with as many digits as the full length, plus the right cursor advice. It reserves that note's token count.
+- After fitting, it counts the actual note. If the result plus note is over budget, it refits from the original data with the reserve raised by the overflow. This happens at most three times. In a random sweep of 2,160 truncated pages, 20 (about 1%) needed a second pass and none needed a third.
+- The full note is used while it costs at most 10% of the budget (`NOTE_SHARE`). Otherwise a short note is used. For example: `[ouncemcp] Truncated: kept 7 of 50 in 'items'. Use next_cursor for more.` The short note keeps the first change and counts the rest, so a dropped field is still named.
+
+Effect at a 300-token budget: the page keeps 7 items instead of 5, and the note takes about 22 tokens instead of 80 reserved. A property test checks that a trimmed page always holds as many items as fit: one more item, with its note, goes over the budget.
+
+### Advice when the floor can't shrink
+
+`ResultTooLarge` now carries `items`, the number of items left in the largest list, and a `reason`. The error text only suggests a lower `limit` when that could help:
+
+| Reason | When | Advice to the agent |
+| --- | --- | --- |
+| `item_over_budget` | One item alone is over budget | "Even one item is about N tokens, over the B-token budget, so asking for fewer items will not help. Narrow the filters or ask for a different item." |
+| `min_items_over_budget` | The list is at `min_items` (more than 1) | "Even K items, the fewest this tool trims to, are about N tokens... Ask for fewer than K items with a lower limit, or narrow the filters." |
+| `fixed_over_budget` | No list is left to trim | "The smallest valid result is about N tokens... Narrow the request." |
+
+The detailed format adds "or use response_format=concise" in each case. `_meta.ouncemcp` adds `reason`, `items` (when there is a list), and a `hint` for the developer: raise the tool's `result_tokens`, lower its `min_items`, or return smaller items. The same hint is logged as a warning on the `ouncemcp` logger. The agent cannot change these settings, so the hint is kept out of the text the model reads. `min_tokens` now includes the actual note, not the old fixed reserve.
+
+### PERF-7: truncation speed
+
+Five changes, each measured:
+
+1. **Estimate, then check.** Items are counted one at a time from the start, stopping once they pass the target, so only the items that could fit are encoded. The exact count is checked at the estimate, then the search moves upward in steps of 1, 2, 4 and so on. A close estimate needs two or three exact counts instead of a binary search over the whole list.
+2. **Prefix count for the budget check.** A result longer than six characters per budget token is first counted up to a comma near that length. If the prefix alone is over budget (with a 4-token margin for the cut), the full result is never counted. If shaping then makes no change, the result is returned with an exact count.
+3. **Skip validation for safe list cuts.** `list_trim_floor(schema, path, cursor_key)` walks the advertised schema. If every keyword on the path is known to be safe for cutting an array to its first k items, the validator is skipped and `minItems` is applied directly. Safe keywords are `type`, `items`, `properties`, `required`, `maxItems`, `uniqueItems`, `minItems`, local `$ref` and annotations, and the cursor must be a plain string. Anything else, such as `contains`, `anyOf`, `if`/`then` or a cursor `pattern`, is still validated.
+4. **Scan only trimmed lists.** The scan for list candidates no longer looks inside a list that hasn't been trimmed. Its nested lists are smaller, so they can't be picked first.
+5. **Cached field plans.** `to_jsonable` caches each model's field list (name, detail, required) instead of reading field metadata on every call.
+
+Results with `shape_result` alone (`benchmarks/scripts/m1_truncation.py`, 500 runs, Python 3.12.15, x86_64, 2 vCPU):
+
+| Case | PR #3 p50 | Now p50 | Items kept (PR #3 / now) |
+| --- | ---: | ---: | ---: |
+| 50 items, 300-token budget | 2.18 ms | 0.70 ms | 5 / 7 |
+| 100 items, 2,000-token budget | 9.87 ms | 3.12 ms | 53 / 54 |
+| 1,000 items, 36,014 tokens, 2,000-token budget | 37.63 ms | 7.32 ms | 53 / 54 |
+
+Through the server (`m0_overhead.py 5000`), a truncated 50-item call now adds 0.70 / 0.80 ms (p50 / p95), so PERF-7 is met. Untruncated calls add 0.14 to 0.31 ms, down from 0.15 to 0.45 ms because of the cached field plans.
+
+What is left: cost now grows with the budget, not with the size of the result. A 2,000-token budget needs a few exact counts of about 2,000 tokens each. The remaining cost that grows with result size is `to_jsonable` and `json.dumps` over the full result: about 4 ms of the 7.3 ms for 1,000 items. Converting only the items that could fit is the next step if large results become common.

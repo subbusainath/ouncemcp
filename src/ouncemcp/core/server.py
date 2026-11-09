@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import logging
 import re
 import sys
 import typing
@@ -122,6 +123,50 @@ class ToolSpec:
     result_tokens: int | None
     min_items: int = 1
     page_fields: PageFields | None = None
+
+
+logger = logging.getLogger("ouncemcp")
+
+
+def _too_large_result(
+    tool_name: str, exc: ResultTooLarge, response_format: ResponseFormat
+) -> ToolResult:
+    """An actionable error for a result that cannot fit its budget (RES-8).
+
+    The advice depends on why it doesn't fit. A lower ``limit`` is only suggested
+    when it could help, which is when the list still holds more than one item.
+    """
+    concise = " or use response_format=concise" if response_format == "detailed" else ""
+    size = f"about {exc.min_tokens} tokens, over the {exc.budget}-token budget"
+    if exc.items is None:
+        advice = f"The smallest valid result is {size}. Narrow the request{concise}."
+    elif exc.items <= 1:
+        advice = (
+            f"Even one item is {size}, so asking for fewer items will not help. "
+            f"Narrow the filters or ask for a different item{concise}."
+        )
+    else:
+        advice = (
+            f"Even {exc.items} items, the fewest this tool trims to, are {size}. "
+            f"Ask for fewer than {exc.items} items with a lower limit, or narrow the "
+            f"filters{concise}."
+        )
+    hint = (
+        f"Raise result_tokens for '{tool_name}' (now {exc.budget}), lower its min_items, "
+        "or return smaller items."
+    )
+    logger.warning("ouncemcp: %s result too large (%s). %s", tool_name, exc.reason, hint)
+    meta: dict[str, Any] = {
+        "error": "result_too_large",
+        "reason": exc.reason,
+        "min_tokens": exc.min_tokens,
+        "budget": exc.budget,
+        "format": response_format,
+        "hint": hint,
+    }
+    if exc.items is not None:
+        meta["items"] = exc.items
+    return _error_result(f"[ouncemcp] Result too large for '{tool_name}'. {advice}", meta)
 
 
 def _error_result(message: str, meta: dict[str, Any]) -> ToolResult:
@@ -396,19 +441,7 @@ class OunceServer:
                     assume_valid=True,
                 )
             except ResultTooLarge as exc:
-                hint = " or use response_format=concise" if response_format == "detailed" else ""
-                return _error_result(
-                    f"[ouncemcp] Result too large for '{tool_name}': the smallest valid "
-                    f"result is about {exc.min_tokens} tokens, over the {exc.budget}-token "
-                    f"budget. Ask for fewer items with a lower limit, or narrow the "
-                    f"filters{hint}.",
-                    {
-                        "error": "result_too_large",
-                        "min_tokens": exc.min_tokens,
-                        "budget": exc.budget,
-                        "format": response_format,
-                    },
-                )
+                return _too_large_result(tool_name, exc, response_format)
             return ToolResult(
                 content=[TextContent(type="text", text=shaped.text)],
                 structured_content=shaped.data,

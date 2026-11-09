@@ -48,7 +48,8 @@ def test_list_truncation_note_is_accurate():
     kept, total = out.truncation.lists["items"]
     assert total == 500
     assert kept == len(out.data["items"])
-    assert f"kept {kept} of 500 items in 'items'" in out.text
+    # A 300-token budget gets the short note (proposal 0002 follow-up).
+    assert f"kept {kept} of 500 in 'items'" in out.text
 
 
 def test_cursor_warning_when_page_trimmed():
