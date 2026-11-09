@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ouncemcp"
-version = "0.0.0"
+version = "0.0.1.dev0"
 description = "Build MCP servers and clients that are fast, low-noise, and safe for agents by default."
 readme = "README.md"
 license = "Apache-2.0"
@@ -20,15 +20,19 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Topic :: Software Development :: Libraries :: Application Frameworks",
 ]
-# Runtime dependencies (FastMCP 4, MCP Python SDK v2, Pydantic, tokenizer) are
-# pinned to exact versions in M0 after compatibility checks. See docs/spec.md 6.2.
-dependencies = []
+# FastMCP and the tokenizer are pinned exactly and rechecked each release (spec 6.2).
+# FastMCP 4.1.6 brings the MCP Python SDK 2.3.0.
+dependencies = [
+  "fastmcp==4.1.6",
+  "tiktoken==0.14.0",
+  "pydantic>=2.11,<3",
+]
 
 [project.optional-dependencies]
 client = []
 eval = []
 ui = []
-dev = ["pytest>=8", "ruff>=0.6"]
+dev = ["pytest>=8", "ruff>=0.6", "anyio>=4"]
 
 [project.scripts]
 ouncemcp = "ouncemcp.cli:main"
@@ -44,4 +48,5 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 100
+extend-exclude = ["*.md"]
 target-version = "py311"

@@ -1,26 +1,30 @@
-"""Command-line interface for OunceMCP.
+"""Command-line interface for OunceMCP (spec section 12).
 
-Commands are specified in docs/spec.md section 12. Each command reports the
-milestone in which it is planned until it is implemented.
+Implemented in M0: ``check`` (budget checks) and ``context`` (definition view).
+Other commands report the milestone in which they are planned.
 """
 
 from __future__ import annotations
 
 import argparse
+import asyncio
+import json
 import sys
+from typing import Any
 
 from ouncemcp import __version__
 
 COMMANDS: dict[str, tuple[str, str]] = {
     "init": ("Scaffold a server with tests and CI", "M1"),
     "dev": ("Run with hot reload and a live budget summary", "M1"),
-    "check": ("Lint schemas, names, descriptions, budgets, and policy", "M1"),
-    "context": ("Show exactly what the model receives for a tool", "M1"),
+    "check": ("Check tool definition sizes against the budget", "M0"),
+    "context": ("Show exactly what the model receives for a tool", "M0"),
     "eval": ("Run security and agent task suites", "M3"),
     "bench": ("Run the reproducible benchmark harness", "M3"),
     "trace": ("Open the trace and context viewer", "M3"),
     "audit": ("Optional: measure any MCP server and recommend fixes", "M2"),
 }
+IMPLEMENTED = {"check", "context"}
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -32,8 +36,69 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", metavar="<command>")
     for name, (help_text, _milestone) in COMMANDS.items():
         cmd = sub.add_parser(name, help=help_text, description=help_text)
-        cmd.add_argument("args", nargs=argparse.REMAINDER, help=argparse.SUPPRESS)
+        if name == "check":
+            cmd.add_argument("server", help="path/to/server.py[:name] or module[:name]")
+            cmd.add_argument("--json", action="store_true", help="print a JSON report")
+        elif name == "context":
+            cmd.add_argument("server", help="path/to/server.py[:name] or module[:name]")
+            cmd.add_argument("tool", help="tool name")
+        else:
+            cmd.add_argument("args", nargs=argparse.REMAINDER, help=argparse.SUPPRESS)
     return parser
+
+
+async def _definitions(server: Any) -> tuple[list[Any], Any]:
+    from ouncemcp.core.budget import Budget
+    from ouncemcp.core.server import OunceServer
+    from ouncemcp.core.wire import wire_tools
+
+    if isinstance(server, OunceServer):
+        return await server.list_tools(), server.budget
+    return await wire_tools(server), Budget()
+
+
+def _check(ns: argparse.Namespace) -> int:
+    from ouncemcp.cli.loader import LoadError, load_server
+    from ouncemcp.core.costs import measure_tools
+
+    try:
+        server = load_server(ns.server)
+    except LoadError as exc:
+        print(f"ouncemcp check: {exc}", file=sys.stderr)
+        return 2
+    tools, budget = asyncio.run(_definitions(server))
+    report = measure_tools(tools, budget)
+    if ns.json:
+        print(json.dumps(report.to_dict(), indent=2))
+    else:
+        print(report.render_text())
+    return 1 if report.failed else 0
+
+
+def _context(ns: argparse.Namespace) -> int:
+    from ouncemcp.cli.loader import LoadError, load_server
+    from ouncemcp.core.costs import definition_payload, measure_tool
+
+    try:
+        server = load_server(ns.server)
+    except LoadError as exc:
+        print(f"ouncemcp context: {exc}", file=sys.stderr)
+        return 2
+    tools, budget = asyncio.run(_definitions(server))
+    match = next((t for t in tools if t.name == ns.tool), None)
+    if match is None:
+        names = ", ".join(sorted(t.name for t in tools))
+        print(f"ouncemcp context: no tool named '{ns.tool}'. Tools: {names}", file=sys.stderr)
+        return 2
+    cost = measure_tool(match, budget)
+    print(json.dumps(definition_payload(match), indent=2, ensure_ascii=False))
+    print(
+        f"\n{cost.total} tokens (description {cost.description}, input schema "
+        f"{cost.input_schema}, output schema {cost.output_schema}, other "
+        f"{cost.name_tokens + cost.structure}) [{cost.status.upper()}]",
+        file=sys.stderr,
+    )
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -42,10 +107,13 @@ def main(argv: list[str] | None = None) -> int:
     if ns.command is None:
         parser.print_help()
         return 0
+    if ns.command == "check":
+        return _check(ns)
+    if ns.command == "context":
+        return _context(ns)
     _help, milestone = COMMANDS[ns.command]
     print(
-        f"ouncemcp {ns.command}: not implemented yet (planned for {milestone}). "
-        "See docs/spec.md.",
+        f"ouncemcp {ns.command}: not implemented yet (planned for {milestone}). See docs/spec.md.",
         file=sys.stderr,
     )
     return 2

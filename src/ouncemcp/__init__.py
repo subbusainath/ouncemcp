@@ -1,9 +1,37 @@
 """OunceMCP: build MCP servers and clients that are fast, low-noise, and safe for agents.
 
-Pre-alpha. The public API (OunceServer, Context, Effect, Budget, policy) is
-specified in docs/spec.md section 11 and is implemented starting in milestone M0.
+Pre-alpha (milestone M0). See docs/spec.md for the full specification.
 """
 
-__version__ = "0.0.0"
+from ouncemcp.core import (
+    Budget,
+    Detail,
+    Effect,
+    OunceServer,
+    ServerCost,
+    TokenCounter,
+    ToolContext,
+    ToolCost,
+    get_counter,
+    measure_tool,
+    measure_tools,
+    shape_result,
+)
 
-__all__ = ["__version__"]
+__version__ = "0.0.1.dev0"
+
+__all__ = [
+    "Budget",
+    "Detail",
+    "Effect",
+    "OunceServer",
+    "ServerCost",
+    "TokenCounter",
+    "ToolContext",
+    "ToolCost",
+    "__version__",
+    "get_counter",
+    "measure_tool",
+    "measure_tools",
+    "shape_result",
+]
