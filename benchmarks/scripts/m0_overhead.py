@@ -21,7 +21,7 @@ from fastmcp import FastMCP
 from server import SearchInput, SearchResult, search
 from server import server as lean
 
-from ouncemcp import Budget, Effect, OunceServer
+from ouncemcp import Budget, Effect, OunceServer, ToolContext
 
 
 def build_plain() -> FastMCP:
@@ -29,11 +29,18 @@ def build_plain() -> FastMCP:
 
     @mcp.tool(name="inventory.search")
     async def plain_search(
-        region: str, kind: str | None = None, status: str | None = None, limit: int = 20
+        region: str,
+        kind: str | None = None,
+        status: str | None = None,
+        limit: int = 20,
+        cursor: str | None = None,
     ) -> SearchResult:
         """Same handler, no OunceMCP layer."""
         # OunceServer.tool returns the original handler, so this is the same code path.
-        return await search(SearchInput(region=region, kind=kind, status=status, limit=limit))
+        # A bare ToolContext gives the handler its page helper without any shaping.
+        ctx = ToolContext(tool="inventory.search", response_format="detailed", result_budget=0)
+        args = SearchInput(region=region, kind=kind, status=status, limit=limit, cursor=cursor)
+        return await search(args, ctx)
 
     return mcp
 
