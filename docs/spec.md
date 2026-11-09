@@ -5,16 +5,18 @@ Project specification
 | Field | Value |
 | --- | --- |
 | Project name | **OunceMCP**. Package and CLI: `ouncemcp`; Python import: `ouncemcp`. The name was free on PyPI, npm, and GitHub on 9 November 2026; reserve it before announcing |
-| Document type | Project specification, version 0.2 (framework-first roadmap) |
-| Date | 9 November 2026 |
+| Document type | Project specification, version 0.3 (M0 findings folded into M1) |
+| Date | 10 November 2026 |
 | Target protocol | MCP specification `2026-07-28`, with tested legacy compatibility |
 | Reference implementation | Python, built on FastMCP 4 and the official MCP Python SDK |
 | License (proposed) | Apache-2.0 |
-| Status | Draft for build planning; no implementation or benchmark has been run yet |
+| Status | M0 core prototype built and measured ([M0 report](m0-report.md)); M1 in planning |
 
 This specification turns two research investigations into a buildable plan. Protocol facts are cited to primary sources. Requirements, default limits, interfaces, and milestones are proposals and are marked as such; numeric defaults must be validated experimentally before being presented as recommendations to users.
 
 **Change in version 0.2.** The framework is the product. Auditing is an optional command (section 8.6) rather than the first deliverable, and the roadmap, goals, and launch plan are reordered accordingly. The project is named OunceMCP, replacing the placeholder `mcp-lean`, which conflicted with an existing npm package and the LeanMCP brand.
+
+**Change in version 0.3.** The M0 prototype found five limitations: the text-only fallback breaks the output-schema contract, page trimming leaves gaps behind cursors, cursors are unsigned, the tokenizer is fixed, and what hosts show the model is unverified. Version 0.3 adds requirements for each (RES-8 to RES-11, SEC-12, BUD-6 to BUD-9, PERF-7), adds them to the M1 scope and exit criteria, and records the mapping in section 15.2.
 
 **Requirement keywords.** MUST, SHOULD, and MAY in the requirement tables are this project's internal requirements, not MCP specification requirements, unless a citation states otherwise. Priorities: **P0** is required for the first public release, **P1** for the 1.0 release, and **P2** is planned later.
 
@@ -224,11 +226,15 @@ Budgets are declared per server and per tool. The defaults below are **proposed 
 
 | ID | Requirement | Priority | Acceptance criteria |
 | --- | --- | --- | --- |
-| BUD-1 | MUST compute definition token counts at startup and in `ouncemcp check` | P0 | Counts appear in `check` output |
+| BUD-1 | MUST compute definition token counts at startup and in `ouncemcp check`, measured on definitions as an MCP client receives them (wire serialization and field order), not on in-process objects | P0 | Counts appear in `check` output and equal a recount of `tools/list` over stdio (done in M0) |
 | BUD-2 | MUST fail `check` when a fail threshold is exceeded | P0 | CI exit code tests |
 | BUD-3 | MUST enforce result budgets at runtime through response shaping (8.1.4) | P0 | Oversized results never exceed hard ceiling |
 | BUD-4 | MUST allow overrides per tool with a recorded justification | P1 | Override without reason produces a warning |
 | BUD-5 | SHOULD record actual token usage per call in traces | P0 | Trace includes result tokens |
+| BUD-6 | MUST make the tokenizer pluggable: any tiktoken encoding, a custom counting callable, and provider token-counting APIs; every report MUST name the tokenizer used | P0 (interface and tiktoken), P1 (provider APIs) | Same server reported with two tokenizers; reports show the tokenizer name; provider adapter tested against a recorded response |
+| BUD-7 | MUST state which definition fields are counted (name, description, input schema, output schema) and which are not (`title`, annotations, `_meta`); SHOULD record per host which fields reach the model | P0 (declared scope), P1 (per-host data) | `check --json` includes the counting scope; host findings published in the compatibility matrix |
+| BUD-8 | MUST compact advertised schemas without changing what validation accepts: collapse optional `anyOf` with `null`, drop generated titles | P0 | Property test: every fixture input accepted by the Pydantic model is valid against the advertised schema and the reverse, apart from explicit `null` for optional fields, which the model still accepts |
+| BUD-9 | MUST let servers and tools choose output schemas `on`, `off`, or `auto`, and `check` MUST report the output-schema share of definition tokens | P0 | Three modes tested; `check` shows the share (M0 inventory: 241 of 488 tokens) |
 
 #### 8.1.3 Automatic discovery mode
 
@@ -255,11 +261,15 @@ Budgets are declared per server and per tool. The defaults below are **proposed 
 | --- | --- | --- | --- |
 | RES-1 | MUST support `concise` (default) and `detailed` response formats, following Anthropic's guidance ([Anthropic tool guidance](https://www.anthropic.com/research/writing-tools-for-agents)) | P0 | Both formats tested per example tool |
 | RES-2 | MUST support field selection and server-side filtering declared in the output model | P0 | Unrequested fields absent |
-| RES-3 | MUST paginate lists with bounded page sizes and stable cursors | P0 | Pagination tests |
-| RES-4 | MUST truncate over-budget results with a clear note of what was omitted and how to retrieve more | P0 | Truncation note present and accurate |
+| RES-3 | MUST paginate lists with bounded page sizes and stable cursors; a returned cursor MUST resume immediately after the last item actually returned. Cursors are opaque and an empty string is a valid cursor, following the MCP pagination rules ([pagination](https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/pagination.md)) | P0 | Pagination tests, plus the RES-9 property test |
+| RES-4 | MUST truncate over-budget results with a clear note of what was omitted and how to retrieve more; the note MUST fit a fixed reserve (default 80 tokens), name at most three paths, and end with one recovery action | P0 | Truncation note present, accurate, and within its reserve |
 | RES-5 | SHOULD return large results by reference: a summary plus an opaque handle readable in pages | P1 | Handle bound to principal and expiry |
 | RES-6 | MUST strip transport metadata and auxiliary upstream fields not declared in the output model, given evidence that raw JSON inflates tokens ([Anjum et al.](https://aclanthology.org/2026.findings-acl.1967.pdf)) | P0 | Output equals declared model |
 | RES-7 | MUST return both structured content and a compact text rendering when an output schema exists ([tools](https://modelcontextprotocol.io/specification/2026-07-28/server/tools.md)) | P0 | Conformance passes |
+| RES-8 | When an output schema is advertised, every successful result MUST include structured content that conforms to it, since MCP requires this of servers ([tools](https://modelcontextprotocol.io/specification/2026-07-28/server/tools.md)). Shaping MUST degrade in this order: trim lists (RES-10), shorten strings, drop optional fields. If the result still exceeds the budget, it MUST return a tool error (`isError: true`) with a short, actionable message such as asking for a smaller `limit`, rather than unstructured text. Text-only truncation is allowed only for tools without an output schema | P0 | Fuzz test over random outputs and budgets: every successful result validates against the advertised schema; over-budget minimal results return `isError` with a recovery hint |
+| RES-9 | MUST provide budget-aware pagination: a `ctx.page(items, cursor_from=...)` helper (name to be settled in proposal 0002) that keeps as many items as fit the remaining result budget and builds the cursor from the last kept item. When the framework trims a list that a handler paginated itself, it MUST warn in the note that the cursor skips the removed items and give a `limit` that pages without gaps | P0 | Property test: for any data set, page size, and budget, following cursors returns every item exactly once |
+| RES-10 | MUST NOT trim a non-empty list to zero items; the minimum is configurable per tool (default 1), and an oversized single item is shortened instead of dropped | P0 | Test with one item larger than the budget (fixed in M0) |
+| RES-11 | SHOULD let handlers skip expensive work for fields that will not be returned, by exposing the response format and remaining budget on the context | P1 | Example tool that skips a detail lookup in concise mode |
 
 #### 8.1.5 Errors and execution
 
@@ -290,6 +300,7 @@ Budgets are declared per server and per tool. The defaults below are **proposed 
 | SEC-9 | MUST protect outbound fetches from SSRF using allowlists and private-range blocking ([security best practices](https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/security_best_practices.md)) | P1 | SSRF test suite |
 | SEC-10 | SHOULD use maintained OAuth integrations; client registration order is pre-registration, then Client ID Metadata Documents, then deprecated Dynamic Client Registration ([client registration](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/client-registration.md)) | P1 | Integration tests with one provider |
 | SEC-11 | MUST redact secrets and personal data from traces by default | P0 | Redaction tests |
+| SEC-12 | MUST issue tamper-evident cursors: HMAC-signed and bound to the principal, the tool, a digest of the normalized query arguments, and an expiry; support key rotation; reject invalid, expired, or foreign cursors with an actionable validation error (MCP suggests `-32602 Invalid params` for invalid list cursors, [pagination](https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/pagination.md)) | P0 | Tests for tampering, expiry, cross-principal reuse, use with changed filters, and rotation; the M0 base64 offset cursor is removed |
 
 ### 8.3 Client broker
 
@@ -382,6 +393,9 @@ Protocol overhead is small, so performance targets focus on tokens and turns fir
 | PERF-4 | Optional audit of a 100-tool server, discovery only | Under 10 seconds on a normal network |
 | PERF-5 | Startup context in `search` mode | Under 400 tokens |
 | PERF-6 | Benchmark target versus naive equivalent | At least 70% fewer startup tokens and fewer total task tokens with no drop in task success |
+| PERF-7 | Added overhead when a 50-item result is truncated | p50 under 1 ms (M0 measured 1.44 ms), through cached per-item token counts instead of re-encoding the whole result at each search step |
+
+M0 measured PERF-1 at +0.14 to +0.44 ms p50 for untruncated results and +1.44 ms p50 when truncating, on Python 3.12, x86_64, 2 vCPUs ([M0 report](m0-report.md)).
 
 PERF-6 is a hypothesis informed by reported progressive-disclosure reductions of 71–99% ([Malik et al.](https://arxiv.org/pdf/2610.30157v1)); it must not be published as a claim until the benchmark in section 13 confirms it.
 
@@ -422,7 +436,7 @@ Cancellation is not rollback; the specification acknowledges races between cance
 
 ## 11. Public API sketch
 
-This sketch is proposed and will change during M1. It shows the intended developer experience, not a published API.
+This sketch is proposed and will change during M1. The M0 API that actually ships is recorded in [proposal 0001](proposals/0001-m0-core-api.md). It shows the intended developer experience, not a published API.
 
 ```python
 from pydantic import BaseModel, Field
@@ -570,7 +584,7 @@ A release MUST NOT ship if any gate fails:
 2. **Isolation:** No cross-tenant access to catalogs, caches, handles, approvals, or jobs.
 3. **Writes:** No duplicate effects on replay within the documented guarantee.
 4. **Approvals:** Unsupported clients cannot bypass required approvals.
-5. **Budgets:** Example servers and scaffold pass `ouncemcp check`.
+5. **Budgets:** Example servers and scaffold pass `ouncemcp check`, and the shaping fuzz test (RES-8) and pagination property test (RES-9) pass.
 6. **Accuracy:** No statistically meaningful drop in task success versus the previous release.
 7. **Performance:** PERF-1 through PERF-5 met or regressions explained.
 8. **Documentation:** Every lint rule and error links to a working page.
@@ -583,8 +597,8 @@ Durations are planning estimates for a small team (about 26 weeks to 1.0) and sh
 
 | Milestone | Scope | Exit criteria | Estimate |
 | --- | --- | --- | --- |
-| **M0: Core spike** | `OunceServer` and tool decorator over FastMCP; typed inputs and outputs with declared effects; definition token counting; result budgets with concise and detailed formats and truncation; one read-only example server | Example server works in one named host; token counts match a manual recount; framework overhead measured against PERF-1 | 2 weeks |
-| **M1: Framework 0.1 (first public release)** | P0 requirements for CAP, BUD, DISC (`direct` and `search` with automatic switching), RES, ERR, EXE (except idempotency), and SEC; `init`, `dev`, `check`, `context`; docs site and quickstart; read-only inventory pilot | Install to first passing server under 5 minutes with five testers (DX-8); release gates 1, 2, 5, 7, and 8 pass | 6 weeks |
+| **M0: Core spike** | `OunceServer` and tool decorator over FastMCP; typed inputs and outputs with declared effects; definition token counting; result budgets with concise and detailed formats and truncation; one read-only example server | Example server works in one named host; token counts match a manual recount; framework overhead measured against PERF-1. **Status: done, except host verification**, which was verified over a real stdio client only and moves to M1 ([M0 report](m0-report.md)) | 2 weeks |
+| **M1: Framework 0.1 (first public release)** | P0 requirements for CAP, BUD, DISC (`direct` and `search` with automatic switching), RES, ERR, EXE (except idempotency), and SEC; **M0 carry-over first: RES-8 to RES-10, SEC-12, BUD-6 to BUD-9, PERF-7 (section 15.2)**; `init`, `dev`, `check`, `context`; docs site and quickstart; read-only inventory pilot | Install to first passing server under 5 minutes with five testers (DX-8); release gates 1, 2, 5, 7, and 8 pass; the inventory example works in Claude Desktop and VS Code, with versions recorded | 6 weeks |
 | **M2: Framework 0.2** | Safe writes (preview, approval, commit, idempotency), result handles, client broker, migration guide from FastMCP; ticketing, long-running report, and migration pilots; **optional `ouncemcp audit` command** | Pilots pass release gates 1–5; migration guide works on one existing FastMCP server; audit totals match `check` within 1% for the same server | 6 weeks |
 | **M3: Eval and benchmark 0.5** | Eval kit, `bench`, trace viewer, HTML reports; full benchmark of framework-built and migrated servers versus plain equivalents; public launch | Benchmark published with reproducible scripts; PERF-6 confirmed or revised | 6 weeks |
 | **M4: 1.0** | Remaining P1 requirements, external security review, host compatibility matrix, stable API | All release gates pass; security review complete; API frozen | 6 weeks |
@@ -600,6 +614,22 @@ Durations are planning estimates for a small team (about 26 weeks to 1.0) and sh
 | Migration of a popular open-source server | M2 | Real-world adoption cost | Lines changed and before-and-after measurements |
 
 For each pilot, compare against a direct FastMCP implementation and record lines of code, setup steps, unsupported cases, tokens, turns, and task success.
+
+### 15.2 M0 findings and M1 carry-over
+
+The M0 prototype ([M0 report](m0-report.md)) met its token-recount and overhead criteria. The limitations below are scheduled as the first M1 work, because later features (discovery, handles, writes) build on correct shaping and cursors.
+
+| M0 limitation | Risk if left | Requirement | M1 work |
+| --- | --- | --- | --- |
+| Text-only fallback drops structured content while an output schema is advertised | Violates MCP; clients that validate reject the result | RES-8 | Add a drop-optional-fields step and an `isError` path; fuzz test over outputs and budgets |
+| Framework trimming leaves gaps behind handler cursors | Agents silently miss items | RES-3, RES-9 | Budget-aware page helper; property test that every item is returned exactly once |
+| Cursors are unsigned base64 offsets | Tampering, cross-user reuse, filter mismatch | SEC-12 | Signed, principal-bound, expiring cursors with key rotation |
+| Tokenizer fixed to `o200k_base` | Misleading numbers for other model families | BUD-6 | Tokenizer interface; provider counting adapters in P1 |
+| Unknown which definition fields hosts show the model | Budgets may over- or under-count | BUD-7, BUD-9 | Declared counting scope; host study in Claude Desktop, VS Code, and one more host; decide the output-schema default |
+| Truncation path costs 1.44 ms p50 | Little headroom under PERF-1 | PERF-7 | Per-item token cache and incremental counting |
+| Example not yet run inside a host app | M0 exit criterion only partly met | M1 exit criteria | Manual run in two hosts, recorded in the compatibility matrix |
+
+Already fixed in M0 and kept as regression tests: wire-format counting (BUD-1), schema compaction (BUD-8), never trimming a list to zero (RES-10), and the cursor warning in the truncation note (RES-9).
 
 ---
 
@@ -673,6 +703,8 @@ Applied here:
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
 | Trimming removes information agents need | Lower task success | Accuracy gate; held-out task evaluation |
+| Budget enforcement breaks the output-schema contract | Strict clients reject results | RES-8 fuzz test in release gate 5 |
+| Trimmed pages hide items behind cursors | Agents miss data without noticing | RES-9 property test; budget-aware page helper |
 | Hosts present definitions differently | Misleading token figures | State tokenizer and method; offer provider counting APIs |
 | MCP standardizes discovery or result contracts differently | Rework | Thin adapters; track working groups |
 | FastMCP changes break the layer | Maintenance load | Pin versions; contribute upstream; integration tests |
@@ -690,7 +722,10 @@ Applied here:
 | --- | --- | --- |
 | Project name | Decided: OunceMCP. Reserve `ouncemcp` on PyPI and npm and the GitHub organization; run a trademark search before launch | Done (reservation in M0) |
 | Reference language | Python on FastMCP 4 | M0 |
-| Default tokenizer | `o200k_base` with optional provider APIs | M0 |
+| Default tokenizer | Decided for M0: `o200k_base`. Pluggable interface (BUD-6) in M1 | Done (interface in M1) |
+| Output schemas default | `on` until the BUD-7 host study shows whether models see them; then `on` or `auto` | M1 |
+| Cursor signing keys | Server secret from configuration or environment; random per-process key in `dev` with a warning | M1 |
+| Over-budget minimal result | Tool error with a recovery hint (RES-8), rather than unstructured text | M1 |
 | Budget defaults | Values in 8.1.2, revised from benchmark data | M3 |
 | Telemetry | Off by default; opt-in anonymous counts | M1 |
 | Audit packaging | Built into the CLI, documented as optional | M2 |
@@ -701,7 +736,7 @@ Applied here:
 
 ## 19. Research limits
 
-- No implementation, load test, or benchmark has been run for this specification.
+- Only the M0 prototype has been built and measured, on one example server and one machine; no load test or agent task benchmark has been run.
 - Several performance figures come from vendor or community benchmarks with different setups; they show magnitude, not controlled comparisons.
 - Version and framework facts are time-sensitive and must be rechecked before each milestone.
 - Market demand is inferred from public discussion and benchmarks, not validated with users; M1 is designed to test it.

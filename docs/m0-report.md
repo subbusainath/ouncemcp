@@ -67,6 +67,8 @@ Most of the added time is token counting. The truncation path is the most expens
 
 ## Known limitations
 
+Each limitation below now has an M1 requirement in the spec (section 15.2): RES-8 for the fallback, BUD-6 for the tokenizer, BUD-7 and BUD-9 for host visibility, SEC-12 for cursors, RES-9 for pagination, and PERF-7 for truncation speed.
+
 - **Text-only fallback.** When a result cannot fit even after trimming lists and strings, OunceMCP returns truncated text with no `structuredContent`. If an output schema is advertised, that breaks the MCP expectation that structured results match it. This must be fixed in M1, either by returning a tool error or by guaranteeing a minimal valid structure.
 - **Tokenizer.** Counts use `o200k_base`. Other model tokenizers differ, so treat the numbers as a consistent relative measure, not an exact bill. Pluggable tokenizers are planned.
 - **What the model sees is host-dependent.** Counts include the name, description, input schema, and output schema. They exclude `title`, annotations, and `_meta`, which hosts typically do not put in the prompt. This has not been verified per host.
