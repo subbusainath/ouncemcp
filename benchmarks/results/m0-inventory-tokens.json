@@ -1,0 +1,38 @@
+{
+  "tokenizer": "o200k_base",
+  "python": "3.12.15",
+  "startup_tokens": {
+    "ouncemcp": 488,
+    "plain": 195
+  },
+  "tasks": [
+    {
+      "task": "List resources in ap-south-1",
+      "ouncemcp_tokens": 498,
+      "plain_tokens": 29716,
+      "ouncemcp_truncated": false
+    },
+    {
+      "task": "Find degraded databases in ap-south-1",
+      "ouncemcp_tokens": 153,
+      "plain_tokens": 1777,
+      "ouncemcp_truncated": false
+    },
+    {
+      "task": "Who owns resource da-00002?",
+      "ouncemcp_tokens": 101,
+      "plain_tokens": 296,
+      "ouncemcp_truncated": false
+    },
+    {
+      "task": "Show config and metrics for da-00002",
+      "ouncemcp_tokens": 270,
+      "plain_tokens": 296,
+      "ouncemcp_truncated": false
+    }
+  ],
+  "session_total": {
+    "ouncemcp": 1510,
+    "plain": 32280
+  }
+}
