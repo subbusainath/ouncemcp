@@ -11,23 +11,28 @@ import inspect
 import re
 import sys
 import typing
-from collections.abc import Callable
-from dataclasses import dataclass
-from typing import Any, Literal
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass, field
+from typing import Any, Literal, TypeVar, cast
 
 import anyio
+import jsonschema
 from fastmcp import FastMCP
 from fastmcp.server.context import Context as FastMCPContext
 from fastmcp.tools import FunctionTool, ToolResult
-from mcp_types import TextContent
+from mcp_types import TextContent, ToolAnnotations
 from pydantic import BaseModel
 
 from ouncemcp.core.budget import Budget
 from ouncemcp.core.costs import ServerCost, measure_tools
+from ouncemcp.core.cursor import InvalidCursor, decode_offset, encode_offset
 from ouncemcp.core.effects import Effect
+from ouncemcp.core.pagination import PageFields, PageWindow, find_page_fields, window
 from ouncemcp.core.schema import compact_schema
 from ouncemcp.core.shaping import (
+    PageSpec,
     ResponseFormat,
+    ResultTooLarge,
     model_has_detail_fields,
     shape_result,
     validate_detail_fields,
@@ -61,7 +66,10 @@ RESERVED_PARAMS = frozenset(
 INJECTED_PARAMS = frozenset({"response_format", "ctx"})
 
 
-@dataclass(frozen=True)
+T = TypeVar("T")
+
+
+@dataclass
 class ToolContext:
     """Per-call information passed to handlers that declare a ``ToolContext`` parameter.
 
@@ -77,6 +85,31 @@ class ToolContext:
     response_format: ResponseFormat
     result_budget: int
     fastmcp: FastMCPContext | None = None
+    _window: PageWindow[Any] | None = field(default=None, repr=False)
+
+    def offset(self, cursor: str | None) -> int:
+        """Decode a cursor issued by this tool into a start offset (``None`` is 0)."""
+        return decode_offset(cursor)
+
+    def page(self, rows: Sequence[T], *, cursor: str | None, limit: int) -> PageWindow[T]:
+        """Slice one page from ``rows``. If OunceMCP trims the page to fit the result
+        budget, it moves ``next_cursor`` to resume after the last item returned."""
+        self._window = window(rows, start=self.offset(cursor), limit=limit)
+        return self._window
+
+    def window(
+        self, items: Sequence[T], *, start: int, has_more: bool, total: int | None = None
+    ) -> PageWindow[T]:
+        """Register a page fetched elsewhere (for example ``OFFSET start LIMIT n``)."""
+        items = list(items)
+        end = start + len(items)
+        self._window = PageWindow(
+            items=items,
+            start=start,
+            total=total,
+            next_cursor=encode_offset(end) if has_more else None,
+        )
+        return self._window
 
 
 @dataclass(frozen=True)
@@ -87,6 +120,17 @@ class ToolSpec:
     input_model: type[BaseModel] | None
     has_detail: bool
     result_tokens: int | None
+    min_items: int = 1
+    page_fields: PageFields | None = None
+
+
+def _error_result(message: str, meta: dict[str, Any]) -> ToolResult:
+    """A tool execution error (``isError: true``) the model can act on."""
+    return ToolResult(
+        content=[TextContent(type="text", text=message)],
+        meta={"ouncemcp": meta},
+        is_error=True,
+    )
 
 
 def _is_model(annotation: Any) -> bool:
@@ -139,6 +183,7 @@ class OunceServer:
         result_tokens: int | None = None,
         deadline_ms: int | None = None,
         tags: set[str] | None = None,
+        min_items: int = 1,
     ) -> Any:
         """Register a tool. ``effect`` is required.
 
@@ -158,6 +203,7 @@ class OunceServer:
                 result_tokens=result_tokens,
                 deadline_ms=deadline_ms,
                 tags=tags,
+                min_items=min_items,
             )
             return handler
 
@@ -176,6 +222,7 @@ class OunceServer:
         result_tokens: int | None,
         deadline_ms: int | None,
         tags: set[str] | None,
+        min_items: int = 1,
     ) -> None:
         tool_name = name or handler.__name__
         if not isinstance(effect, Effect):
@@ -195,6 +242,11 @@ class OunceServer:
                 f"Tool '{tool_name}': result_tokens must be between 1 and the server's "
                 f"result_ceiling ({self.budget.result_ceiling})"
             )
+        if not isinstance(min_items, int) or min_items < 1:
+            raise ValueError(
+                f"Tool '{tool_name}': min_items must be an integer >= 1; lists are never "
+                "trimmed to zero items (spec RES-10)"
+            )
         doc = description or inspect.getdoc(handler)
         if not doc:
             raise ValueError(
@@ -202,14 +254,16 @@ class OunceServer:
             )
 
         hints = typing.get_type_hints(handler, include_extras=True)
-        output_model = hints.get("return")
-        if not _is_model(output_model):
+        returned = hints.get("return")
+        if not _is_model(returned):
             raise TypeError(
                 f"Tool '{tool_name}' must be annotated to return a Pydantic model "
                 "(typed outputs, spec CAP-1)"
             )
+        output_model = cast(type[BaseModel], returned)
         validate_detail_fields(output_model)
         has_detail = model_has_detail_fields(output_model)
+        page_fields = find_page_fields(output_model, tool_name)
 
         sig = inspect.signature(handler)
         ctx_param: str | None = None
@@ -278,7 +332,11 @@ class OunceServer:
             input_model=input_model,
             has_detail=has_detail,
             result_tokens=result_tokens,
+            min_items=min_items,
+            page_fields=page_fields,
         )
+        # Filled in after registration, from the schema actually advertised.
+        schema_state: dict[str, Any] = {"validator": None, "strict": True}
         is_async = inspect.iscoroutinefunction(handler)
         budget = self.budget
         counter = self.counter
@@ -293,25 +351,64 @@ class OunceServer:
             )
             call_kwargs: dict[str, Any]
             if input_model is not None:
+                assert model_param is not None
                 call_kwargs = {model_param: input_model.model_validate(kwargs)}
             else:
                 call_kwargs = dict(kwargs)
+            tool_ctx = ToolContext(
+                tool=tool_name,
+                response_format=response_format,
+                result_budget=limit,
+                fastmcp=fastmcp_ctx,
+            )
             if ctx_param is not None:
-                call_kwargs[ctx_param] = ToolContext(
-                    tool=tool_name,
-                    response_format=response_format,
-                    result_budget=limit,
-                    fastmcp=fastmcp_ctx,
-                )
-            if is_async:
-                result = await handler(**call_kwargs)
-            else:
-                result = await anyio.to_thread.run_sync(lambda: handler(**call_kwargs))
+                call_kwargs[ctx_param] = tool_ctx
+            try:
+                if is_async:
+                    result = await handler(**call_kwargs)
+                else:
+                    result = await anyio.to_thread.run_sync(lambda: handler(**call_kwargs))
+            except InvalidCursor as exc:
+                return _error_result(str(exc), {"error": "invalid_cursor"})
             if not isinstance(result, output_model):
                 result = output_model.model_validate(result)
-            shaped = shape_result(
-                result, response_format=response_format, budget=limit, counter=counter
-            )
+            page = None
+            pf = spec.page_fields
+            if pf is not None and tool_ctx._window is not None:
+                page = PageSpec(
+                    list_key=pf.list_key,
+                    cursor_key=pf.cursor_key,
+                    start=tool_ctx._window.start,
+                    count=len(tool_ctx._window.items),
+                    encode=encode_offset,
+                )
+            try:
+                shaped = shape_result(
+                    result,
+                    response_format=response_format,
+                    budget=limit,
+                    counter=counter,
+                    validator=schema_state["validator"],
+                    strict=schema_state["strict"],
+                    min_items=spec.min_items,
+                    page=page,
+                    cursor_hint=pf.cursor_key if pf is not None else None,
+                    assume_valid=True,
+                )
+            except ResultTooLarge as exc:
+                hint = " or use response_format=concise" if response_format == "detailed" else ""
+                return _error_result(
+                    f"[ouncemcp] Result too large for '{tool_name}': the smallest valid "
+                    f"result is about {exc.min_tokens} tokens, over the {exc.budget}-token "
+                    f"budget. Ask for fewer items with a lower limit, or narrow the "
+                    f"filters{hint}.",
+                    {
+                        "error": "result_too_large",
+                        "min_tokens": exc.min_tokens,
+                        "budget": exc.budget,
+                        "format": response_format,
+                    },
+                )
             return ToolResult(
                 content=[TextContent(type="text", text=shaped.text)],
                 structured_content=shaped.data,
@@ -332,7 +429,7 @@ class OunceServer:
             name=tool_name,
             title=title,
             description=doc,
-            annotations=effect.annotations(),
+            annotations=ToolAnnotations.model_validate(effect.annotations()),
             tags=tags,
             timeout=(deadline_ms / 1000) if deadline_ms else None,
         )
@@ -342,6 +439,13 @@ class OunceServer:
             registered.output_schema = compact_schema(registered.output_schema)
         else:
             registered.output_schema = None
+        # RES-8: shaping keeps results valid against the schema that is advertised. With
+        # output schemas off, the model schema still guides shaping, and the text-only
+        # fallback is allowed because no structured contract was promised.
+        advertised = registered.output_schema
+        schema_for_shaping = advertised or compact_schema(output_model.model_json_schema())
+        schema_state["validator"] = jsonschema.Draft202012Validator(schema_for_shaping)
+        schema_state["strict"] = advertised is not None
         self.fastmcp.add_tool(registered)
         self._specs[tool_name] = spec
 
@@ -369,7 +473,13 @@ class OunceServer:
 
     # ------------------------------------------------------------------ running
 
-    def run(self, transport: str = "stdio", *, check_budget: bool = True, **kwargs: Any) -> None:
+    def run(
+        self,
+        transport: Literal["stdio", "http", "sse", "streamable-http"] = "stdio",
+        *,
+        check_budget: bool = True,
+        **kwargs: Any,
+    ) -> None:
         """Run the server. Prints a budget summary to stderr (stdout stays protocol-only)."""
         if check_budget:
             report = asyncio.run(self.cost_report())

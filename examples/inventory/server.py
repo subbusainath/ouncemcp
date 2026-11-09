@@ -6,13 +6,12 @@ Check token budget:  ouncemcp check examples/inventory/server.py
 
 from __future__ import annotations
 
-import base64
 from typing import Annotated, Literal
 
 from data import BY_ID, RESOURCES
 from pydantic import BaseModel, Field
 
-from ouncemcp import Detail, Effect, OunceServer
+from ouncemcp import Cursor, Detail, Effect, OunceServer, Paginated, ToolContext
 
 server = OunceServer(
     "inventory",
@@ -27,7 +26,7 @@ class SearchInput(BaseModel):
     region: str = Field(description="Region, e.g. ap-south-1")
     kind: Kind | None = None
     status: Status | None = None
-    limit: int = Field(20, ge=1, le=50)
+    limit: int = Field(20, ge=1, le=100)
     cursor: str | None = Field(None, description="next_cursor from a previous call")
 
 
@@ -41,9 +40,9 @@ class ResourceSummary(BaseModel):
 
 
 class SearchResult(BaseModel):
-    items: list[ResourceSummary]
+    items: Annotated[list[ResourceSummary], Paginated]
     total: int
-    next_cursor: str | None = None
+    next_cursor: Cursor = None
 
 
 class ResourceDetail(BaseModel):
@@ -60,21 +59,8 @@ class ResourceDetail(BaseModel):
     metrics: Annotated[dict | None, Detail] = None
 
 
-def _encode(offset: int) -> str:
-    return base64.urlsafe_b64encode(str(offset).encode()).decode()
-
-
-def _decode(cursor: str | None) -> int:
-    if not cursor:
-        return 0
-    try:
-        return int(base64.urlsafe_b64decode(cursor.encode()).decode())
-    except ValueError as exc:
-        raise ValueError("Invalid cursor; pass next_cursor from the previous result") from exc
-
-
 @server.tool(name="inventory.search", effect=Effect.READ, deadline_ms=5_000)
-async def search(args: SearchInput) -> SearchResult:
+async def search(args: SearchInput, ctx: ToolContext) -> SearchResult:
     """Find cloud resources in a region, optionally filtered by kind and status.
     Use inventory.get for full details of one resource."""
     rows = [
@@ -84,13 +70,13 @@ async def search(args: SearchInput) -> SearchResult:
         and (args.kind is None or r["kind"] == args.kind)
         and (args.status is None or r["status"] == args.status)
     ]
-    start = _decode(args.cursor)
-    page = rows[start : start + args.limit]
-    end = start + len(page)
+    # If the page is trimmed to fit the result budget, OunceMCP moves next_cursor
+    # so the next call resumes right after the last item returned (spec RES-9).
+    page = ctx.page(rows, cursor=args.cursor, limit=args.limit)
     return SearchResult(
-        items=[ResourceSummary(**r) for r in page],
+        items=[ResourceSummary(**r) for r in page.items],
         total=len(rows),
-        next_cursor=_encode(end) if end < len(rows) else None,
+        next_cursor=page.next_cursor,
     )
 
 

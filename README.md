@@ -22,7 +22,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
-from ouncemcp import Detail, Effect, OunceServer
+from ouncemcp import Cursor, Detail, Effect, OunceServer, Paginated, ToolContext
 
 server = OunceServer("inventory")
 
@@ -41,14 +41,16 @@ class Resource(BaseModel):
 
 
 class SearchResult(BaseModel):
-    items: list[Resource]
-    next_cursor: str | None = None
+    items: Annotated[list[Resource], Paginated]
+    next_cursor: Cursor = None
 
 
 @server.tool(name="inventory.search", effect=Effect.READ, deadline_ms=5_000)
-async def search(args: SearchInput) -> SearchResult:
+async def search(args: SearchInput, ctx: ToolContext) -> SearchResult:
     """Find cloud resources in a region."""
-    ...
+    rows = await load_resources(args.region)
+    page = ctx.page(rows, cursor=args.cursor, limit=args.limit)
+    return SearchResult(items=page.items, next_cursor=page.next_cursor)
 
 
 if __name__ == "__main__":
@@ -61,7 +63,8 @@ What you get:
 - **Typed inputs and outputs:** Pydantic models in, Pydantic models out, validated both ways.
 - **Compact schemas:** optional fields are advertised without the `anyOf`/`null` noise.
 - **Concise by default:** fields marked `Detail` are only returned when the agent asks for `response_format="detailed"`.
-- **Result budgets:** every result fits its token budget. Lists are trimmed first, then long strings, and the agent gets a note saying what was removed and how to get more.
+- **Result budgets:** every result fits its token budget and still matches its output schema. Lists are trimmed first, then long strings, then optional fields, and the agent gets a note saying what was removed and how to get more. If the smallest valid result is still too large, the agent gets an `isError` result asking for a narrower call instead of broken JSON.
+- **Safe pagination:** mark the page list `Paginated` and the cursor `Cursor`, and use `ctx.page(...)`. If OunceMCP trims the page to fit the budget, it moves `next_cursor` so the next call resumes after the last item returned. No item is skipped or repeated. Lists are never trimmed below `min_items` (default 1).
 - **Budget checks:** `ouncemcp check server.py` counts the tokens of every tool definition as the host receives it, and fails CI when a tool goes over budget.
 
 ```bash
@@ -80,6 +83,8 @@ Measured on the inventory example with the `o200k_base` tokenizer. Full method a
 | Tool definitions (2 tools) | 488 tokens | 195 tokens |
 | Four-task session, definitions plus results | 1,510 tokens | 32,280 tokens |
 | Added server time per call, p50 / p95 | 0.14–0.44 ms / 0.07–0.47 ms (1.44 / 1.32 ms when truncating) | baseline |
+
+After the M1 schema-safe shaping work, truncated calls add 1.85 / 1.94 ms (p50 / p95) because every change is checked against the output schema. Other calls are unchanged. See [proposal 0002](docs/proposals/0002-schema-safe-shaping-and-pagination.md).
 
 Typed output schemas make definitions larger. Results are where the savings come from. Servers that don't need output schemas can pass `output_schemas=False` (247 tokens for this example).
 
