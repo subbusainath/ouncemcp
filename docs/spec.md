@@ -5,13 +5,13 @@ Project specification
 | Field | Value |
 | --- | --- |
 | Project name | **OunceMCP**. Package and CLI: `ouncemcp`; Python import: `ouncemcp`. The name was free on PyPI, npm, and GitHub on 9 November 2026; reserve it before announcing |
-| Document type | Project specification, version 0.5 (SEC-12, BUD-6, BUD-7, BUD-9 and discovery modes merged, errors and execution limits in review) |
+| Document type | Project specification, version 0.6 (SEC-12, BUD-6, BUD-7, BUD-9, discovery modes, and errors and execution limits merged; milestone status in section 15.4) |
 | Date | 10 November 2026 |
 | Target protocol | MCP specification `2026-07-28`, with tested legacy compatibility |
 | Reference implementation | Python, built on FastMCP 4 and the official MCP Python SDK |
 | License (proposed) | Apache-2.0 |
-| Status | M0 done ([M0 report](m0-report.md)). M1 in progress: RES-8 to RES-10 and PERF-7 are merged ([PR #3](https://github.com/subbusainath/ouncemcp/pull/3), [PR #4](https://github.com/subbusainath/ouncemcp/pull/4)). SEC-12 is merged ([PR #7](https://github.com/subbusainath/ouncemcp/pull/7)). BUD-6 is merged ([PR #8](https://github.com/subbusainath/ouncemcp/pull/8)). BUD-7 (declared scope) and BUD-9 are merged ([PR #9](https://github.com/subbusainath/ouncemcp/pull/9)). Discovery modes DISC-1 to DISC-5 and DISC-7 are merged ([PR #10](https://github.com/subbusainath/ouncemcp/pull/10)), with a recall hook for DISC-6. ERR-1 to ERR-3, EXE-1 to EXE-3 and EXE-6 are implemented in [PR #11](https://github.com/subbusainath/ouncemcp/pull/11), open for review. Next: the BUD-7 host study. See section 15.3 |
-| Repository | [github.com/subbusainath/ouncemcp](https://github.com/subbusainath/ouncemcp) (private), default branch `main`, last merge `8a0c1ac` (PR #10) |
+| Status | M0 done ([M0 report](m0-report.md)). M1 in progress: RES-8 to RES-10 and PERF-7 are merged ([PR #3](https://github.com/subbusainath/ouncemcp/pull/3), [PR #4](https://github.com/subbusainath/ouncemcp/pull/4)). SEC-12 is merged ([PR #7](https://github.com/subbusainath/ouncemcp/pull/7)). BUD-6 is merged ([PR #8](https://github.com/subbusainath/ouncemcp/pull/8)). BUD-7 (declared scope) and BUD-9 are merged ([PR #9](https://github.com/subbusainath/ouncemcp/pull/9)). Discovery modes DISC-1 to DISC-5 and DISC-7 are merged ([PR #10](https://github.com/subbusainath/ouncemcp/pull/10)), with a recall hook for DISC-6. ERR-1 to ERR-3, EXE-1 to EXE-3 and EXE-6 are merged ([PR #11](https://github.com/subbusainath/ouncemcp/pull/11)). M0 is done and M1 is about half done; M2 to M4 have not started. Completed and pending milestones are listed in section 15.4. Next: SEC, the host study, `init` and `dev`. See section 15.3 |
+| Repository | [github.com/subbusainath/ouncemcp](https://github.com/subbusainath/ouncemcp) (private), default branch `main`, last merge `241f7e7` (PR #11) |
 
 This specification turns two research investigations into a buildable plan. Protocol facts are cited to primary sources. Requirements, default limits, interfaces, and milestones are proposals and are marked as such; numeric defaults must be validated experimentally before being presented as recommendations to users.
 
@@ -22,6 +22,8 @@ This specification turns two research investigations into a buildable plan. Prot
 **Change in version 0.4.** M1 work has started. RES-8, RES-9, RES-10 and PERF-7 are implemented, tested and merged, and RES-4's fixed note reserve has been replaced by the note's measured size. Section 15.3 records the implementation status, public API, commands and next tasks, so work can continue in another tool (Cursor, the Claude app, or a new session) from this document alone. Design detail is in [proposal 0002](proposals/0002-schema-safe-shaping-and-pagination.md).
 
 **Change in version 0.5.** SEC-12 is implemented in [PR #7](https://github.com/subbusainath/ouncemcp/pull/7): `ctx.page`, `ctx.offset` and `ctx.window` now issue HMAC-signed `s1.` cursors that are bound to the tool, the caller and the query arguments, expire, and support key rotation. Section 15.3 is updated to match. Design detail is in [proposal 0003](proposals/0003-signed-cursors.md). PR #7 is merged into `main`.
+
+**Change in version 0.6.** [PR #11](https://github.com/subbusainath/ouncemcp/pull/11) is merged: error categories, deadlines, bounded read retries, request limits and the write-resolver seam (proposal 0007). Section 15.4 is new. It lists which milestones and requirements are complete and which are pending, so the status can be read in one place.
 
 **Requirement keywords.** MUST, SHOULD, and MAY in the requirement tables are this project's internal requirements, not MCP specification requirements, unless a citation states otherwise. Priorities: **P0** is required for the first public release, **P1** for the 1.0 release, and **P2** is planned later.
 
@@ -605,7 +607,7 @@ Durations are planning estimates for a small team (about 26 weeks to 1.0) and sh
 | Milestone | Scope | Exit criteria | Estimate |
 | --- | --- | --- | --- |
 | **M0: Core spike** | `OunceServer` and tool decorator over FastMCP; typed inputs and outputs with declared effects; definition token counting; result budgets with concise and detailed formats and truncation; one read-only example server | Example server works in one named host; token counts match a manual recount; framework overhead measured against PERF-1. **Status: done, except host verification**, which was verified over a real stdio client only and moves to M1 ([M0 report](m0-report.md)) | 2 weeks |
-| **M1: Framework 0.1 (first public release)** | P0 requirements for CAP, BUD, DISC (`direct` and `search` with automatic switching), RES, ERR, EXE (except idempotency), and SEC; **M0 carry-over first: RES-8 to RES-10, SEC-12, BUD-6 to BUD-9, PERF-7 (section 15.2)**. **Status: in progress. RES-8 to RES-10, PERF-7 and SEC-12 done; BUD-6 done; BUD-7 (declared scope) and BUD-9 done; DISC-1 to DISC-5 and DISC-7 done (DISC-6 partly); ERR-1 to ERR-3, EXE-1 to EXE-3 and EXE-6 done (in review, PR #11); BUD-7 host study next (section 15.3)**; `init`, `dev`, `check`, `context`; docs site and quickstart; read-only inventory pilot | Install to first passing server under 5 minutes with five testers (DX-8); release gates 1, 2, 5, 7, and 8 pass; the inventory example works in Claude Desktop and VS Code, with versions recorded | 6 weeks |
+| **M1: Framework 0.1 (first public release)** | P0 requirements for CAP, BUD, DISC (`direct` and `search` with automatic switching), RES, ERR, EXE (except idempotency), and SEC; **M0 carry-over first: RES-8 to RES-10, SEC-12, BUD-6 to BUD-9, PERF-7 (section 15.2)**. **Status: in progress. RES-8 to RES-10, PERF-7 and SEC-12 done; BUD-6 done; BUD-7 (declared scope) and BUD-9 done; DISC-1 to DISC-5 and DISC-7 done (DISC-6 partly); ERR-1 to ERR-3, EXE-1 to EXE-3 and EXE-6 done (PR #11, merged); SEC-1 to SEC-11, `init`, `dev`, the docs site and host verification still open (sections 15.3 and 15.4)**; `init`, `dev`, `check`, `context`; docs site and quickstart; read-only inventory pilot | Install to first passing server under 5 minutes with five testers (DX-8); release gates 1, 2, 5, 7, and 8 pass; the inventory example works in Claude Desktop and VS Code, with versions recorded | 6 weeks |
 | **M2: Framework 0.2** | Safe writes (preview, approval, commit, idempotency), result handles, client broker, migration guide from FastMCP; ticketing, long-running report, and migration pilots; **optional `ouncemcp audit` command** | Pilots pass release gates 1–5; migration guide works on one existing FastMCP server; audit totals match `check` within 1% for the same server | 6 weeks |
 | **M3: Eval and benchmark 0.5** | Eval kit, `bench`, trace viewer, HTML reports; full benchmark of framework-built and migrated servers versus plain equivalents; public launch | Benchmark published with reproducible scripts; PERF-6 confirmed or revised | 6 weeks |
 | **M4: 1.0** | Remaining P1 requirements, external security review, host compatibility matrix, stable API | All release gates pass; security review complete; API frozen | 6 weeks |
@@ -640,7 +642,7 @@ Already fixed in M0 and kept as regression tests: wire-format counting (BUD-1), 
 
 ### 15.3 Implementation status and handoff
 
-This section is the starting point for continuing the work in another tool, such as Cursor, the Claude app or Claude Code, or a new session. It reflects `main` at `8a0c1ac` (after [PR #10](https://github.com/subbusainath/ouncemcp/pull/10), which implements discovery modes) plus [PR #11](https://github.com/subbusainath/ouncemcp/pull/11), which implements the error categories and execution limits and was open for review when this was written. Until it is merged, the code in the PR branch `cursor/err-exe-errors-and-execution-d567` is the reference for errors and limits. The last code change on `main` is [PR #10](https://github.com/subbusainath/ouncemcp/pull/10).
+This section is the starting point for continuing the work in another tool, such as Cursor, the Claude app or Claude Code, or a new session. It reflects `main` at `241f7e7`, after [PR #10](https://github.com/subbusainath/ouncemcp/pull/10) (discovery modes) and [PR #11](https://github.com/subbusainath/ouncemcp/pull/11) (error categories and execution limits). The last code change on `main` is [PR #11](https://github.com/subbusainath/ouncemcp/pull/11). Section 15.4 summarizes which milestones are complete and which are pending.
 
 Read these first, in this order:
 
@@ -658,7 +660,7 @@ If this document and the code disagree, the code on `main` wins. Update this doc
 | Repository | [subbusainath/ouncemcp](https://github.com/subbusainath/ouncemcp), private, default branch `main` |
 | Stack | Python 3.11 to 3.13, FastMCP 4.1.6, MCP Python SDK 2.3.0, Pydantic 2.14, tiktoken 0.14 (`o200k_base`), jsonschema 4.26 |
 | CI | GitHub Actions on Python 3.11, 3.12 and 3.13: `ruff check`, `ruff format --check`, `mypy`, `pytest` |
-| Tests | 391 passing, including Hypothesis property tests (239 on `main`, 152 added in PR #11) |
+| Tests | 391 passing, including Hypothesis property tests |
 
 | PR | What it did | State |
 | --- | --- | --- |
@@ -672,7 +674,7 @@ If this document and the code disagree, the code on `main` wins. Update this doc
 | [#8](https://github.com/subbusainath/ouncemcp/pull/8) | BUD-6: pluggable tokenizer named in every report; proposal 0004 | Merged |
 | [#9](https://github.com/subbusainath/ouncemcp/pull/9) | BUD-7 declared counting scope and BUD-9 output-schema modes and share; proposal 0005 | Merged |
 | [#10](https://github.com/subbusainath/ouncemcp/pull/10) | DISC-1 to DISC-5 and DISC-7: automatic `direct`/`search` discovery, `auth=` on tools, `check` reports the mode, recall hook for DISC-6; proposal 0006 | Merged |
-| [#11](https://github.com/subbusainath/ouncemcp/pull/11) | ERR-1 to ERR-3 and EXE-1 to EXE-3, EXE-6: error categories and redaction, deadlines, bounded read retries, ambiguous writes with a resolver seam, request limits; proposal 0007 | Open, awaiting owner review |
+| [#11](https://github.com/subbusainath/ouncemcp/pull/11) | ERR-1 to ERR-3 and EXE-1 to EXE-3, EXE-6: error categories and redaction, deadlines, bounded read retries, ambiguous writes with a resolver seam, request limits; proposal 0007 | Merged |
 
 #### Public API today
 
@@ -747,7 +749,7 @@ Behavior to keep in mind:
 | `examples/inventory/` | `server.py` (OunceMCP), `plain_server.py` (plain FastMCP baseline), `data.py` |
 | `benchmarks/scripts/` | `m0_compare.py` (session tokens), `m0_overhead.py` (server overhead), `m1_truncation.py` (shaping time) |
 | `tests/` | `test_disc_discovery.py`, `test_err_errors.py`, `test_exe_execution.py`, `test_sec12_cursors.py`, `test_res8_conformance.py`, `test_res9_pagination.py`, `test_shaping_fit.py`, `test_shaping.py`, `test_server.py`, `test_schema.py`, `test_cli.py`, `test_stdio_e2e.py` and others |
-| `docs/` | `spec.md` (repository copy of this spec, version 0.5), `m0-report.md`, `proposals/0001-m0-core-api.md`, `proposals/0002-schema-safe-shaping-and-pagination.md`, `proposals/0003-signed-cursors.md`, `proposals/0004-pluggable-tokenizer.md`, `proposals/0005-counting-scope-and-output-schema-modes.md`, `proposals/0006-discovery-modes.md`, `proposals/0007-errors-and-execution-limits.md` |
+| `docs/` | `spec.md` (repository copy of this spec, version 0.6), `m0-report.md`, `proposals/0001-m0-core-api.md`, `proposals/0002-schema-safe-shaping-and-pagination.md`, `proposals/0003-signed-cursors.md`, `proposals/0004-pluggable-tokenizer.md`, `proposals/0005-counting-scope-and-output-schema-modes.md`, `proposals/0006-discovery-modes.md`, `proposals/0007-errors-and-execution-limits.md` |
 
 #### Commands
 
@@ -812,7 +814,72 @@ These were measured on Python 3.12.15, x86_64, 2 vCPU.
 
 #### Prompt to start a new session
 
-> You are continuing OunceMCP, an open-source Python framework on FastMCP 4 for building fast, low-noise MCP servers. The repository is `subbusainath/ouncemcp` (private), and `main` is at `8a0c1ac` or later. Read section 15.3 of the attached spec (version 0.5, also at `docs/spec.md`) and follow its reading order. RES-8 to RES-10, PERF-7, SEC-12, BUD-6, BUD-7 (declared scope) and BUD-9 are done and merged, and discovery modes (DISC-1 to DISC-5 and DISC-7) are done and merged, and the error categories and execution limits (ERR-1 to ERR-3, EXE-1 to EXE-3, EXE-6) are in PR #11 (check whether it is merged and start from `main` once it is). Start the next open item from section 15.3 on a new branch, then implement test-first. Keep CI green (ruff, ruff format, mypy, pytest), and open a PR into `main` for the owner to review. After it is merged, update the item and section 15.3 in both copies of the spec.
+> You are continuing OunceMCP, an open-source Python framework on FastMCP 4 for building fast, low-noise MCP servers. The repository is `subbusainath/ouncemcp` (private), and `main` is at `241f7e7` or later. Read section 15.3 of the attached spec (version 0.6, also at `docs/spec.md`) and follow its reading order. RES-8 to RES-10, PERF-7, SEC-12, BUD-6, BUD-7 (declared scope) and BUD-9 are done and merged, and discovery modes (DISC-1 to DISC-5 and DISC-7) are done and merged, and the error categories and execution limits (ERR-1 to ERR-3, EXE-1 to EXE-3, EXE-6) are done and merged (PR #11). Section 15.4 lists what is still pending. Start the next open item from section 15.3 on a new branch, then implement test-first. Keep CI green (ruff, ruff format, mypy, pytest), and open a PR into `main` for the owner to review. After it is merged, update the item and section 15.3 in both copies of the spec.
+
+### 15.4 Milestone status: completed and pending
+
+Status as of `main` at `241f7e7` (10 November 2026, after [PR #11](https://github.com/subbusainath/ouncemcp/pull/11)). M0 requirement status is taken from the [M0 report](m0-report.md) and was not re-audited line by line. Everything else is traced to a merged pull request.
+
+| Milestone | State | Summary |
+| --- | --- | --- |
+| **M0: Core spike** | **Complete**, except host verification (moved to M1) | Core, budgets, shaping, token counting, `check` and `context`, inventory example, overhead measured |
+| **M1: Framework 0.1** | **In progress, about half of the P0 work done** | Carry-over, discovery, errors and execution are done. Security, developer commands, docs and host verification are open |
+| **M2: Framework 0.2** | Not started | Safe writes, handles, client broker, migration guide, three more pilots, optional `audit` |
+| **M3: Eval and benchmark 0.5** | Not started | Eval kit, `bench`, trace viewer, published benchmark, public launch |
+| **M4: 1.0** | Not started | Remaining P1 work, external security review, host matrix, stable API |
+| **Post-1.0** | Not started | TypeScript port, `code` discovery mode, more idempotency backends, `npx` audit wrapper |
+
+#### Completed (merged into `main`)
+
+| Area | Requirements | Delivered in |
+| --- | --- | --- |
+| M0 core | CAP-1, CAP-3, CAP-4, CAP-6, BUD-1 to BUD-3, BUD-8, RES-1 to RES-4, RES-6, RES-7; `check` and `context` commands; inventory example | [PR #1](https://github.com/subbusainath/ouncemcp/pull/1) |
+| Schema-safe shaping and pagination | RES-8, RES-9, RES-10 | [PR #3](https://github.com/subbusainath/ouncemcp/pull/3) |
+| Shaping speed | PERF-7 (0.70 ms p50) | [PR #4](https://github.com/subbusainath/ouncemcp/pull/4) |
+| Signed cursors | SEC-12 | [PR #7](https://github.com/subbusainath/ouncemcp/pull/7) |
+| Pluggable tokenizer | BUD-6 (tiktoken encodings and callables) | [PR #8](https://github.com/subbusainath/ouncemcp/pull/8) |
+| Counting scope and output-schema modes | BUD-7 (declared scope), BUD-9 | [PR #9](https://github.com/subbusainath/ouncemcp/pull/9) |
+| Discovery modes | DISC-1 to DISC-5, DISC-7 | [PR #10](https://github.com/subbusainath/ouncemcp/pull/10) |
+| Errors and execution limits | ERR-1 to ERR-3, EXE-1 to EXE-3, EXE-6 | [PR #11](https://github.com/subbusainath/ouncemcp/pull/11) |
+
+#### Partly done
+
+| Requirement | Done | Still open |
+| --- | --- | --- |
+| DISC-6 (search recall) | `measure_recall`, `RecallCase` and `RecallReport` | Wire it into the eval kit so recall shows in eval output (M3) |
+| BUD-7 (per-host data, P1) | Declared counting scope | Host study in Claude Desktop, VS Code and one more host; decide the output-schema default |
+| BUD-6 (P1 part) | tiktoken encodings and callables | Provider counting adapters |
+| DX-3 (`check`) | Budget checks and a non-zero exit on failure (BUD-2) | Naming, description and policy lints |
+| DX-4 (context view) | `ouncemcp context` for definitions | Results view (P0 terminal part); the web view is P1 |
+| EXE-3 | `ambiguous_write` reporting and the resolver seam | Idempotency (EXE-4) to resolve ambiguous writes |
+
+#### Pending in M1 (P0)
+
+| Item | Requirements | Notes |
+| --- | --- | --- |
+| Security | SEC-1 to SEC-8, SEC-11 | Verified identity, policy on listing and direct calls (`auth=` is a pass-through today), token audience, caches by authorization context, bound handles and approvals, replay-safe effects, `Origin` and loopback defaults, trace redaction |
+| Usage in traces | BUD-5 | Needs the trace package, which is an empty placeholder |
+| Developer commands | DX-1 (`init`), DX-2 (`dev`), DX-6 (docs links on lints and errors), DX-8 (under 5 minutes) | `init` and `dev` print their planned milestone |
+| Docs site and quickstart | Section 16.3 | Not started |
+| Conformance and security tests | EVAL-1, EVAL-2 | The eval package is an empty placeholder |
+| Host verification | M0 and M1 exit criteria | Inventory example in two hosts, recorded in the compatibility matrix |
+| Read-only inventory pilot | Section 15.1 | The example exists; the pilot needs real data, credentials and host runs |
+| Composite workflow tools | CAP-7 | No dedicated work yet |
+
+#### Pending in P1 and later
+
+| Group | Requirements |
+| --- | --- |
+| Capability | CAP-2 (resources and prompts), CAP-5 (description lint) |
+| Budgets | BUD-4 (per-tool overrides with justification) |
+| Results | RES-5 (results by reference), RES-11 (skip work for unreturned fields) |
+| Execution | EXE-4 (idempotency), EXE-5 (parallel-safe marks) |
+| Security | SEC-9 (SSRF protection), SEC-10 (maintained OAuth integrations) |
+| Client | CLI-1 to CLI-8 (M2) |
+| Developer experience | DX-5 (trace view), DX-7 (migration guide, M2) |
+| Eval | EVAL-3 to EVAL-7 (M3) |
+| Audit | AUD-1 to AUD-13 (M2 optional command) |
+| Discovery | DISC-8 (`code` mode, post-1.0) |
 
 ---
 
