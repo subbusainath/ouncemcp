@@ -12,3 +12,4 @@ dist/
 htmlcov/
 .env
 ouncemcp-report.*
+site/

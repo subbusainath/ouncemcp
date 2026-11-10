@@ -1,7 +1,8 @@
 """Command-line interface for OunceMCP (spec section 12).
 
-Implemented in M0: ``check`` (budget checks) and ``context`` (definition view).
-Other commands report the milestone in which they are planned.
+Implemented: ``init`` (scaffold), ``dev`` (hot reload and live budget summary),
+``check`` (budgets and lints) and ``context`` (definition view). Other commands report
+the milestone in which they are planned.
 """
 
 from __future__ import annotations
@@ -25,7 +26,7 @@ COMMANDS: dict[str, tuple[str, str]] = {
     "trace": ("Open the trace and context viewer", "M3"),
     "audit": ("Optional: measure any MCP server and recommend fixes", "M2"),
 }
-IMPLEMENTED = {"check", "context"}
+IMPLEMENTED = {"init", "dev", "check", "context"}
 
 
 def _add_tokenizer_option(cmd: argparse.ArgumentParser) -> None:
@@ -52,6 +53,24 @@ def build_parser() -> argparse.ArgumentParser:
             cmd.add_argument("server", help="path/to/server.py[:name] or module[:name]")
             cmd.add_argument("--json", action="store_true", help="print a JSON report")
             _add_tokenizer_option(cmd)
+        elif name == "init":
+            cmd.add_argument("directory", help="directory to create, e.g. notes-server")
+            cmd.add_argument(
+                "--force", action="store_true", help="write into a non-empty directory"
+            )
+        elif name == "dev":
+            cmd.add_argument("server", help="path/to/server.py[:name] or module[:name]")
+            cmd.add_argument(
+                "--transport",
+                choices=["http", "streamable-http", "sse", "stdio"],
+                default="http",
+                help="default http; a restart drops stdio sessions",
+            )
+            cmd.add_argument("--host", default="127.0.0.1")
+            cmd.add_argument("--port", type=int, default=8000)
+            cmd.add_argument(
+                "--once", action="store_true", help="print the budget summary once and exit"
+            )
         elif name == "context":
             cmd.add_argument("server", help="path/to/server.py[:name] or module[:name]")
             cmd.add_argument("tool", help="tool name")
@@ -86,6 +105,7 @@ def _discovery(server: Any) -> Any:
 def _check(ns: argparse.Namespace) -> int:
     from ouncemcp.cli.loader import LoadError, load_server
     from ouncemcp.core.costs import measure_tools
+    from ouncemcp.core.lints import lint_server
     from ouncemcp.core.server import OunceServer
 
     try:
@@ -106,16 +126,23 @@ def _check(ns: argparse.Namespace) -> int:
     )
     report = measure_tools(tools, budget, counter, output_schema_modes=modes)
     decision = _discovery(server)
+    findings = lint_server(server)
+    lint_failed = any(f.severity == "error" for f in findings)
     if ns.json:
         data = report.to_dict()
         if decision is not None:
             data["discovery"] = decision.to_dict()
+        data["lints"] = [f.to_dict() for f in findings]
         print(json.dumps(data, indent=2))
     else:
         print(report.render_text())
         if decision is not None:
             print(decision.render_text())
-    return 1 if report.failed else 0
+        if findings:
+            print("Lints:")
+            for finding in findings:
+                print(f"  {finding.render_text()}")
+    return 1 if report.failed or lint_failed else 0
 
 
 def _context(ns: argparse.Namespace) -> int:
@@ -156,6 +183,22 @@ def _context(ns: argparse.Namespace) -> int:
     return 0
 
 
+def _init(ns: argparse.Namespace) -> int:
+    from ouncemcp.cli.scaffold import ScaffoldError, scaffold
+
+    try:
+        written = scaffold(ns.directory, force=ns.force)
+    except ScaffoldError as exc:
+        print(f"ouncemcp init: {exc}", file=sys.stderr)
+        return 2
+    print(f"Created {ns.directory} ({len(written)} files). Next:")
+    print(f"  cd {ns.directory}")
+    print('  uv venv && uv pip install -e ".[dev]"')
+    print("  uv run pytest")
+    print("  uv run ouncemcp dev server.py")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     ns = parser.parse_args(argv)
@@ -166,6 +209,12 @@ def main(argv: list[str] | None = None) -> int:
         return _check(ns)
     if ns.command == "context":
         return _context(ns)
+    if ns.command == "init":
+        return _init(ns)
+    if ns.command == "dev":
+        from ouncemcp.cli import dev
+
+        return dev.run(ns.server, transport=ns.transport, host=ns.host, port=ns.port, once=ns.once)
     _help, milestone = COMMANDS[ns.command]
     print(
         f"ouncemcp {ns.command}: not implemented yet (planned for {milestone}). See docs/spec.md.",

@@ -1,0 +1,49 @@
+name: Conformance
+
+# Runs the official MCP conformance suite against the OunceMCP conformance target
+# (src/ouncemcp/eval/conformance.py) for MCP 2026-07-28 (spec EVAL-1).
+# Not required yet: see conformance/expected-failures.yml for how to settle the
+# baseline and then make this job required.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: uv venv
+      - run: uv pip install -e ".[dev]"
+      - name: Start the conformance target
+        run: |
+          uv run python -m ouncemcp.eval.conformance --port 3001 > server.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -s -o /dev/null http://127.0.0.1:3001/mcp; then exit 0; fi
+            sleep 1
+          done
+          cat server.log
+          exit 1
+      - name: Run the conformance suite
+        run: >
+          npx --yes @modelcontextprotocol/conformance@0.2.0-alpha.12 server
+          --url http://127.0.0.1:3001/mcp
+          --spec-version 2026-07-28
+          --expected-failures conformance/expected-failures.yml
+          -o conformance-results
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: conformance-results
+          path: |
+            conformance-results
+            server.log

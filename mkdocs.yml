@@ -1,0 +1,49 @@
+site_name: OunceMCP
+site_description: Build MCP servers that are fast, low-noise and safe for agents by default.
+repo_url: https://github.com/subbusainath/ouncemcp
+docs_dir: docs
+strict: true
+nav:
+  - Home: README.md
+  - Quickstart: quickstart.md
+  - Concepts:
+      - Context budgets: concepts/budgets.md
+      - Discovery modes: concepts/discovery.md
+      - Response shaping: concepts/shaping.md
+      - Security and policy: concepts/security.md
+      - Errors and execution: concepts/execution.md
+      - Traces: concepts/traces.md
+  - Guides:
+      - Securing tools: guides/securing-tools.md
+      - Deploying over HTTP: guides/deploying-http.md
+      - Testing a server: guides/testing.md
+      - Host verification: guides/host-verification.md
+  - Compatibility: compatibility.md
+  - Error reference:
+      - Validation: errors/validation.md
+      - Authentication: errors/authentication.md
+      - Permission: errors/permission.md
+      - Not found: errors/not_found.md
+      - Rate limit: errors/rate_limit.md
+      - Transient: errors/transient.md
+      - Ambiguous write: errors/ambiguous_write.md
+      - Internal: errors/internal.md
+  - Rule reference:
+      - input-after-effect: rules/input-after-effect.md
+      - elicit-in-write: rules/elicit-in-write.md
+      - destructive-without-policy: rules/destructive-without-policy.md
+  - Project:
+      - Specification: spec.md
+      - M0 report: m0-report.md
+      - Performance research: performance-research.md
+      - Proposals:
+          - Overview: proposals/README.md
+          - 0001 M0 core API: proposals/0001-m0-core-api.md
+          - 0002 Shaping and pagination: proposals/0002-schema-safe-shaping-and-pagination.md
+          - 0003 Signed cursors: proposals/0003-signed-cursors.md
+          - 0004 Pluggable tokenizer: proposals/0004-pluggable-tokenizer.md
+          - 0005 Counting scope: proposals/0005-counting-scope-and-output-schema-modes.md
+          - 0006 Discovery modes: proposals/0006-discovery-modes.md
+          - 0007 Errors and limits: proposals/0007-errors-and-execution-limits.md
+          - 0008 Security and policy: proposals/0008-security-and-policy.md
+          - 0009 Traces: proposals/0009-traces.md
