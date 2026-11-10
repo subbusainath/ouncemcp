@@ -26,11 +26,13 @@ from fastmcp.server.dependencies import get_access_token
 from fastmcp.tools import FunctionTool, Tool, ToolResult
 from mcp_types import TextContent, ToolAnnotations
 from pydantic import BaseModel
+from pydantic import ValidationError as PydanticValidationError
 
 from ouncemcp.core.budget import Budget
 from ouncemcp.core.costs import ServerCost, definition_payload, measure_tools
 from ouncemcp.core.cursor import BoundCursors, CursorSigner, InvalidCursor
 from ouncemcp.core.effects import Effect
+from ouncemcp.core.errors import Failure, classify, format_validation
 from ouncemcp.core.pagination import PageFields, PageWindow, find_page_fields, window
 from ouncemcp.core.schema import compact_schema
 from ouncemcp.core.shaping import (
@@ -55,6 +57,16 @@ from ouncemcp.discovery import (
     build_report,
     decide_discovery,
 )
+from ouncemcp.execution import (
+    RESOLVE_TIMEOUT_S,
+    ConcurrencyGate,
+    Limits,
+    RetryPolicy,
+    WriteAttempt,
+    WriteResolver,
+)
+from ouncemcp.execution.middleware import OunceMiddleware
+from ouncemcp.execution.runner import run_with_policy
 
 # MCP tool names: 1-128 characters of ASCII letters, digits, underscore, hyphen, dot.
 TOOL_NAME_RE = re.compile(r"^[A-Za-z0-9_.\-]{1,128}$")
@@ -128,6 +140,8 @@ class ToolContext:
     _arguments: Callable[[], Mapping[str, Any]] = field(default=dict, repr=False)
     _resolve: PrincipalResolver = field(default=default_principal, repr=False)
     _principal: str | None = field(default=None, repr=False)
+    attempt: int = 1
+    _deadline_at: float | None = field(default=None, repr=False)
     _window: PageWindow[Any] | None = field(default=None, repr=False)
     _encode: Callable[[int], str] | None = field(default=None, repr=False)
     _bound: dict[frozenset[str], BoundCursors] = field(default_factory=dict, repr=False)
@@ -138,6 +152,15 @@ class ToolContext:
         if self._principal is None:
             self._principal = str(self._resolve(self) or ANONYMOUS)
         return self._principal
+
+    def remaining(self) -> float:
+        """Seconds left before this call's deadline, or ``inf`` when it has none.
+
+        Pass it to upstream timeouts so a slow dependency gives up when the call would.
+        """
+        if self._deadline_at is None:
+            return float("inf")
+        return max(0.0, self._deadline_at - anyio.current_time())
 
     def _cursors(self, ignore: Sequence[str] = ()) -> BoundCursors:
         skip = PAGING_ARGS | frozenset(ignore)
@@ -338,6 +361,9 @@ class OunceServer:
         discovery: DiscoverySetting = "auto",
         pinned: Sequence[str] = (),
         search_results: int = 5,
+        limits: Limits | None = None,
+        retry: RetryPolicy | None = None,
+        write_resolver: WriteResolver | None = None,
         **fastmcp_kwargs: Any,
     ) -> None:
         self.name = name
@@ -363,6 +389,37 @@ class OunceServer:
             max_results=search_results,
         )
         self.fastmcp.add_transform(self._search)
+        self.limits = limits or Limits()
+        self.retry = retry or RetryPolicy()
+        self.write_resolver = write_resolver
+        self.fastmcp.add_middleware(
+            OunceMiddleware(
+                limits=self.limits,
+                gate=ConcurrencyGate(self.limits.max_concurrency),
+                effect_of=self._effect_of,
+                principal_of=self._principal_of,
+            )
+        )
+
+    def _principal_of(self, tool_name: str, fastmcp_ctx: FastMCPContext | None) -> str:
+        """The caller a call counts against, resolved exactly as for cursors.
+
+        The concurrency gate runs before a call has a ``ToolContext``, so it builds a bare
+        one for the resolver. Using one resolver means a custom ``principal=`` names the
+        same caller for cursors, concurrency limits and write resolution.
+        """
+        ctx = ToolContext(
+            tool=tool_name,
+            response_format="concise",
+            result_budget=0,
+            fastmcp=fastmcp_ctx,
+            _resolve=self._resolve_principal,
+        )
+        return ctx.principal
+
+    def _effect_of(self, tool_name: str) -> Effect | None:
+        spec = self._specs.get(tool_name)
+        return spec.effect if spec else None
 
     # ------------------------------------------------------------------ registration
 
@@ -454,6 +511,10 @@ class OunceServer:
             )
         if tool_name in self._specs:
             raise ValueError(f"Tool '{tool_name}' is already registered")
+        if deadline_ms is not None and (
+            not isinstance(deadline_ms, int) or isinstance(deadline_ms, bool) or deadline_ms < 1
+        ):
+            raise ValueError(f"Tool '{tool_name}': deadline_ms must be a positive integer")
         if result_tokens is not None and not (0 < result_tokens <= self.budget.result_ceiling):
             raise ValueError(
                 f"Tool '{tool_name}': result_tokens must be between 1 and the server's "
@@ -559,6 +620,8 @@ class OunceServer:
         counter = self.counter
         signer = self.cursors
         resolve_principal = self._resolve_principal
+        limits = self.limits
+        deadline_s = (deadline_ms or limits.default_deadline_ms) / 1000
 
         async def wrapper(**kwargs: Any) -> ToolResult:
             fastmcp_ctx = kwargs.pop("ctx", None)
@@ -568,10 +631,18 @@ class OunceServer:
                 if response_format == "detailed"
                 else (spec.result_tokens or budget.result_tokens)
             )
+            sent = dict(kwargs)
             call_kwargs: dict[str, Any]
             if input_model is not None:
                 assert model_param is not None
-                call_kwargs = {model_param: input_model.model_validate(kwargs)}
+                try:
+                    call_kwargs = {model_param: input_model.model_validate(kwargs)}
+                except PydanticValidationError as exc:
+                    return Failure(
+                        "validation",
+                        "invalid_input",
+                        format_validation(exc, limits.max_error_chars),
+                    ).to_result()
             else:
                 call_kwargs = dict(kwargs)
             tool_ctx = ToolContext(
@@ -589,15 +660,46 @@ class OunceServer:
             )
             if ctx_param is not None:
                 call_kwargs[ctx_param] = tool_ctx
-            try:
+            deadline_at = anyio.current_time() + deadline_s
+            tool_ctx._deadline_at = deadline_at
+
+            async def attempt(number: int) -> Any:
+                tool_ctx.attempt = number
+                tool_ctx._window = None
                 if is_async:
-                    result = await handler(**call_kwargs)
-                else:
-                    result = await anyio.to_thread.run_sync(lambda: handler(**call_kwargs))
+                    return await handler(**call_kwargs)
+                return await anyio.to_thread.run_sync(
+                    lambda: handler(**call_kwargs), abandon_on_cancel=True
+                )
+
+            resolved = False
+            try:
+                result = await run_with_policy(
+                    attempt,
+                    effect=effect,
+                    deadline_s=deadline_s,
+                    retry=self.retry,
+                    deadline_at=deadline_at,
+                )
+                if not isinstance(result, output_model):
+                    result = output_model.model_validate(result)
             except InvalidCursor as exc:
-                return _error_result(str(exc), {"error": "invalid_cursor", "reason": exc.reason})
-            if not isinstance(result, output_model):
-                result = output_model.model_validate(result)
+                return _error_result(
+                    str(exc),
+                    {"error": "invalid_cursor", "category": "validation", "reason": exc.reason},
+                )
+            except Exception as exc:  # noqa: BLE001 - classified below, never leaked
+                failure = classify(
+                    exc, effect=effect, tool=tool_name, max_chars=limits.max_error_chars
+                )
+                known = None
+                if failure.category == "ambiguous_write":
+                    known = await self._resolve_write(
+                        tool_name, tool_ctx.principal, sent, failure, output_model
+                    )
+                if known is None:
+                    return failure.to_result()
+                result, resolved = known, True
             page = None
             pf = spec.page_fields
             if pf is not None and tool_ctx._window is not None and tool_ctx._encode is not None:
@@ -626,7 +728,12 @@ class OunceServer:
             return ToolResult(
                 content=[TextContent(type="text", text=shaped.text)],
                 structured_content=shaped.data,
-                meta={"ouncemcp": shaped.meta()},
+                meta={
+                    "ouncemcp": {
+                        **shaped.meta(),
+                        **({"resolved_by": "write_resolver"} if resolved else {}),
+                    }
+                },
             )
 
         wrapper.__name__ = getattr(handler, "__name__", tool_name)
@@ -645,7 +752,6 @@ class OunceServer:
             description=doc,
             annotations=ToolAnnotations.model_validate(effect.annotations()),
             tags=tags,
-            timeout=(deadline_ms / 1000) if deadline_ms else None,
             auth=auth,
         )
         # Advertise compact schemas. Validation still runs on the Pydantic models.
@@ -671,6 +777,40 @@ class OunceServer:
         )
         self._registered[tool_name] = registered
         self._decision = None
+
+    async def _resolve_write(
+        self,
+        tool_name: str,
+        principal: str,
+        arguments: dict[str, Any],
+        failure: Failure,
+        output_model: type[BaseModel],
+    ) -> BaseModel | None:
+        """Ask the write resolver whether a timed-out write took effect (EXE-3)."""
+        resolver = self.write_resolver
+        if resolver is None:
+            return None
+        attempt = WriteAttempt(
+            tool=tool_name,
+            principal=principal,
+            arguments=arguments,
+            reason=failure.code,
+        )
+        try:
+            with anyio.fail_after(RESOLVE_TIMEOUT_S):
+                outcome = await resolver.resolve(attempt)
+            if outcome is None:
+                return None
+            if isinstance(outcome, output_model):
+                return outcome
+            return output_model.model_validate(outcome)
+        except Exception:
+            logger.warning(
+                "ouncemcp: write resolver failed for %s; reporting the write as ambiguous",
+                tool_name,
+                exc_info=True,
+            )
+            return None
 
     # ------------------------------------------------------------------ inspection
 
