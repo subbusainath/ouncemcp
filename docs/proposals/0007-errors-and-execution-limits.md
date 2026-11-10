@@ -2,7 +2,7 @@
 
 Status: proposed for M1. Covers spec ERR-1 to ERR-3, EXE-1, EXE-2, EXE-3 and EXE-6 (see [spec section 8.1.5](../spec.md)). EXE-4 (idempotency) and EXE-5 (parallel-safe metadata) are not part of this proposal.
 
-Numbered 0007 because 0006 (discovery modes) is in an open pull request.
+Numbered 0007 because proposal 0006 (discovery modes) was written first and merged in #10.
 
 ## Problem
 
@@ -46,6 +46,8 @@ A failure before a request is sent (connection refused) is `transient` even for 
 - **Unexpected exceptions** are `internal`. Their text is not returned at all. The caller gets a generic message and a reference id, and the full exception goes to the `ouncemcp` logger at ERROR under the same reference.
 - **Messages and hints written by tool authors** pass through `redact()`: stack traces, URLs, IPv4 and IPv6 addresses, `host:port`, internal and common public hostnames, file paths, `Bearer` tokens, `key=value` credentials, well-known token shapes and long opaque strings. This is best effort, so it is a second line of defense and not the guarantee. The guarantee is that unexpected exceptions are never shown.
 - Upstream HTTP errors are classified by status and never forwarded.
+- Tools FastMCP runs directly, such as the discovery meta-tools, are covered too. FastMCP wraps what they raise in `ToolError("Error calling tool ...")`. `classify` unwraps that and classifies the original, so a `NotFound` raised by `describe_tool` stays `not_found` and an unexpected exception shows only a reference id. A `ToolError` that a tool raises with its own message is shown as written.
+- A call made from inside a call, which is what `call_tool` does when it proxies a tool, takes no second concurrency slot. The outer call holds the slot for both.
 
 ### Deadlines and cancellation (EXE-1)
 

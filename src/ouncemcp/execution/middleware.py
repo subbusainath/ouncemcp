@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from contextvars import ContextVar
 
 import mcp_types as mt
 from fastmcp.server.context import Context
@@ -35,6 +36,7 @@ class OunceMiddleware(Middleware):
         self._gate = gate
         self._effect_of = effect_of
         self._principal_of = principal_of
+        self._holding_slot: ContextVar[bool] = ContextVar("ouncemcp_holding_slot", default=False)
 
     async def on_call_tool(
         self,
@@ -44,9 +46,17 @@ class OunceMiddleware(Middleware):
         name = context.message.name
         try:
             check_request(context.message.arguments, self._limits)
+            if self._holding_slot.get():
+                # A call made from inside a call, such as ``call_tool`` proxying a tool,
+                # is part of that call and does not take a second slot.
+                return await call_next(context)
             principal = self._principal_of(name, context.fastmcp_context)
             with self._gate.slot(principal):
-                return await call_next(context)
+                marker = self._holding_slot.set(True)
+                try:
+                    return await call_next(context)
+                finally:
+                    self._holding_slot.reset(marker)
         except Exception as exc:  # noqa: BLE001 - every failure becomes an error result
             return classify(
                 exc,

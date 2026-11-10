@@ -1,10 +1,12 @@
 """DISC-1 to DISC-7: automatic direct/search discovery (spec section 8.1.3)."""
 
+import asyncio
 import contextvars
 import json
 import sys
 from typing import Annotated, Any
 
+import anyio
 import pytest
 from fastmcp import Client
 from fastmcp.client.transports import PythonStdioTransport
@@ -18,6 +20,7 @@ from ouncemcp import (
     Cursor,
     CursorSigner,
     Effect,
+    Limits,
     OunceServer,
     Paginated,
     ToolContext,
@@ -93,9 +96,11 @@ async def names(server: OunceServer) -> list[str]:
         return [t.name for t in await client.list_tools()]
 
 
-async def call(server: OunceServer, tool: str, args: dict[str, Any]) -> Any:
+async def call(
+    server: OunceServer, tool: str, args: dict[str, Any], *, raise_on_error: bool = True
+) -> Any:
     async with Client(server.fastmcp) as client:
-        return await client.call_tool(tool, args)
+        return await client.call_tool(tool, args, raise_on_error=raise_on_error)
 
 
 def payload(result: Any) -> Any:
@@ -294,14 +299,20 @@ async def test_authorized_principal_finds_protected_tools(as_admin):
 async def test_unauthorized_describe_is_indistinguishable_from_unknown(as_user):
     server = protected_server()
     async with Client(server.fastmcp) as client:
-        with pytest.raises(ToolError) as hidden:
-            await client.call_tool(DESCRIBE_TOOL, {"name": "payroll_export"})
-        with pytest.raises(ToolError) as missing:
-            await client.call_tool(DESCRIBE_TOOL, {"name": "payroll_exportx"})
-    assert str(hidden.value).replace("payroll_export", "X") == str(missing.value).replace(
+        hidden = await client.call_tool(
+            DESCRIBE_TOOL, {"name": "payroll_export"}, raise_on_error=False
+        )
+        missing = await client.call_tool(
+            DESCRIBE_TOOL, {"name": "payroll_exportx"}, raise_on_error=False
+        )
+    assert hidden.is_error and missing.is_error
+    assert hidden.content[0].text.replace("payroll_export", "X") == missing.content[0].text.replace(
         "payroll_exportx", "X"
     )
-    assert "search_tools" in str(hidden.value)
+    assert hidden.meta == missing.meta
+    assert hidden.meta["ouncemcp"]["category"] == "not_found"
+    assert "ref" not in hidden.meta["ouncemcp"]
+    assert "search_tools" in hidden.content[0].text
 
 
 @pytest.mark.anyio
@@ -314,8 +325,13 @@ async def test_guessed_name_call_by_unauthorized_principal_fails(as_user):
             await client.call_tool(
                 CALL_TOOL, {"name": "payroll_export", "arguments": {"query": "x"}}
             )
-    with pytest.raises(Exception):  # noqa: B017 - any refusal is acceptable in-process
-        await server.call_tool("payroll_export", {"query": "all"})
+    hidden = await server.call_tool("payroll_export", {"query": "all"})
+    missing = await server.call_tool("payroll_exportx", {"query": "all"})
+    assert hidden.is_error and missing.is_error
+    assert hidden.meta["ouncemcp"]["category"] == "not_found"
+    assert hidden.content[0].text.replace("payroll_export", "X") == missing.content[0].text.replace(
+        "payroll_exportx", "X"
+    )
 
 
 @pytest.mark.anyio
@@ -694,3 +710,76 @@ async def test_cursor_from_search_mode_is_bound_to_the_principal():
         )
     assert other.is_error
     assert other.meta["ouncemcp"]["reason"] == "principal"
+
+
+# ------------------------------------------------------------------ errors and limits in search mode
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("tool", [DESCRIBE_TOOL, CALL_TOOL])
+async def test_unknown_names_in_the_meta_tools_are_not_found_errors(tool):
+    server = small_server(discovery="search")
+    async with Client(server.fastmcp) as client:
+        result = await client.call_tool(tool, {"name": "nope"}, raise_on_error=False)
+    assert result.is_error
+    info = result.meta["ouncemcp"]
+    assert info["category"] == "not_found"
+    assert info["retryable"] is False
+    assert "ref" not in info
+    assert "search_tools" in result.content[0].text
+
+
+@pytest.mark.anyio
+async def test_calling_a_meta_tool_through_call_tool_is_an_input_error():
+    server = small_server(discovery="search")
+    async with Client(server.fastmcp) as client:
+        result = await client.call_tool(
+            CALL_TOOL, {"name": SEARCH_TOOL, "arguments": {}}, raise_on_error=False
+        )
+    assert result.is_error
+    assert result.meta["ouncemcp"]["category"] == "validation"
+    assert "ref" not in result.meta["ouncemcp"]
+
+
+def gated_server(limit: int) -> tuple[OunceServer, anyio.Event, list[str]]:
+    server = big_server(40, limits=Limits(max_concurrency=limit))
+    release = anyio.Event()
+    started: list[str] = []
+
+    @server.tool(name="slow_report", effect=Effect.READ, description="Build a slow report.")
+    async def slow_report() -> Out:
+        started.append("run")
+        await release.wait()
+        return Out()
+
+    return server, release, started
+
+
+async def wait_until(predicate: Any) -> None:
+    with anyio.fail_after(2):
+        while not predicate():
+            await anyio.sleep(0.005)
+
+
+@pytest.mark.anyio
+async def test_a_proxied_call_uses_one_concurrency_slot_not_two():
+    """call_tool and the tool it proxies are one call, so a limit of 1 still lets it run."""
+    server, release, started = gated_server(1)
+    assert (await server.discovery()).mode == "search"
+    release.set()
+    result = await call(server, CALL_TOOL, {"name": "slow_report"})
+    assert not result.is_error
+    assert started == ["run"]
+
+
+@pytest.mark.anyio
+async def test_the_concurrency_limit_still_applies_to_proxied_calls():
+    server, release, started = gated_server(1)
+    first = asyncio.create_task(call(server, CALL_TOOL, {"name": "slow_report"}))
+    await wait_until(lambda: started == ["run"])
+    second = await call(server, CALL_TOOL, {"name": "slow_report"}, raise_on_error=False)
+    assert second.is_error
+    assert second.meta["ouncemcp"]["category"] == "rate_limit"
+    release.set()
+    assert not (await first).is_error
+    assert not (await call(server, CALL_TOOL, {"name": "slow_report"})).is_error

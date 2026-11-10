@@ -376,6 +376,9 @@ def _timeout_failure(effect: Effect | None, what: str) -> Failure:
     return Failure("transient", "deadline_exceeded", f"{what} Try again, or narrow the request.")
 
 
+_FASTMCP_WRAPPER_PREFIX = "Error calling tool"
+
+
 def classify(
     exc: BaseException,
     *,
@@ -390,6 +393,12 @@ def classify(
     def own(message: str) -> str:
         return clip(redact(message), max_chars)
 
+    original = _wrapped_by_fastmcp(exc)
+    if original is not None:
+        # FastMCP wraps whatever a tool raises in ``ToolError("Error calling tool ...")``.
+        # Classify the original so a tool FastMCP runs directly gets the same categories
+        # and the same no-leak rule as one wrapped by ``OunceServer``.
+        return classify(original, effect=effect, tool=tool, max_chars=max_chars, quiet=quiet)
     if isinstance(exc, OunceError):
         return Failure(
             exc.category,
@@ -456,6 +465,12 @@ def classify(
     if isinstance(exc, ToolError):
         return _internal(exc, tool, quiet, message=own(str(exc)))
     return _internal(exc, tool, quiet)
+
+
+def _wrapped_by_fastmcp(exc: BaseException) -> BaseException | None:
+    if isinstance(exc, ToolError) and str(exc).startswith(_FASTMCP_WRAPPER_PREFIX):
+        return exc.__cause__
+    return None
 
 
 def _from_status(

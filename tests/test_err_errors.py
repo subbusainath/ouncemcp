@@ -24,6 +24,7 @@ from ouncemcp.core.errors import (
     format_validation,
     redact,
 )
+from ouncemcp.execution import RetryPolicy
 
 SECRET = "hunter2-S3cr3t"
 HOST = "db-primary.corp.internal"
@@ -64,8 +65,6 @@ class HTTPStatusError(Exception):
 
 
 def server_raising(exc: Exception | None, effect: Effect = Effect.READ) -> OunceServer:
-    from ouncemcp.execution import RetryPolicy
-
     server = OunceServer("t", retry=RetryPolicy(max_attempts=1))
 
     @server.tool(name="t.go", effect=effect)
@@ -433,3 +432,52 @@ def test_classify_is_quiet_when_asked(caplog):
     assert not caplog.records
     classify(RuntimeError("x"))
     assert caplog.records
+
+
+# ------------------------------------------------------------------ tools that FastMCP runs directly
+
+
+def native_server(exc: Exception) -> OunceServer:
+    """A plain FastMCP tool on an OunceServer, as the discovery meta-tools are. FastMCP
+    wraps whatever such a tool raises in its own ``ToolError``."""
+    server = OunceServer("t")
+
+    @server.fastmcp.tool(name="native")
+    def native() -> str:
+        raise exc
+
+    return server
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("exc", "category"),
+    [
+        (NotFound("No such thing.", hint="Search first."), "not_found"),
+        (InvalidInput("Bad value."), "validation"),
+        (PermissionDenied("Not yours."), "permission"),
+        (RateLimited("Slow down.", retry_after=3), "rate_limit"),
+    ],
+)
+async def test_ounce_errors_keep_their_category_when_fastmcp_wraps_them(exc, category):
+    result = await run(native_server(exc), {}, tool="native")
+    assert result.is_error
+    assert result.meta["ouncemcp"]["category"] == category
+    assert "ref" not in result.meta["ouncemcp"]
+    assert "Error calling tool" not in result.content[0].text
+
+
+@pytest.mark.anyio
+async def test_unexpected_exceptions_in_native_tools_do_not_show_their_text():
+    exc = RuntimeError(f"cannot reach {HOST} ({IP}) with password={SECRET}")
+    result = await run(native_server(exc), {}, tool="native")
+    assert result.meta["ouncemcp"]["category"] == "internal"
+    assert "ref" in result.meta["ouncemcp"]
+    assert_clean(result)
+    assert "cannot reach" not in result.content[0].text
+
+
+@pytest.mark.anyio
+async def test_a_tool_error_with_its_own_message_still_shows_that_message():
+    result = await run(native_server(ToolError("Pick a smaller range.")), {}, tool="native")
+    assert "Pick a smaller range." in result.content[0].text

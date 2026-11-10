@@ -16,7 +16,6 @@ import json
 from collections.abc import Awaitable, Callable, Sequence
 from typing import Annotated, Any
 
-from fastmcp.exceptions import ToolError
 from fastmcp.server.context import Context
 from fastmcp.server.transforms import GetToolNext
 from fastmcp.server.transforms.search import BM25SearchTransform
@@ -25,6 +24,7 @@ from fastmcp.tools.base import Tool, ToolResult
 from fastmcp.utilities.versions import VersionSpec
 from mcp_types import TextContent
 
+from ouncemcp.core.errors import InvalidInput, NotFound
 from ouncemcp.discovery.modes import (
     CALL_TOOL,
     DESCRIBE_TOOL,
@@ -182,7 +182,7 @@ class OunceSearchTransform(BM25SearchTransform):
             catalog = await transform.get_tool_catalog(ctx)
             match = next((tool for tool in catalog if tool.name == name), None)
             if match is None:
-                raise ToolError(f"Unknown tool '{name}'. {_NOT_FOUND_HINT}")
+                raise NotFound(f"Unknown tool '{name}'.", hint=_NOT_FOUND_HINT)
             return _text(render_tool(match, detail))
 
         return Tool.from_function(fn=describe_tool, name=DESCRIBE_TOOL)
@@ -197,12 +197,13 @@ class OunceSearchTransform(BM25SearchTransform):
         ) -> ToolResult:
             """Call a tool found with search_tools."""
             if name in META_TOOLS:
-                raise ToolError(
-                    f"'{name}' is a discovery tool. Call it directly, not through {CALL_TOOL}."
+                raise InvalidInput(
+                    f"'{name}' is a discovery tool.",
+                    hint=f"Call it directly, not through {CALL_TOOL}.",
                 )
             catalog = await transform.get_tool_catalog(ctx)
             if not any(tool.name == name for tool in catalog):
-                raise ToolError(f"Unknown tool '{name}'. {_NOT_FOUND_HINT}")
+                raise NotFound(f"Unknown tool '{name}'.", hint=_NOT_FOUND_HINT)
             return await ctx.fastmcp.call_tool(name, arguments)
 
         return Tool.from_function(fn=call_tool, name=CALL_TOOL)
