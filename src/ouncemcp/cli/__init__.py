@@ -78,6 +78,7 @@ def _counter(ns: argparse.Namespace, default: TokenCounter) -> TokenCounter:
 def _check(ns: argparse.Namespace) -> int:
     from ouncemcp.cli.loader import LoadError, load_server
     from ouncemcp.core.costs import measure_tools
+    from ouncemcp.core.server import OunceServer
 
     try:
         server = load_server(ns.server)
@@ -90,7 +91,12 @@ def _check(ns: argparse.Namespace) -> int:
     except ValueError as exc:
         print(f"ouncemcp check: {exc}", file=sys.stderr)
         return 2
-    report = measure_tools(tools, budget, counter)
+    modes = (
+        {name: spec.output_schema for name, spec in server.tools.items()}
+        if isinstance(server, OunceServer)
+        else None
+    )
+    report = measure_tools(tools, budget, counter, output_schema_modes=modes)
     if ns.json:
         print(json.dumps(report.to_dict(), indent=2))
     else:
@@ -100,7 +106,12 @@ def _check(ns: argparse.Namespace) -> int:
 
 def _context(ns: argparse.Namespace) -> int:
     from ouncemcp.cli.loader import LoadError, load_server
-    from ouncemcp.core.costs import definition_payload, measure_tool
+    from ouncemcp.core.costs import (
+        COUNTED_FIELDS,
+        UNCOUNTED_FIELDS,
+        definition_payload,
+        measure_tool,
+    )
 
     try:
         server = load_server(ns.server)
@@ -124,7 +135,8 @@ def _context(ns: argparse.Namespace) -> int:
         f"\n{cost.total} tokens (description {cost.description}, input schema "
         f"{cost.input_schema}, output schema {cost.output_schema}, other "
         f"{cost.name_tokens + cost.structure}) [{cost.status.upper()}] "
-        f"counted with {counter.name}",
+        f"counted with {counter.name}\n"
+        f"Counted: {', '.join(COUNTED_FIELDS)}; not counted: {', '.join(UNCOUNTED_FIELDS)}",
         file=sys.stderr,
     )
     return 0

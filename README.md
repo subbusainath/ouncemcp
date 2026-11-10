@@ -88,7 +88,7 @@ Measured on the inventory example with the `o200k_base` tokenizer. Full method a
 
 In M1, results that are trimmed must still match the output schema. Truncated calls now add 0.70 / 0.80 ms (p50 / p95) and other calls 0.14 to 0.31 ms. Shaping a 36,000-token result down to a 2,000-token budget takes 7.3 ms. See [proposal 0002](docs/proposals/0002-schema-safe-shaping-and-pagination.md) and `benchmarks/scripts/m1_truncation.py`.
 
-Typed output schemas make definitions larger. Results are where the savings come from. Servers that don't need output schemas can pass `output_schemas=False` (247 tokens for this example).
+Typed output schemas make definitions larger. Results are where the savings come from. Output schemas can be set to `"on"` (default), `"off"` or `"auto"` for a server (`output_schemas=`) or one tool (`output_schema=`). `"off"` gives 247 tokens for this example, and `"auto"` drops a schema only where it would put a definition over the per-tool target (378 tokens here). `ouncemcp check` reports the output-schema share of definition tokens (241 of 488 here) and states which fields it counts: `name`, `description`, `inputSchema` and `outputSchema`, not `title`, `annotations` or `_meta` ([proposal 0005](docs/proposals/0005-counting-scope-and-output-schema-modes.md)).
 
 ## Repository layout
 

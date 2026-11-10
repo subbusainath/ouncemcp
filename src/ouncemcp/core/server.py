@@ -14,7 +14,7 @@ import re
 import sys
 import typing
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Literal, TypeVar, cast
 
 import anyio
@@ -27,7 +27,7 @@ from mcp_types import TextContent, ToolAnnotations
 from pydantic import BaseModel
 
 from ouncemcp.core.budget import Budget
-from ouncemcp.core.costs import ServerCost, measure_tools
+from ouncemcp.core.costs import ServerCost, definition_payload, measure_tools
 from ouncemcp.core.cursor import BoundCursors, CursorSigner, InvalidCursor
 from ouncemcp.core.effects import Effect
 from ouncemcp.core.pagination import PageFields, PageWindow, find_page_fields, window
@@ -203,6 +203,34 @@ class ToolSpec:
     result_tokens: int | None
     min_items: int = 1
     page_fields: PageFields | None = None
+    output_schema: OutputSchemaMode = "on"
+    output_schema_advertised: bool = True
+
+
+OutputSchemaMode = Literal["on", "off", "auto"]
+OUTPUT_SCHEMA_MODES: tuple[OutputSchemaMode, ...] = ("on", "off", "auto")
+
+
+def _server_mode(value: object) -> OutputSchemaMode:
+    if value is True:
+        return "on"
+    if value is False:
+        return "off"
+    if isinstance(value, str) and value in OUTPUT_SCHEMA_MODES:
+        return cast(OutputSchemaMode, value)
+    raise ValueError(
+        f"output_schemas must be 'on', 'off' or 'auto' (or True or False), got {value!r}"
+    )
+
+
+def _tool_mode(value: object, tool_name: str) -> OutputSchemaMode | None:
+    if value is None:
+        return None
+    if isinstance(value, str) and value in OUTPUT_SCHEMA_MODES:
+        return cast(OutputSchemaMode, value)
+    raise ValueError(
+        f"Tool '{tool_name}': output_schema must be 'on', 'off' or 'auto', got {value!r}"
+    )
 
 
 logger = logging.getLogger("ouncemcp")
@@ -291,7 +319,7 @@ class OunceServer:
         budget: Budget | None = None,
         tokenizer: str | TokenCounter | Callable[[str], int] = DEFAULT_ENCODING,
         tokenizer_name: str | None = None,
-        output_schemas: bool = True,
+        output_schemas: bool | OutputSchemaMode = "on",
         cursors: CursorSigner | None = None,
         principal: PrincipalResolver | None = None,
         **fastmcp_kwargs: Any,
@@ -300,7 +328,7 @@ class OunceServer:
         self.budget = budget or Budget()
         self.counter = get_counter(tokenizer, name=tokenizer_name)
         self.fastmcp = FastMCP(name, instructions=instructions, version=version, **fastmcp_kwargs)
-        self.output_schemas = output_schemas
+        self.output_schemas: OutputSchemaMode = _server_mode(output_schemas)
         self.cursors = cursors or CursorSigner.from_env()
         self._resolve_principal = principal or default_principal
         self._specs: dict[str, ToolSpec] = {}
@@ -319,8 +347,13 @@ class OunceServer:
         deadline_ms: int | None = None,
         tags: set[str] | None = None,
         min_items: int = 1,
+        output_schema: OutputSchemaMode | None = None,
     ) -> Any:
         """Register a tool. ``effect`` is required.
+
+        ``output_schema`` sets whether this tool advertises its output schema: ``"on"``,
+        ``"off"``, or ``"auto"`` (advertise it unless the definition would then be over
+        ``Budget.tool_definition_target``). It defaults to the server's ``output_schemas``.
 
         The handler can take either a single Pydantic model argument (its fields
         become the tool's top-level arguments) or ordinary keyword arguments, plus
@@ -339,6 +372,7 @@ class OunceServer:
                 deadline_ms=deadline_ms,
                 tags=tags,
                 min_items=min_items,
+                output_schema=output_schema,
             )
             return handler
 
@@ -358,8 +392,10 @@ class OunceServer:
         deadline_ms: int | None,
         tags: set[str] | None,
         min_items: int = 1,
+        output_schema: OutputSchemaMode | None = None,
     ) -> None:
         tool_name = name or handler.__name__
+        schema_mode = _tool_mode(output_schema, tool_name) or self.output_schemas
         if not isinstance(effect, Effect):
             raise TypeError(
                 f"Tool '{tool_name}' must declare effect=Effect.READ, Effect.WRITE, "
@@ -567,9 +603,13 @@ class OunceServer:
         )
         # Advertise compact schemas. Validation still runs on the Pydantic models.
         registered.parameters = compact_schema(registered.parameters)
-        if self.output_schemas and registered.output_schema is not None:
+        if registered.output_schema is not None:
             registered.output_schema = compact_schema(registered.output_schema)
-        else:
+        if schema_mode == "off" or (
+            schema_mode == "auto"
+            and self.counter.count_json(definition_payload(registered))
+            > self.budget.tool_definition_target
+        ):
             registered.output_schema = None
         # RES-8: shaping keeps results valid against the schema that is advertised. With
         # output schemas off, the model schema still guides shaping, and the text-only
@@ -579,7 +619,9 @@ class OunceServer:
         schema_state["validator"] = jsonschema.Draft202012Validator(schema_for_shaping)
         schema_state["strict"] = advertised is not None
         self.fastmcp.add_tool(registered)
-        self._specs[tool_name] = spec
+        self._specs[tool_name] = replace(
+            spec, output_schema=schema_mode, output_schema_advertised=advertised is not None
+        )
 
     # ------------------------------------------------------------------ inspection
 
@@ -597,7 +639,8 @@ class OunceServer:
 
     async def cost_report(self) -> ServerCost:
         """Measure the token cost of this server's tool definitions."""
-        return measure_tools(await self.list_tools(), self.budget, self.counter)
+        modes = {name: spec.output_schema for name, spec in self._specs.items()}
+        return measure_tools(await self.list_tools(), self.budget, self.counter, modes)
 
     async def call_tool(self, name: str, arguments: dict[str, Any] | None = None) -> ToolResult:
         """Call a tool in-process (useful for tests)."""
