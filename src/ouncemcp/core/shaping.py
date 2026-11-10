@@ -244,9 +244,11 @@ class ShapedResult:
     budget: int
     response_format: ResponseFormat
     truncation: Truncation
+    tokenizer: str = ""
 
     def meta(self) -> dict[str, Any]:
         meta: dict[str, Any] = {
+            "tokenizer": self.tokenizer,
             "result_tokens": self.tokens,
             "budget": self.budget,
             "format": self.response_format,
@@ -388,7 +390,9 @@ def shape_result(
     if over is None:
         tokens = counter.count(text)
         if tokens <= budget:
-            return ShapedResult(data, text, tokens, budget, response_format, Truncation())
+            return ShapedResult(
+                data, text, tokens, budget, response_format, Truncation(), counter.name
+            )
         over = tokens
 
     schema = (
@@ -425,20 +429,26 @@ def shape_result(
             cut = counter.truncate_text(body, max(budget - counter.count(note) - 1, 0))
             full = f"{cut}\n{note}"
             return ShapedResult(
-                None, full, counter.count(full), budget, response_format, truncation
+                None, full, counter.count(full), budget, response_format, truncation, counter.name
             )
         if not truncation:  # nothing needed trimming after all (the bound was loose)
             exact = counter.count(body)
             if exact <= budget:
-                return ShapedResult(shaped, body, exact, budget, response_format, truncation)
+                return ShapedResult(
+                    shaped, body, exact, budget, response_format, truncation, counter.name
+                )
         if total <= budget:
-            return ShapedResult(shaped, full, total, budget, response_format, truncation)
+            return ShapedResult(
+                shaped, full, total, budget, response_format, truncation, counter.name
+            )
         reserve += total - budget
     # The note grew on every pass (rare). Keep the JSON whole and shorten the note.
     if strict:
         raise ResultTooLarge(total, budget, truncation, _largest_list_len(shaped))
     full = counter.truncate_text(full, budget)
-    return ShapedResult(shaped, full, counter.count(full), budget, response_format, truncation)
+    return ShapedResult(
+        shaped, full, counter.count(full), budget, response_format, truncation, counter.name
+    )
 
 
 # Results longer than this many characters per budget token are checked with a

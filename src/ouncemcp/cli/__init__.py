@@ -13,6 +13,7 @@ import sys
 from typing import Any
 
 from ouncemcp import __version__
+from ouncemcp.core.tokens import DEFAULT_ENCODING, TokenCounter, get_counter
 
 COMMANDS: dict[str, tuple[str, str]] = {
     "init": ("Scaffold a server with tests and CI", "M1"),
@@ -27,6 +28,17 @@ COMMANDS: dict[str, tuple[str, str]] = {
 IMPLEMENTED = {"check", "context"}
 
 
+def _add_tokenizer_option(cmd: argparse.ArgumentParser) -> None:
+    cmd.add_argument(
+        "--tokenizer",
+        metavar="ENCODING",
+        help=(
+            "tiktoken encoding to count with (for example cl100k_base). Default: the "
+            f"server's own tokenizer, else {DEFAULT_ENCODING}"
+        ),
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="ouncemcp",
@@ -39,22 +51,28 @@ def build_parser() -> argparse.ArgumentParser:
         if name == "check":
             cmd.add_argument("server", help="path/to/server.py[:name] or module[:name]")
             cmd.add_argument("--json", action="store_true", help="print a JSON report")
+            _add_tokenizer_option(cmd)
         elif name == "context":
             cmd.add_argument("server", help="path/to/server.py[:name] or module[:name]")
             cmd.add_argument("tool", help="tool name")
+            _add_tokenizer_option(cmd)
         else:
             cmd.add_argument("args", nargs=argparse.REMAINDER, help=argparse.SUPPRESS)
     return parser
 
 
-async def _definitions(server: Any) -> tuple[list[Any], Any]:
+async def _definitions(server: Any) -> tuple[list[Any], Any, TokenCounter]:
     from ouncemcp.core.budget import Budget
     from ouncemcp.core.server import OunceServer
     from ouncemcp.core.wire import wire_tools
 
     if isinstance(server, OunceServer):
-        return await server.list_tools(), server.budget
-    return await wire_tools(server), Budget()
+        return await server.list_tools(), server.budget, server.counter
+    return await wire_tools(server), Budget(), get_counter()
+
+
+def _counter(ns: argparse.Namespace, default: TokenCounter) -> TokenCounter:
+    return get_counter(ns.tokenizer) if ns.tokenizer else default
 
 
 def _check(ns: argparse.Namespace) -> int:
@@ -66,8 +84,13 @@ def _check(ns: argparse.Namespace) -> int:
     except LoadError as exc:
         print(f"ouncemcp check: {exc}", file=sys.stderr)
         return 2
-    tools, budget = asyncio.run(_definitions(server))
-    report = measure_tools(tools, budget)
+    tools, budget, default = asyncio.run(_definitions(server))
+    try:
+        counter = _counter(ns, default)
+    except ValueError as exc:
+        print(f"ouncemcp check: {exc}", file=sys.stderr)
+        return 2
+    report = measure_tools(tools, budget, counter)
     if ns.json:
         print(json.dumps(report.to_dict(), indent=2))
     else:
@@ -84,18 +107,24 @@ def _context(ns: argparse.Namespace) -> int:
     except LoadError as exc:
         print(f"ouncemcp context: {exc}", file=sys.stderr)
         return 2
-    tools, budget = asyncio.run(_definitions(server))
+    tools, budget, default = asyncio.run(_definitions(server))
+    try:
+        counter = _counter(ns, default)
+    except ValueError as exc:
+        print(f"ouncemcp context: {exc}", file=sys.stderr)
+        return 2
     match = next((t for t in tools if t.name == ns.tool), None)
     if match is None:
         names = ", ".join(sorted(t.name for t in tools))
         print(f"ouncemcp context: no tool named '{ns.tool}'. Tools: {names}", file=sys.stderr)
         return 2
-    cost = measure_tool(match, budget)
+    cost = measure_tool(match, budget, counter)
     print(json.dumps(definition_payload(match), indent=2, ensure_ascii=False))
     print(
         f"\n{cost.total} tokens (description {cost.description}, input schema "
         f"{cost.input_schema}, output schema {cost.output_schema}, other "
-        f"{cost.name_tokens + cost.structure}) [{cost.status.upper()}]",
+        f"{cost.name_tokens + cost.structure}) [{cost.status.upper()}] "
+        f"counted with {counter.name}",
         file=sys.stderr,
     )
     return 0

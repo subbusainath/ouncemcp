@@ -145,7 +145,7 @@ def measure_tools(
     """Measure a set of tool definitions."""
     counter = counter or get_counter()
     return ServerCost(
-        tokenizer=counter.encoding_name,
+        tokenizer=counter.name,
         budget=budget,
         tools=[measure_tool(tool, budget, counter) for tool in tools],
     )

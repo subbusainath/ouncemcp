@@ -40,7 +40,7 @@ from ouncemcp.core.shaping import (
     shape_result,
     validate_detail_fields,
 )
-from ouncemcp.core.tokens import DEFAULT_ENCODING, get_counter
+from ouncemcp.core.tokens import DEFAULT_ENCODING, TokenCounter, get_counter
 from ouncemcp.core.wire import wire_tools
 
 # MCP tool names: 1-128 characters of ASCII letters, digits, underscore, hyphen, dot.
@@ -209,7 +209,7 @@ logger = logging.getLogger("ouncemcp")
 
 
 def _too_large_result(
-    tool_name: str, exc: ResultTooLarge, response_format: ResponseFormat
+    tool_name: str, exc: ResultTooLarge, response_format: ResponseFormat, tokenizer: str
 ) -> ToolResult:
     """An actionable error for a result that cannot fit its budget (RES-8).
 
@@ -239,6 +239,7 @@ def _too_large_result(
     meta: dict[str, Any] = {
         "error": "result_too_large",
         "reason": exc.reason,
+        "tokenizer": tokenizer,
         "min_tokens": exc.min_tokens,
         "budget": exc.budget,
         "format": response_format,
@@ -275,6 +276,10 @@ class OunceServer:
             ...
 
         server.run()
+
+    Token counts use ``tokenizer``: a tiktoken encoding name (default ``o200k_base``),
+    a ``TokenCounter``, or a function from text to token count, which also needs
+    ``tokenizer_name`` so reports can name it. Budgets, shaping and ``check`` all use it.
     """
 
     def __init__(
@@ -284,7 +289,8 @@ class OunceServer:
         instructions: str | None = None,
         version: str | None = None,
         budget: Budget | None = None,
-        tokenizer: str = DEFAULT_ENCODING,
+        tokenizer: str | TokenCounter | Callable[[str], int] = DEFAULT_ENCODING,
+        tokenizer_name: str | None = None,
         output_schemas: bool = True,
         cursors: CursorSigner | None = None,
         principal: PrincipalResolver | None = None,
@@ -292,7 +298,7 @@ class OunceServer:
     ) -> None:
         self.name = name
         self.budget = budget or Budget()
-        self.counter = get_counter(tokenizer)
+        self.counter = get_counter(tokenizer, name=tokenizer_name)
         self.fastmcp = FastMCP(name, instructions=instructions, version=version, **fastmcp_kwargs)
         self.output_schemas = output_schemas
         self.cursors = cursors or CursorSigner.from_env()
@@ -534,7 +540,7 @@ class OunceServer:
                     assume_valid=True,
                 )
             except ResultTooLarge as exc:
-                return _too_large_result(tool_name, exc, response_format)
+                return _too_large_result(tool_name, exc, response_format, counter.name)
             return ToolResult(
                 content=[TextContent(type="text", text=shaped.text)],
                 structured_content=shaped.data,

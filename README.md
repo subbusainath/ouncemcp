@@ -72,6 +72,8 @@ ouncemcp check examples/inventory/server.py
 ouncemcp context examples/inventory/server.py inventory.search
 ```
 
+Counts use `o200k_base` by default. Choose another tiktoken encoding with `OunceServer(tokenizer="cl100k_base")` or `ouncemcp check --tokenizer cl100k_base`, or pass your own counting function with `tokenizer=fn, tokenizer_name="my-tokenizer-v1"`. Every report names the tokenizer it used ([proposal 0004](docs/proposals/0004-pluggable-tokenizer.md)).
+
 Planned commands (`init`, `dev`, `eval`, `bench`, `trace`, and the optional `audit`) report the milestone they ship in.
 
 ## M0 results

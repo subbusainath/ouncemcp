@@ -5,6 +5,7 @@ Pre-alpha (milestone M0). See docs/spec.md for the full specification.
 
 from ouncemcp.core import (
     Budget,
+    CallableCounter,
     Cursor,
     CursorSigner,
     Detail,
@@ -15,6 +16,7 @@ from ouncemcp.core import (
     Paginated,
     ResultTooLarge,
     ServerCost,
+    TiktokenCounter,
     TokenCounter,
     ToolContext,
     ToolCost,
@@ -28,6 +30,7 @@ __version__ = "0.0.1.dev0"
 
 __all__ = [
     "Budget",
+    "CallableCounter",
     "Cursor",
     "CursorSigner",
     "Detail",
@@ -38,6 +41,7 @@ __all__ = [
     "Paginated",
     "ResultTooLarge",
     "ServerCost",
+    "TiktokenCounter",
     "TokenCounter",
     "ToolContext",
     "ToolCost",
