@@ -2,7 +2,7 @@
 
 Status: proposed for M1. Covers spec ERR-1 to ERR-3, EXE-1, EXE-2, EXE-3 and EXE-6 (see [spec section 8.1.5](../spec.md)). EXE-4 (idempotency) and EXE-5 (parallel-safe metadata) are not part of this proposal.
 
-Numbered 0007 because 0003 to 0006 are in open pull requests.
+Numbered 0007 because 0006 (discovery modes) is in an open pull request.
 
 ## Problem
 
