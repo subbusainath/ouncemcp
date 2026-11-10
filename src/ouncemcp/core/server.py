@@ -7,12 +7,13 @@ counting, and result budgets with concise and detailed formats and truncation.
 from __future__ import annotations
 
 import asyncio
+import functools
 import inspect
 import logging
 import re
 import sys
 import typing
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal, TypeVar, cast
 
@@ -20,13 +21,14 @@ import anyio
 import jsonschema
 from fastmcp import FastMCP
 from fastmcp.server.context import Context as FastMCPContext
+from fastmcp.server.dependencies import get_access_token
 from fastmcp.tools import FunctionTool, ToolResult
 from mcp_types import TextContent, ToolAnnotations
 from pydantic import BaseModel
 
 from ouncemcp.core.budget import Budget
 from ouncemcp.core.costs import ServerCost, measure_tools
-from ouncemcp.core.cursor import InvalidCursor, decode_offset, encode_offset
+from ouncemcp.core.cursor import BoundCursors, CursorSigner, InvalidCursor
 from ouncemcp.core.effects import Effect
 from ouncemcp.core.pagination import PageFields, PageWindow, find_page_fields, window
 from ouncemcp.core.schema import compact_schema
@@ -70,6 +72,29 @@ INJECTED_PARAMS = frozenset({"response_format", "ctx"})
 T = TypeVar("T")
 
 
+ANONYMOUS = "anonymous"
+# Arguments that move through a result set rather than describe it. They are left out of
+# the query a cursor is bound to, so an agent can change the page size between calls.
+PAGING_ARGS = frozenset({"cursor", "limit", "response_format"})
+
+PrincipalResolver = Callable[["ToolContext"], str | None]
+
+
+def default_principal(ctx: ToolContext) -> str | None:
+    """The verified caller: the access token's subject (or client id) when the server
+    has authentication configured, otherwise ``None`` (a single local caller)."""
+    token = get_access_token()
+    if token is None:
+        return None
+    return token.subject or str(token.claims.get("sub") or "") or token.client_id
+
+
+@functools.cache
+def _bare_context_signer() -> CursorSigner:
+    """For a ``ToolContext`` built by hand, such as in a unit test of a handler."""
+    return CursorSigner.ephemeral()
+
+
 @dataclass
 class ToolContext:
     """Per-call information passed to handlers that declare a ``ToolContext`` parameter.
@@ -86,20 +111,74 @@ class ToolContext:
     response_format: ResponseFormat
     result_budget: int
     fastmcp: FastMCPContext | None = None
+    _signer: CursorSigner | None = field(default=None, repr=False)
+    _arguments: Callable[[], Mapping[str, Any]] = field(default=dict, repr=False)
+    _resolve: PrincipalResolver = field(default=default_principal, repr=False)
+    _principal: str | None = field(default=None, repr=False)
     _window: PageWindow[Any] | None = field(default=None, repr=False)
+    _encode: Callable[[int], str] | None = field(default=None, repr=False)
+    _bound: dict[frozenset[str], BoundCursors] = field(default_factory=dict, repr=False)
 
-    def offset(self, cursor: str | None) -> int:
-        """Decode a cursor issued by this tool into a start offset (``None`` is 0)."""
-        return decode_offset(cursor)
+    @property
+    def principal(self) -> str:
+        """The verified caller that pagination cursors are bound to (resolved once)."""
+        if self._principal is None:
+            self._principal = str(self._resolve(self) or ANONYMOUS)
+        return self._principal
 
-    def page(self, rows: Sequence[T], *, cursor: str | None, limit: int) -> PageWindow[T]:
+    def _cursors(self, ignore: Sequence[str] = ()) -> BoundCursors:
+        skip = PAGING_ARGS | frozenset(ignore)
+        bound = self._bound.get(skip)
+        if bound is None:
+            signer = self._signer or _bare_context_signer()
+            query = {k: v for k, v in self._arguments().items() if k not in skip}
+            bound = signer.bind(tool=self.tool, principal=self.principal, query=query)
+            self._bound[skip] = bound
+        return bound
+
+    def encode_cursor(self, offset: int, *, ignore: Sequence[str] = ()) -> str:
+        """Issue a signed cursor that resumes at ``offset`` for this call's tool, caller
+        and arguments."""
+        return self._cursors(ignore).encode(offset)
+
+    def offset(self, cursor: str | None, *, ignore: Sequence[str] = ()) -> int:
+        """Verify a cursor issued by this tool and return its start offset (``None`` is 0).
+
+        Cursors are bound to the tool, the caller and every argument except ``cursor``,
+        ``limit``, ``response_format`` and the names in ``ignore``. Raises
+        ``InvalidCursor``, which the server returns as an actionable tool error.
+        """
+        return self._cursors(ignore).decode(cursor)
+
+    def page(
+        self,
+        rows: Sequence[T],
+        *,
+        cursor: str | None,
+        limit: int,
+        ignore: Sequence[str] = (),
+    ) -> PageWindow[T]:
         """Slice one page from ``rows``. If OunceMCP trims the page to fit the result
-        budget, it moves ``next_cursor`` to resume after the last item returned."""
-        self._window = window(rows, start=self.offset(cursor), limit=limit)
+        budget, it moves ``next_cursor`` to resume after the last item returned.
+
+        Name any paging arguments that are not called ``cursor`` or ``limit`` in
+        ``ignore``, so changing them does not invalidate the cursor.
+        """
+        cursors = self._cursors(ignore)
+        self._window = window(
+            rows, start=cursors.decode(cursor), limit=limit, encode=cursors.encode
+        )
+        self._encode = cursors.encode
         return self._window
 
     def window(
-        self, items: Sequence[T], *, start: int, has_more: bool, total: int | None = None
+        self,
+        items: Sequence[T],
+        *,
+        start: int,
+        has_more: bool,
+        total: int | None = None,
+        ignore: Sequence[str] = (),
     ) -> PageWindow[T]:
         """Register a page fetched elsewhere (for example ``OFFSET start LIMIT n``)."""
         items = list(items)
@@ -108,8 +187,9 @@ class ToolContext:
             items=items,
             start=start,
             total=total,
-            next_cursor=encode_offset(end) if has_more else None,
+            next_cursor=self.encode_cursor(end, ignore=ignore) if has_more else None,
         )
+        self._encode = self._cursors(ignore).encode
         return self._window
 
 
@@ -206,6 +286,8 @@ class OunceServer:
         budget: Budget | None = None,
         tokenizer: str = DEFAULT_ENCODING,
         output_schemas: bool = True,
+        cursors: CursorSigner | None = None,
+        principal: PrincipalResolver | None = None,
         **fastmcp_kwargs: Any,
     ) -> None:
         self.name = name
@@ -213,6 +295,8 @@ class OunceServer:
         self.counter = get_counter(tokenizer)
         self.fastmcp = FastMCP(name, instructions=instructions, version=version, **fastmcp_kwargs)
         self.output_schemas = output_schemas
+        self.cursors = cursors or CursorSigner.from_env()
+        self._resolve_principal = principal or default_principal
         self._specs: dict[str, ToolSpec] = {}
 
     # ------------------------------------------------------------------ registration
@@ -385,6 +469,8 @@ class OunceServer:
         is_async = inspect.iscoroutinefunction(handler)
         budget = self.budget
         counter = self.counter
+        signer = self.cursors
+        resolve_principal = self._resolve_principal
 
         async def wrapper(**kwargs: Any) -> ToolResult:
             fastmcp_ctx = kwargs.pop("ctx", None)
@@ -405,6 +491,13 @@ class OunceServer:
                 response_format=response_format,
                 result_budget=limit,
                 fastmcp=fastmcp_ctx,
+                _signer=signer,
+                _arguments=lambda: (
+                    input_model.model_validate(kwargs).model_dump(mode="json")
+                    if input_model is not None
+                    else kwargs
+                ),
+                _resolve=resolve_principal,
             )
             if ctx_param is not None:
                 call_kwargs[ctx_param] = tool_ctx
@@ -414,18 +507,18 @@ class OunceServer:
                 else:
                     result = await anyio.to_thread.run_sync(lambda: handler(**call_kwargs))
             except InvalidCursor as exc:
-                return _error_result(str(exc), {"error": "invalid_cursor"})
+                return _error_result(str(exc), {"error": "invalid_cursor", "reason": exc.reason})
             if not isinstance(result, output_model):
                 result = output_model.model_validate(result)
             page = None
             pf = spec.page_fields
-            if pf is not None and tool_ctx._window is not None:
+            if pf is not None and tool_ctx._window is not None and tool_ctx._encode is not None:
                 page = PageSpec(
                     list_key=pf.list_key,
                     cursor_key=pf.cursor_key,
                     start=tool_ctx._window.start,
                     count=len(tool_ctx._window.items),
-                    encode=encode_offset,
+                    encode=tool_ctx._encode,
                 )
             try:
                 shaped = shape_result(

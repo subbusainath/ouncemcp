@@ -14,7 +14,7 @@ so the next call resumes right after the last item actually returned.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Annotated, Any, Generic, TypeVar
 
@@ -73,16 +73,16 @@ def find_page_fields(model: type[BaseModel], tool_name: str) -> PageFields | Non
     return PageFields(list_key=lists[0], cursor_key=cursors[0])
 
 
-def window(rows: Sequence[T], *, start: int, limit: int) -> PageWindow[T]:
+def window(
+    rows: Sequence[T], *, start: int, limit: int, encode: Callable[[int], str]
+) -> PageWindow[T]:
     if limit < 1:
         raise ValueError("limit must be >= 1")
-    from ouncemcp.core.cursor import encode_offset
-
     items = list(rows[start : start + limit])
     end = start + len(items)
     return PageWindow(
         items=items,
         start=start,
         total=len(rows),
-        next_cursor=encode_offset(end) if end < len(rows) else None,
+        next_cursor=encode(end) if end < len(rows) else None,
     )

@@ -19,11 +19,12 @@ import jsonschema
 from _common import RESULTS
 from pydantic import BaseModel
 
-from ouncemcp import Cursor, Paginated, get_counter
-from ouncemcp.core.cursor import encode_offset
+from ouncemcp import Cursor, CursorSigner, Paginated, get_counter
 from ouncemcp.core.schema import compact_schema
 from ouncemcp.core.shaping import PageSpec, shape_result
 from ouncemcp.core.tokens import compact_json
+
+encode_offset = CursorSigner([b"k" * 32]).bind(tool="bench", principal="p", query={}).encode
 
 
 class Row(BaseModel):
