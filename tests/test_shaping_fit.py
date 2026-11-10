@@ -23,7 +23,12 @@ from ouncemcp.core.schema import compact_schema
 from ouncemcp.core.shaping import PageSpec, ResultTooLarge, list_trim_floor, shape_result
 from ouncemcp.core.tokens import compact_json
 
-encode_offset = CursorSigner([b"k" * 32]).bind(tool="t", principal="p", query={}).encode
+# A fixed clock keeps cursor sizes, and so token counts, the same across calls.
+encode_offset = (
+    CursorSigner([b"k" * 32], clock=lambda: 1_800_000_000.0)
+    .bind(tool="t", principal="p", query={})
+    .encode
+)
 
 
 def _output_validator(model: type[BaseModel]) -> jsonschema.Draft202012Validator:
@@ -74,8 +79,7 @@ def test_trimmed_page_keeps_as_many_items_as_fit(n, text_len, budget):
         return
     # One more item, with the note that would describe it, must not fit.
     bigger = {"items": [r.model_dump() for r in rows(n, text_len)[: kept + 1]]}
-    if kept + 1 < n:
-        bigger["next_cursor"] = encode_offset(kept + 1)
+    bigger["next_cursor"] = encode_offset(min(kept + 1, n))
     note = out.text.rsplit("\n", 1)[1]
     assert counter.count(f"{compact_json(bigger)}\n{note}") > budget - 2
 

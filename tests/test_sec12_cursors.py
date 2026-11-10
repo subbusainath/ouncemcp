@@ -69,15 +69,18 @@ def test_offsets_outside_range_are_rejected():
         cursors.encode(2**32)
 
 
+ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+
+
 @settings(max_examples=200, deadline=None)
-@given(data=st.data())
-def test_any_single_character_change_is_rejected(data):
-    cursors = bound(CursorSigner([KEY]))
-    token = cursors.encode(data.draw(st.integers(0, 10_000)))
-    i = data.draw(st.integers(0, len(token) - 1))
-    other = data.draw(st.sampled_from([c for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ-_" if c != token[i]]))
+@given(offset=st.integers(0, 10_000), i=st.integers(0, 58), step=st.integers(1, len(ALPHABET) - 1))
+def test_any_single_character_change_is_rejected(offset, i, step):
+    cursors = bound(CursorSigner([KEY], clock=Clock()))
+    token = cursors.encode(offset)
+    old = token[i]
+    new = ALPHABET[(ALPHABET.find(old) + step) % len(ALPHABET)] if old in ALPHABET else "A"
     with pytest.raises(InvalidCursor):
-        cursors.decode(token[:i] + other + token[i + 1 :])
+        cursors.decode(token[:i] + new + token[i + 1 :])
 
 
 @pytest.mark.parametrize("junk", ["", "garbage", "s1.", "s1.@@@", "s1.AAAA", "x1.AAAA", "s2.AAAA"])
