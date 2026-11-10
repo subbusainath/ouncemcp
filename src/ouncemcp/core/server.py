@@ -13,16 +13,17 @@ import logging
 import re
 import sys
 import typing
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from typing import Any, Literal, TypeVar, cast
 
 import anyio
 import jsonschema
 from fastmcp import FastMCP
+from fastmcp.server.auth import AuthCheck
 from fastmcp.server.context import Context as FastMCPContext
 from fastmcp.server.dependencies import get_access_token
-from fastmcp.tools import FunctionTool, ToolResult
+from fastmcp.tools import FunctionTool, Tool, ToolResult
 from mcp_types import TextContent, ToolAnnotations
 from pydantic import BaseModel
 
@@ -42,6 +43,18 @@ from ouncemcp.core.shaping import (
 )
 from ouncemcp.core.tokens import DEFAULT_ENCODING, TokenCounter, get_counter
 from ouncemcp.core.wire import wire_tools
+from ouncemcp.discovery import (
+    DISCOVERY_SETTINGS,
+    META_TOOLS,
+    DiscoveryDecision,
+    DiscoveryMode,
+    DiscoverySetting,
+    OunceSearchTransform,
+    RecallCase,
+    RecallReport,
+    build_report,
+    decide_discovery,
+)
 
 # MCP tool names: 1-128 characters of ASCII letters, digits, underscore, hyphen, dot.
 TOOL_NAME_RE = re.compile(r"^[A-Za-z0-9_.\-]{1,128}$")
@@ -322,6 +335,9 @@ class OunceServer:
         output_schemas: bool | OutputSchemaMode = "on",
         cursors: CursorSigner | None = None,
         principal: PrincipalResolver | None = None,
+        discovery: DiscoverySetting = "auto",
+        pinned: Sequence[str] = (),
+        search_results: int = 5,
         **fastmcp_kwargs: Any,
     ) -> None:
         self.name = name
@@ -332,6 +348,21 @@ class OunceServer:
         self.cursors = cursors or CursorSigner.from_env()
         self._resolve_principal = principal or default_principal
         self._specs: dict[str, ToolSpec] = {}
+        self._registered: dict[str, FunctionTool] = {}
+        if discovery not in DISCOVERY_SETTINGS:
+            raise ValueError(
+                f"discovery must be one of {', '.join(DISCOVERY_SETTINGS)}, got {discovery!r}"
+            )
+        if not isinstance(search_results, int) or search_results < 1:
+            raise ValueError("search_results must be an integer >= 1")
+        self.discovery_setting: DiscoverySetting = discovery
+        self._decision: DiscoveryDecision | None = None
+        self._search = OunceSearchTransform(
+            mode=self._discovery_mode,
+            pinned=pinned,
+            max_results=search_results,
+        )
+        self.fastmcp.add_transform(self._search)
 
     # ------------------------------------------------------------------ registration
 
@@ -348,12 +379,17 @@ class OunceServer:
         tags: set[str] | None = None,
         min_items: int = 1,
         output_schema: OutputSchemaMode | None = None,
+        auth: AuthCheck | list[AuthCheck] | None = None,
     ) -> Any:
         """Register a tool. ``effect`` is required.
 
         ``output_schema`` sets whether this tool advertises its output schema: ``"on"``,
         ``"off"``, or ``"auto"`` (advertise it unless the definition would then be over
         ``Budget.tool_definition_target``). It defaults to the server's ``output_schemas``.
+
+        ``auth`` is a FastMCP authorization check (or a list, all of which must pass).
+        It decides who can see the tool in lists and search results, and who can call it,
+        including by a guessed name.
 
         The handler can take either a single Pydantic model argument (its fields
         become the tool's top-level arguments) or ordinary keyword arguments, plus
@@ -373,12 +409,16 @@ class OunceServer:
                 tags=tags,
                 min_items=min_items,
                 output_schema=output_schema,
+                auth=auth,
             )
             return handler
 
         if fn is not None:
             return decorator(fn)
         return decorator
+
+    async def _discovery_mode(self) -> DiscoveryMode:
+        return (await self.discovery()).mode
 
     def _register(
         self,
@@ -393,6 +433,7 @@ class OunceServer:
         tags: set[str] | None,
         min_items: int = 1,
         output_schema: OutputSchemaMode | None = None,
+        auth: AuthCheck | list[AuthCheck] | None = None,
     ) -> None:
         tool_name = name or handler.__name__
         schema_mode = _tool_mode(output_schema, tool_name) or self.output_schemas
@@ -405,6 +446,11 @@ class OunceServer:
             raise ValueError(
                 f"Invalid tool name '{tool_name}': use 1-128 ASCII letters, digits, "
                 "'_', '-', or '.'"
+            )
+        if tool_name in META_TOOLS:
+            raise ValueError(
+                f"Tool name '{tool_name}' is reserved for OunceMCP's discovery meta-tools "
+                f"({', '.join(META_TOOLS)})"
             )
         if tool_name in self._specs:
             raise ValueError(f"Tool '{tool_name}' is already registered")
@@ -600,6 +646,7 @@ class OunceServer:
             annotations=ToolAnnotations.model_validate(effect.annotations()),
             tags=tags,
             timeout=(deadline_ms / 1000) if deadline_ms else None,
+            auth=auth,
         )
         # Advertise compact schemas. Validation still runs on the Pydantic models.
         registered.parameters = compact_schema(registered.parameters)
@@ -622,12 +669,84 @@ class OunceServer:
         self._specs[tool_name] = replace(
             spec, output_schema=schema_mode, output_schema_advertised=advertised is not None
         )
+        self._registered[tool_name] = registered
+        self._decision = None
 
     # ------------------------------------------------------------------ inspection
 
     @property
     def tools(self) -> dict[str, ToolSpec]:
         return dict(self._specs)
+
+    @staticmethod
+    async def _wire(tools: Iterable[Tool]) -> list[Any]:
+        """Definitions of ``tools`` as a client receives them, with ``auth`` ignored."""
+        probe = FastMCP("ouncemcp-probe")
+        for tool in tools:
+            probe.add_tool(tool.model_copy(update={"auth": None}))
+        return await wire_tools(probe)
+
+    async def catalog(self) -> list[Any]:
+        """Every registered tool's definition, whatever the discovery mode and whoever asks.
+
+        This is what ``direct`` mode sends over stdio. ``check`` measures it so that
+        per-tool budgets apply to tools that ``search`` mode only sends on request.
+        """
+        return await self._wire(self._registered.values())
+
+    async def discovery(self) -> DiscoveryDecision:
+        """The discovery mode in force, and the measurements that decided it (DISC-1).
+
+        Measured on the whole registered catalog, not per caller, so the mode and the
+        meta-tool list do not change from one principal to the next (DISC-5). Recomputed
+        after any tool is registered.
+        """
+        if self._decision is None:
+            unknown = [name for name in self._search.pinned if name not in self._registered]
+            if unknown:
+                raise ValueError(
+                    f"pinned tools are not registered: {', '.join(unknown)}. "
+                    f"Registered: {', '.join(sorted(self._registered)) or 'none'}"
+                )
+            counter = self.counter
+            direct = sum(counter.count_json(definition_payload(t)) for t in await self.catalog())
+            surface = [
+                *self._search.meta_tools,
+                *(self._registered[n] for n in self._search.pinned),
+            ]
+            search = sum(
+                counter.count_json(definition_payload(t)) for t in await self._wire(surface)
+            )
+            self._decision = decide_discovery(
+                self.discovery_setting,
+                direct_tokens=direct,
+                search_tokens=search,
+                threshold=self.budget.startup_tokens,
+                pinned=self._search.pinned,
+            )
+        return self._decision
+
+    async def measure_recall(
+        self, cases: Sequence[RecallCase], *, k: int | None = None
+    ) -> RecallReport:
+        """Search recall at ``k`` over the whole catalog (DISC-6).
+
+        ``k`` defaults to the server's ``search_results``. Works in either mode, so it
+        can inform the choice. Pinned tools are not part of the search index.
+        """
+        if not cases or any(not case.expected for case in cases):
+            raise ValueError("measure_recall needs at least one case, each expecting a tool")
+        known = {name for name in self._registered if name not in self._search.pinned}
+        unknown = sorted({n for case in cases for n in case.expected} - known)
+        if unknown:
+            raise ValueError(f"expected tools are not searchable: {', '.join(unknown)}")
+        limit = k or self._search.max_results
+        tools = list(self._registered.values())
+        searchable = [t for t in tools if t.name in known]
+        rankings = [
+            [t.name for t in await self._search.rank(searchable, case.query)] for case in cases
+        ]
+        return build_report(cases, rankings, limit)
 
     async def list_tools(self) -> list[Any]:
         """Return the MCP tool definitions exactly as clients receive them.
@@ -670,10 +789,12 @@ class OunceServer:
                         f"{tool.total} tokens",
                         file=sys.stderr,
                     )
+            decision = asyncio.run(self.discovery())
+            print(f"[ouncemcp] discovery: {decision.mode} ({decision.reason})", file=sys.stderr)
             if report.startup_status == "warn":
                 print(
                     f"[ouncemcp] WARN: startup context exceeds {self.budget.startup_tokens} "
-                    "tokens; search-based discovery arrives in M1",
+                    "tokens; use discovery='auto' or 'search' to send less",
                     file=sys.stderr,
                 )
         self.fastmcp.run(transport=transport, **kwargs)

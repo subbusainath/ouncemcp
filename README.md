@@ -2,7 +2,7 @@
 
 **Every token counts.** OunceMCP is a framework for building Model Context Protocol (MCP) servers and clients that are fast, low-noise, and safe for agents by default. It builds on [FastMCP](https://gofastmcp.com) and the official MCP Python SDK, and targets the MCP `2026-07-28` specification.
 
-> **Status: pre-alpha (M0 core prototype).** The core server API, token accounting, result budgets, and the `check` and `context` commands work and are tested. Discovery, safe writes, the client, eval, and audit are not built yet. APIs will change. See the [roadmap](#roadmap) and the [M0 report](docs/m0-report.md).
+> **Status: pre-alpha (M0 core prototype).** The core server API, token accounting, result budgets, automatic `direct`/`search` discovery, and the `check` and `context` commands work and are tested. Safe writes, the client, eval, and audit are not built yet. APIs will change. See the [roadmap](#roadmap) and the [M0 report](docs/m0-report.md).
 
 ## Why
 
@@ -65,7 +65,8 @@ What you get:
 - **Concise by default:** fields marked `Detail` are only returned when the agent asks for `response_format="detailed"`.
 - **Result budgets:** every result fits its token budget and still matches its output schema. Lists are trimmed first, then long strings, then optional fields, and the agent gets a note saying what was removed and how to get more. If the smallest valid result is still too large, the agent gets an `isError` result asking for a narrower call instead of broken JSON.
 - **Safe pagination:** mark the page list `Paginated` and the cursor `Cursor`, and use `ctx.page(...)`. If OunceMCP trims the page to fit the budget, it moves `next_cursor` so the next call resumes after the last item returned. No item is skipped or repeated. Lists are never trimmed below `min_items` (default 1). Cursors are signed: they expire, and only work for the same tool, caller and filters. Set `OUNCEMCP_CURSOR_KEYS` in production ([proposal 0003](docs/proposals/0003-signed-cursors.md)).
-- **Budget checks:** `ouncemcp check server.py` counts the tokens of every tool definition as the host receives it, and fails CI when a tool goes over budget.
+- **Automatic discovery:** `OunceServer(discovery="auto")` (the default) sends every tool while the definitions fit `Budget.startup_tokens`. Above it, the server sends `search_tools`, `describe_tool` and `call_tool` instead (279 tokens whatever the catalog), plus any `pinned` tools. Search results come in three detail levels (`name`, `summary`, `full`) and only include tools the caller is authorized to use (`@server.tool(auth=...)`). Hiding a tool is not access control: the same check runs on a guessed name. `discovery="direct"` or `"search"` overrides the choice, and `await server.measure_recall(cases)` reports how often search finds the tools agents need. See [proposal 0006](docs/proposals/0006-discovery-modes.md).
+- **Budget checks:** `ouncemcp check server.py` counts the tokens of every tool definition as the host receives it, and fails CI when a tool goes over budget. It also reports which discovery mode the server will use and why.
 
 ```bash
 ouncemcp check examples/inventory/server.py

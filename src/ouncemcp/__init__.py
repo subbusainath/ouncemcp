@@ -25,6 +25,7 @@ from ouncemcp.core import (
     measure_tools,
     shape_result,
 )
+from ouncemcp.discovery import DiscoveryDecision, RecallCase, RecallReport
 
 __version__ = "0.0.1.dev0"
 
@@ -34,11 +35,14 @@ __all__ = [
     "Cursor",
     "CursorSigner",
     "Detail",
+    "DiscoveryDecision",
     "Effect",
     "InvalidCursor",
     "OunceServer",
     "PageWindow",
     "Paginated",
+    "RecallCase",
+    "RecallReport",
     "ResultTooLarge",
     "ServerCost",
     "TiktokenCounter",

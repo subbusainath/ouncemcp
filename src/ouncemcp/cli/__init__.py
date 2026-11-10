@@ -67,12 +67,20 @@ async def _definitions(server: Any) -> tuple[list[Any], Any, TokenCounter]:
     from ouncemcp.core.wire import wire_tools
 
     if isinstance(server, OunceServer):
-        return await server.list_tools(), server.budget, server.counter
+        return await server.catalog(), server.budget, server.counter
     return await wire_tools(server), Budget(), get_counter()
 
 
 def _counter(ns: argparse.Namespace, default: TokenCounter) -> TokenCounter:
     return get_counter(ns.tokenizer) if ns.tokenizer else default
+
+
+def _discovery(server: Any) -> Any:
+    from ouncemcp.core.server import OunceServer
+
+    if isinstance(server, OunceServer):
+        return asyncio.run(server.discovery())
+    return None
 
 
 def _check(ns: argparse.Namespace) -> int:
@@ -97,10 +105,16 @@ def _check(ns: argparse.Namespace) -> int:
         else None
     )
     report = measure_tools(tools, budget, counter, output_schema_modes=modes)
+    decision = _discovery(server)
     if ns.json:
-        print(json.dumps(report.to_dict(), indent=2))
+        data = report.to_dict()
+        if decision is not None:
+            data["discovery"] = decision.to_dict()
+        print(json.dumps(data, indent=2))
     else:
         print(report.render_text())
+        if decision is not None:
+            print(decision.render_text())
     return 1 if report.failed else 0
 
 
