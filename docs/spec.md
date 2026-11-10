@@ -757,7 +757,7 @@ These were measured on Python 3.12.15, x86_64, 2 vCPU.
 - **The framework is the product, and audit is only an optional command.** An early draft put a server-audit tool first. That was corrected: the goal is a framework for building effective MCP servers, and `ouncemcp audit` is an option that reuses the core token accounting. Keep the roadmap framework-first.
 - **Name: OunceMCP** (package `ouncemcp`). It was chosen after checking 10 to 15 candidates on PyPI, npm, GitHub and the web for conflicts. `mcp-lean` was rejected.
 - **Results stay valid against the schema.** If even the smallest valid result is over budget, the tool returns `isError` with a recovery hint. It never sends text that breaks the schema (RES-8).
-- **Two copies of this spec.** This document and `docs/spec.md` have the same content. The only difference is that `docs/spec.md` uses relative links where this document uses full GitHub URLs. After a PR is merged, the owner asks for both to be updated: requirement status, PR links, numbers and this section. The commit reference here is not re-synced after every docs-only merge.
+- **Two copies of this spec.** The spec exists as `docs/spec.md` in the repository and as the shared document "Building an effective MCP server and client framework". They have the same content, except that the repository copy uses relative links where the shared document uses full GitHub URLs. After a PR is merged, the owner asks for both to be updated: requirement status, PR links, numbers and this section. The commit reference here is not re-synced after every docs-only merge.
 - **Working with the owner:** keep messages brief and plain, with no emojis. The owner reviews and merges every PR. Never push to `main` directly.
 
 #### Next tasks, in order
