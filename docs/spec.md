@@ -11,7 +11,7 @@ Project specification
 | Reference implementation | Python, built on FastMCP 4 and the official MCP Python SDK |
 | License (proposed) | Apache-2.0 |
 | Status | M0 done ([M0 report](m0-report.md)). M1 in progress: RES-8 to RES-10 and PERF-7 are merged ([PR #3](https://github.com/subbusainath/ouncemcp/pull/3), [PR #4](https://github.com/subbusainath/ouncemcp/pull/4)). Next: SEC-12 and BUD-6 to BUD-9. See section 15.3 |
-| Repository | [github.com/subbusainath/ouncemcp](https://github.com/subbusainath/ouncemcp) (private), default branch `main`, last merge `fa20b3f` |
+| Repository | [github.com/subbusainath/ouncemcp](https://github.com/subbusainath/ouncemcp) (private), default branch `main`, last merge `6c17687` (PR #5) |
 
 This specification turns two research investigations into a buildable plan. Protocol facts are cited to primary sources. Requirements, default limits, interfaces, and milestones are proposals and are marked as such; numeric defaults must be validated experimentally before being presented as recommendations to users.
 
@@ -638,7 +638,16 @@ Already fixed in M0 and kept as regression tests: wire-format counting (BUD-1), 
 
 ### 15.3 Implementation status and handoff
 
-This section is the starting point for continuing the work in another tool, such as Cursor, the Claude app or Claude Code, or a new session. It reflects `main` at `fa20b3f`, after [PR #4](https://github.com/subbusainath/ouncemcp/pull/4) was merged on 10 November 2026.
+This section is the starting point for continuing the work in another tool, such as Cursor, the Claude app or Claude Code, or a new session. It reflects `main` at `6c17687`, after [PR #5](https://github.com/subbusainath/ouncemcp/pull/5) was merged on 10 November 2026. The last code change is [PR #4](https://github.com/subbusainath/ouncemcp/pull/4).
+
+Read these first, in this order:
+
+1. This section.
+2. [Proposal 0002](proposals/0002-schema-safe-shaping-and-pagination.md), the design of the current M1 work.
+3. The [M0 report](m0-report.md) and [proposal 0001](proposals/0001-m0-core-api.md).
+4. The companion document "MCP performance, context efficiency, and open-source strategy". It explains why MCP can slow agents down or fill their context.
+
+If this document and the code disagree, the code on `main` wins. Update this document when that happens.
 
 #### Repository and history
 
@@ -655,6 +664,7 @@ This section is the starting point for continuing the work in another tool, such
 | [#2](https://github.com/subbusainath/ouncemcp/pull/2) | Spec v0.3: M0 limitations folded into M1 (RES-8 to RES-11, SEC-12, BUD-6 to BUD-9, PERF-7) | Merged |
 | [#3](https://github.com/subbusainath/ouncemcp/pull/3) | RES-8 to RES-10: schema-safe shaping, `isError` for over-budget results, `Paginated`/`Cursor` and `ctx.page`, `min_items`; mypy added to CI; proposal 0002 | Merged |
 | [#4](https://github.com/subbusainath/ouncemcp/pull/4) | Proposal 0002 follow-ups: measured note reserve and short notes, clearer too-large advice, PERF-7 speedups, `m1_truncation.py` benchmark | Merged |
+| [#5](https://github.com/subbusainath/ouncemcp/pull/5) | Spec v0.4 synced into `docs/spec.md`: M1 status, performance numbers and this handoff section (docs only) | Merged |
 
 #### Public API today
 
@@ -742,6 +752,14 @@ These were measured on Python 3.12.15, x86_64, 2 vCPU.
 - **Benchmarks:** keep the M0 result files unchanged. Write new numbers to new `m1-*.json` files and record them in the proposal.
 - **Claims:** performance claims cite a benchmark script and machine. PERF-6 must not be published until section 13 confirms it.
 
+#### Key decisions and why
+
+- **The framework is the product, and audit is only an optional command.** An early draft put a server-audit tool first. That was corrected: the goal is a framework for building effective MCP servers, and `ouncemcp audit` is an option that reuses the core token accounting. Keep the roadmap framework-first.
+- **Name: OunceMCP** (package `ouncemcp`). It was chosen after checking 10 to 15 candidates on PyPI, npm, GitHub and the web for conflicts. `mcp-lean` was rejected.
+- **Results stay valid against the schema.** If even the smallest valid result is over budget, the tool returns `isError` with a recovery hint. It never sends text that breaks the schema (RES-8).
+- **Two copies of this spec.** The spec exists as `docs/spec.md` in the repository and as the shared document "Building an effective MCP server and client framework". They have the same content, except that the repository copy uses relative links where the shared document uses full GitHub URLs. After a PR is merged, the owner asks for both to be updated: requirement status, PR links, numbers and this section. The commit reference here is not re-synced after every docs-only merge.
+- **Working with the owner:** keep messages brief and plain, with no emojis. The owner reviews and merges every PR. Never push to `main` directly.
+
 #### Next tasks, in order
 
 1. **SEC-12 signed cursors.**
@@ -755,9 +773,23 @@ These were measured on Python 3.12.15, x86_64, 2 vCPU.
 5. **Remaining M1 P0 work:** discovery modes `direct` and `search` with automatic switching, ERR, EXE (except idempotency), SEC, the `init` and `dev` commands, the docs site and the quickstart.
 6. **Optional performance work:** convert only the items that could fit, to reduce the cost of shaping large results.
 
+#### Open risks
+
+- **Host verification:** the M0 exit criterion of checking real hosts (Claude Desktop and VS Code) is still open.
+- **Large results:** for very large results, most of the shaping time is now spent converting the whole model to JSON (see next task 6).
+- **Unsigned cursors:** cursors are unsigned until SEC-12, so a client can make up its own offsets. Don't treat any build as production-ready until SEC-12 is done.
+
+#### Suggested skills or modes for the next agent
+
+- **Implement:** work through an item from this spec or a proposal.
+- **Test-driven development:** red-green-refactor at the public seams.
+- **Module design:** use it if SEC-12 changes the cursor or pagination interface.
+- **Primary-source research:** check the MCP [pagination](https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/pagination.md) and [tools](https://modelcontextprotocol.io/specification/2026-07-28/server/tools.md) pages before deciding.
+- **Library documentation lookup:** current FastMCP, MCP Python SDK and Pydantic documentation.
+
 #### Prompt to start a new session
 
-> You are continuing OunceMCP, an open-source Python framework on FastMCP 4 for building fast, low-noise MCP servers. The repository is `subbusainath/ouncemcp`, and `main` is at `fa20b3f`. Read `docs/spec.md`, `docs/proposals/0002-schema-safe-shaping-and-pagination.md` and section 15.3 of the spec (version 0.4) first. RES-8 to RES-10 and PERF-7 are done. Start SEC-12 (signed cursors) on a new branch: write proposal 0003, then implement test-first. Keep CI green (ruff, ruff format, mypy, pytest), and open a PR into `main`.
+> You are continuing OunceMCP, an open-source Python framework on FastMCP 4 for building fast, low-noise MCP servers. The repository is `subbusainath/ouncemcp` (private), and `main` is at `6c17687`. Read section 15.3 of the attached spec (version 0.4, also at `docs/spec.md`) and follow its reading order. RES-8 to RES-10 and PERF-7 are done. Start SEC-12 (signed cursors) on a new branch: write `docs/proposals/0003-signed-cursors.md`, then implement test-first. Keep CI green (ruff, ruff format, mypy, pytest), and open a PR into `main` for the owner to review. After it is merged, update SEC-12 and section 15.3 in both copies of the spec.
 
 ---
 
