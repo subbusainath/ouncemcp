@@ -67,7 +67,7 @@ from ouncemcp.execution import (
     WriteAttempt,
     WriteResolver,
 )
-from ouncemcp.execution.middleware import OunceMiddleware
+from ouncemcp.execution.middleware import CALL_NOTES, OunceMiddleware
 from ouncemcp.execution.runner import run_with_policy
 from ouncemcp.security.cache import CacheView, PartitionedCache
 from ouncemcp.security.http import resolve_http_options
@@ -80,6 +80,7 @@ from ouncemcp.security.identity import (
 from ouncemcp.security.policy import Policy, ToolFacts, policy_check
 from ouncemcp.security.replay import InputRequired, UnsafeInputRequest
 from ouncemcp.security.state import StateSigner
+from ouncemcp.trace import Tracer, TraceSink
 
 # MCP tool names: 1-128 characters of ASCII letters, digits, underscore, hyphen, dot.
 TOOL_NAME_RE = re.compile(r"^[A-Za-z0-9_.\-]{1,128}$")
@@ -513,6 +514,7 @@ class OunceServer:
         audience: str | Sequence[str] | None = None,
         tenant_claims: Sequence[str] = DEFAULT_TENANT_CLAIMS,
         cache: PartitionedCache | None = None,
+        trace: Tracer | TraceSink | Sequence[TraceSink] | None = None,
         **fastmcp_kwargs: Any,
     ) -> None:
         self.name = name
@@ -550,12 +552,16 @@ class OunceServer:
         self.tenant_claims = tuple(tenant_claims)
         self.cache = cache or PartitionedCache()
         self.state = StateSigner(self.cursors)
+        self.tracer = Tracer.coerce(trace)
         self.fastmcp.add_middleware(
             OunceMiddleware(
                 limits=self.limits,
                 gate=ConcurrencyGate(self.limits.max_concurrency),
                 effect_of=self._effect_of,
                 principal_of=self._principal_of,
+                tracer=self.tracer,
+                count=self.counter.count,
+                tokenizer=self.counter.name,
             )
         )
 
@@ -862,6 +868,8 @@ class OunceServer:
 
             async def attempt(number: int) -> Any:
                 tool_ctx.attempt = number
+                if notes is not None:
+                    notes["attempts"] = number
                 tool_ctx._window = None
                 if is_async:
                     return await handler(**call_kwargs)
@@ -870,6 +878,7 @@ class OunceServer:
                 )
 
             resolved = False
+            notes = CALL_NOTES.get()
             try:
                 result = await run_with_policy(
                     attempt,

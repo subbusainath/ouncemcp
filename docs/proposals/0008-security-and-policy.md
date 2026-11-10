@@ -1,6 +1,6 @@
 # 0008: Verified identity, policy, bound state and safe HTTP defaults
 
-Status: proposed for M1. Covers spec SEC-1 to SEC-8 (see [spec section 8.2](../spec.md)). SEC-11 (trace redaction) is in proposal 0009. SEC-9 (SSRF) and SEC-10 (OAuth integrations) are P1 and not part of this proposal.
+Status: proposed for M1. Covers spec SEC-1 to SEC-8 (see [spec section 8.2](../spec.md)). SEC-11 (trace redaction) is in [proposal 0009](0009-traces.md). SEC-9 (SSRF) and SEC-10 (OAuth integrations) are P1 and not part of this proposal.
 
 ## Problem
 
