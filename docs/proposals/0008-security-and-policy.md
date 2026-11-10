@@ -29,6 +29,8 @@ A policy is a function from `PolicyRequest(tool, effect, tags, identity)` to `Tr
 
 The policies become one FastMCP auth check on the tool, so the same decision hides it from `tools/list` and search and refuses direct calls and `call_tool` by a guessed name. The effect and tags come from what was declared at registration, looked up by name, never from the component's annotations. A test relabels a destructive tool as read-only and access does not change.
 
+**Transports.** FastMCP skips component authorization on stdio, because a stdio server runs as the local user who started it, and a stdio request carries no verified token. Policies therefore apply over HTTP and to in-process calls, and over stdio every tool is visible and callable. That matches FastMCP's trust model, and it is listed as an open decision in the spec (section 15.3): whether OunceMCP should also refuse denied calls on stdio.
+
 Helpers: `allow_all`, `authenticated`, `require_scopes(...)`, `require_tenant(...)`, `writes_require(policy)`, `all_of(...)`, `any_of(...)`. `auth=` still works and runs after the policies.
 
 ### Token audience and passthrough (SEC-4)

@@ -2,7 +2,7 @@
 
 **Every token counts.** OunceMCP is a framework for building Model Context Protocol (MCP) servers and clients that are fast, low-noise, and safe for agents by default. It builds on [FastMCP](https://gofastmcp.com) and the official MCP Python SDK, and targets the MCP `2026-07-28` specification.
 
-> **Status: pre-alpha (M0 core prototype).** The core server API, token accounting, result budgets, automatic `direct`/`search` discovery, and the `check` and `context` commands work and are tested. Safe writes, the client, eval, and audit are not built yet. APIs will change. See the [roadmap](#roadmap) and the [M0 report](docs/m0-report.md).
+> **Status: pre-alpha (M1 in progress).** The core server API, token accounting, result budgets, automatic `direct`/`search` discovery, errors and deadlines, security and policy, traces, the security test catalog, and the `init`, `dev`, `check` and `context` commands work and are tested. Host verification is still open. Safe writes, the client broker, agent task suites and audit are not built yet. APIs will change. See the [roadmap](#roadmap), the [docs](docs/README.md) and the [M0 report](docs/m0-report.md).
 
 ## Why
 
@@ -15,7 +15,15 @@ Most MCP slowdowns don't come from the protocol. They come from loading every to
 - **Visibility:** see exactly what the model received and what it cost.
 - **Optional audit:** measure any MCP server, including ones not built with OunceMCP.
 
-## Quickstart (M0)
+## Quickstart
+
+```bash
+ouncemcp init notes-server && cd notes-server
+uv venv && uv pip install -e ".[dev]"   # until it is on PyPI, add: -e /path/to/ouncemcp
+uv run pytest && uv run ouncemcp dev server.py
+```
+
+The full walkthrough is in [docs/quickstart.md](docs/quickstart.md). A tool looks like this:
 
 ```python
 from typing import Annotated
@@ -68,16 +76,21 @@ What you get:
 - **Automatic discovery:** `OunceServer(discovery="auto")` (the default) sends every tool while the definitions fit `Budget.startup_tokens`. Above it, the server sends `search_tools`, `describe_tool` and `call_tool` instead (279 tokens whatever the catalog), plus any `pinned` tools. Search results come in three detail levels (`name`, `summary`, `full`) and only include tools the caller is authorized to use (`@server.tool(auth=...)`). Hiding a tool is not access control: the same check runs on a guessed name. `discovery="direct"` or `"search"` overrides the choice, and `await server.measure_recall(cases)` reports how often search finds the tools agents need. See [proposal 0006](docs/proposals/0006-discovery-modes.md).
 - **Categorized errors:** every failure is one of validation, authentication, permission, not found, rate limit, transient, ambiguous write or internal, with a `retryable` flag. Validation messages say how to fix the input without repeating it. Unexpected exceptions are never shown to the model: it gets a reference id and the details go to the log. Messages you write are redacted for URLs, addresses, hostnames, paths and credentials. Raise `InvalidInput`, `NotFound`, `RateLimited` and the other `OunceError` classes from handlers.
 - **Execution limits:** every call has a deadline (default 30 s) and is cancelled when it passes or the client cancels. Reads are retried a few times with bounded backoff inside the deadline, and writes never are. A write that times out is reported as ambiguous, not as failed. Request size, nesting depth and calls in flight per principal are bounded (`Limits`). See [proposal 0007](docs/proposals/0007-errors-and-execution-limits.md).
-- **Budget checks:** `ouncemcp check server.py` counts the tokens of every tool definition as the host receives it, and fails CI when a tool goes over budget. It also reports which discovery mode the server will use and why.
+- **Security and policy:** `ctx.identity` comes from the verified token only. `policy=` on the server or a tool decides who sees and calls it, on the declared effect, never on annotations. `audience=` refuses tokens issued for other servers, `passthrough_guard()` stops the caller's token from reaching upstream APIs, `ctx.cache` is partitioned by tenant, `ctx.issue_state` hands out handles and approvals bound to caller, request and expiry, and HTTP binds to loopback with `Host` and `Origin` checks ([proposal 0008](docs/proposals/0008-security-and-policy.md)).
+- **Traces:** `OunceServer(trace=MemorySink())` records each call's result tokens, latency, retries and outcome, redacted by default ([proposal 0009](docs/proposals/0009-traces.md)).
+- **Composite tools:** `ctx.gather(...)` runs several upstream calls in one tool call. The example `inventory.cost_review` returns 651 tokens in 1 call where paging `inventory.search` takes 9,896 tokens over 8 calls.
+- **Testing:** `ouncemcp.testing.as_caller(...)` runs code as a verified caller, and `ouncemcp.eval.run_security_suite(server, cases)` probes for cross-tenant leaks, guessed names, cursor and handle reuse, replay, token passthrough and SSRF.
+- **Budget checks:** `ouncemcp check server.py` counts the tokens of every tool definition as the host receives it, and fails CI when a tool goes over budget or a lint error is found. It also reports which discovery mode the server will use and why. Every lint and error links to a page explaining it.
 
 ```bash
 ouncemcp check examples/inventory/server.py
 ouncemcp context examples/inventory/server.py inventory.search
+ouncemcp dev examples/inventory/server.py      # hot reload, live per-call token lines
 ```
 
 Counts use `o200k_base` by default. Choose another tiktoken encoding with `OunceServer(tokenizer="cl100k_base")` or `ouncemcp check --tokenizer cl100k_base`, or pass your own counting function with `tokenizer=fn, tokenizer_name="my-tokenizer-v1"`. Every report names the tokenizer it used ([proposal 0004](docs/proposals/0004-pluggable-tokenizer.md)).
 
-Planned commands (`init`, `dev`, `eval`, `bench`, `trace`, and the optional `audit`) report the milestone they ship in.
+Planned commands (`eval`, `bench`, `trace`, and the optional `audit`) report the milestone they ship in.
 
 ## M0 results
 
@@ -97,14 +110,16 @@ Typed output schemas make definitions larger. Results are where the savings come
 
 ```text
 src/ouncemcp/
-  core/        capabilities, budgets, policy, response shaping, token accounting
-  discovery/   direct, search, and code discovery modes
-  execution/   deadlines, retries, idempotency, approvals
-  client/      reference client broker
-  eval/        conformance runner, security and agent task suites
-  trace/       telemetry and trace viewer
-  cli/         init, dev, check, context, eval, bench, trace, audit
-  audit/       optional audit command; reuses core token accounting
+  core/        capabilities, budgets, response shaping, token accounting, errors, lints
+  security/    identity, policy, audience and passthrough, caches, bound state, HTTP defaults
+  discovery/   direct and search discovery modes
+  execution/   deadlines, retries, limits, middleware
+  trace/       per-call traces and redaction
+  eval/        conformance target and security test catalog
+  cli/         init, dev, check, context (eval, bench, trace, audit planned)
+  client/      reference client broker (M2)
+  audit/       optional audit command (M2)
+  testing.py   as_caller and make_token for tests
 examples/      pilot servers: inventory, ticketing, report
 benchmarks/    servers, tasks, scripts, published results
 docs/          specification, research, concepts, guides, proposals
@@ -129,6 +144,7 @@ The full plan is in [docs/spec.md](docs/spec.md), and the supporting research is
 uv venv && uv pip install -e ".[dev]"
 uv run pytest
 uv run ruff check .
+uv pip install -e ".[docs]" && uv run mkdocs serve   # documentation site
 python benchmarks/scripts/m0_compare.py     # token comparison
 python benchmarks/scripts/m0_overhead.py    # per-call overhead
 ```
