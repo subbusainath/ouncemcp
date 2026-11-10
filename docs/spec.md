@@ -5,13 +5,13 @@ Project specification
 | Field | Value |
 | --- | --- |
 | Project name | **OunceMCP**. Package and CLI: `ouncemcp`; Python import: `ouncemcp`. The name was free on PyPI, npm, and GitHub on 9 November 2026; reserve it before announcing |
-| Document type | Project specification, version 0.5 (SEC-12 signed cursors implemented, in review) |
+| Document type | Project specification, version 0.5 (SEC-12 signed cursors merged, BUD-6 pluggable tokenizer in review) |
 | Date | 10 November 2026 |
 | Target protocol | MCP specification `2026-07-28`, with tested legacy compatibility |
 | Reference implementation | Python, built on FastMCP 4 and the official MCP Python SDK |
 | License (proposed) | Apache-2.0 |
-| Status | M0 done ([M0 report](m0-report.md)). M1 in progress: RES-8 to RES-10 and PERF-7 are merged ([PR #3](https://github.com/subbusainath/ouncemcp/pull/3), [PR #4](https://github.com/subbusainath/ouncemcp/pull/4)). SEC-12 is implemented in [PR #7](https://github.com/subbusainath/ouncemcp/pull/7), open for review. Next: BUD-6 to BUD-9. See section 15.3 |
-| Repository | [github.com/subbusainath/ouncemcp](https://github.com/subbusainath/ouncemcp) (private), default branch `main`, last merge `eaee7c6` (PR #6) |
+| Status | M0 done ([M0 report](m0-report.md)). M1 in progress: RES-8 to RES-10 and PERF-7 are merged ([PR #3](https://github.com/subbusainath/ouncemcp/pull/3), [PR #4](https://github.com/subbusainath/ouncemcp/pull/4)). SEC-12 is merged ([PR #7](https://github.com/subbusainath/ouncemcp/pull/7)). BUD-6 is implemented in [PR #8](https://github.com/subbusainath/ouncemcp/pull/8), open for review. Next: BUD-7 to BUD-9. See section 15.3 |
+| Repository | [github.com/subbusainath/ouncemcp](https://github.com/subbusainath/ouncemcp) (private), default branch `main`, last merge `3e804d4` (PR #7) |
 
 This specification turns two research investigations into a buildable plan. Protocol facts are cited to primary sources. Requirements, default limits, interfaces, and milestones are proposals and are marked as such; numeric defaults must be validated experimentally before being presented as recommendations to users.
 
@@ -21,7 +21,7 @@ This specification turns two research investigations into a buildable plan. Prot
 
 **Change in version 0.4.** M1 work has started. RES-8, RES-9, RES-10 and PERF-7 are implemented, tested and merged, and RES-4's fixed note reserve has been replaced by the note's measured size. Section 15.3 records the implementation status, public API, commands and next tasks, so work can continue in another tool (Cursor, the Claude app, or a new session) from this document alone. Design detail is in [proposal 0002](proposals/0002-schema-safe-shaping-and-pagination.md).
 
-**Change in version 0.5.** SEC-12 is implemented in [PR #7](https://github.com/subbusainath/ouncemcp/pull/7): `ctx.page`, `ctx.offset` and `ctx.window` now issue HMAC-signed `s1.` cursors that are bound to the tool, the caller and the query arguments, expire, and support key rotation. Section 15.3 is updated to match. Design detail is in [proposal 0003](proposals/0003-signed-cursors.md). The commit references in section 15.3 are not final until the PR is merged.
+**Change in version 0.5.** SEC-12 is implemented in [PR #7](https://github.com/subbusainath/ouncemcp/pull/7): `ctx.page`, `ctx.offset` and `ctx.window` now issue HMAC-signed `s1.` cursors that are bound to the tool, the caller and the query arguments, expire, and support key rotation. Section 15.3 is updated to match. Design detail is in [proposal 0003](proposals/0003-signed-cursors.md). PR #7 is merged into `main`.
 
 **Requirement keywords.** MUST, SHOULD, and MAY in the requirement tables are this project's internal requirements, not MCP specification requirements, unless a citation states otherwise. Priorities: **P0** is required for the first public release, **P1** for the 1.0 release, and **P2** is planned later.
 
@@ -236,7 +236,7 @@ Budgets are declared per server and per tool. The defaults below are **proposed 
 | BUD-3 | MUST enforce result budgets at runtime through response shaping (8.1.4) | P0 | Oversized results never exceed hard ceiling |
 | BUD-4 | MUST allow overrides per tool with a recorded justification | P1 | Override without reason produces a warning |
 | BUD-5 | SHOULD record actual token usage per call in traces | P0 | Trace includes result tokens |
-| BUD-6 | MUST make the tokenizer pluggable: any tiktoken encoding, a custom counting callable, and provider token-counting APIs; every report MUST name the tokenizer used | P0 (interface and tiktoken), P1 (provider APIs) | Same server reported with two tokenizers; reports show the tokenizer name; provider adapter tested against a recorded response |
+| BUD-6 | MUST make the tokenizer pluggable: any tiktoken encoding, a custom counting callable, and provider token-counting APIs; every report MUST name the tokenizer used | P0 (interface and tiktoken), P1 (provider APIs) | Same server reported with two tokenizers; reports show the tokenizer name; provider adapter tested against a recorded response. **Interface, tiktoken encodings and custom callables done in M1** ([PR #8](https://github.com/subbusainath/ouncemcp/pull/8), open for review): `get_counter` and `OunceServer(tokenizer=, tokenizer_name=)` take an encoding, a `TokenCounter` or a named function; `check`, `context`, `ServerCost`, results and too-large errors name the tokenizer. Provider APIs (P1) remain |
 | BUD-7 | MUST state which definition fields are counted (name, description, input schema, output schema) and which are not (`title`, annotations, `_meta`); SHOULD record per host which fields reach the model | P0 (declared scope), P1 (per-host data) | `check --json` includes the counting scope; host findings published in the compatibility matrix |
 | BUD-8 | MUST compact advertised schemas without changing what validation accepts: collapse optional `anyOf` with `null`, drop generated titles | P0 | Property test: every fixture input accepted by the Pydantic model is valid against the advertised schema and the reverse, apart from explicit `null` for optional fields, which the model still accepts |
 | BUD-9 | MUST let servers and tools choose output schemas `on`, `off`, or `auto`, and `check` MUST report the output-schema share of definition tokens | P0 | Three modes tested; `check` shows the share (M0 inventory: 241 of 488 tokens) |
@@ -605,7 +605,7 @@ Durations are planning estimates for a small team (about 26 weeks to 1.0) and sh
 | Milestone | Scope | Exit criteria | Estimate |
 | --- | --- | --- | --- |
 | **M0: Core spike** | `OunceServer` and tool decorator over FastMCP; typed inputs and outputs with declared effects; definition token counting; result budgets with concise and detailed formats and truncation; one read-only example server | Example server works in one named host; token counts match a manual recount; framework overhead measured against PERF-1. **Status: done, except host verification**, which was verified over a real stdio client only and moves to M1 ([M0 report](m0-report.md)) | 2 weeks |
-| **M1: Framework 0.1 (first public release)** | P0 requirements for CAP, BUD, DISC (`direct` and `search` with automatic switching), RES, ERR, EXE (except idempotency), and SEC; **M0 carry-over first: RES-8 to RES-10, SEC-12, BUD-6 to BUD-9, PERF-7 (section 15.2)**. **Status: in progress. RES-8 to RES-10, PERF-7 and SEC-12 done (SEC-12 in review); BUD-6 next (section 15.3)**; `init`, `dev`, `check`, `context`; docs site and quickstart; read-only inventory pilot | Install to first passing server under 5 minutes with five testers (DX-8); release gates 1, 2, 5, 7, and 8 pass; the inventory example works in Claude Desktop and VS Code, with versions recorded | 6 weeks |
+| **M1: Framework 0.1 (first public release)** | P0 requirements for CAP, BUD, DISC (`direct` and `search` with automatic switching), RES, ERR, EXE (except idempotency), and SEC; **M0 carry-over first: RES-8 to RES-10, SEC-12, BUD-6 to BUD-9, PERF-7 (section 15.2)**. **Status: in progress. RES-8 to RES-10, PERF-7 and SEC-12 done; BUD-6 done (in review, PR #8); BUD-7 next (section 15.3)**; `init`, `dev`, `check`, `context`; docs site and quickstart; read-only inventory pilot | Install to first passing server under 5 minutes with five testers (DX-8); release gates 1, 2, 5, 7, and 8 pass; the inventory example works in Claude Desktop and VS Code, with versions recorded | 6 weeks |
 | **M2: Framework 0.2** | Safe writes (preview, approval, commit, idempotency), result handles, client broker, migration guide from FastMCP; ticketing, long-running report, and migration pilots; **optional `ouncemcp audit` command** | Pilots pass release gates 1–5; migration guide works on one existing FastMCP server; audit totals match `check` within 1% for the same server | 6 weeks |
 | **M3: Eval and benchmark 0.5** | Eval kit, `bench`, trace viewer, HTML reports; full benchmark of framework-built and migrated servers versus plain equivalents; public launch | Benchmark published with reproducible scripts; PERF-6 confirmed or revised | 6 weeks |
 | **M4: 1.0** | Remaining P1 requirements, external security review, host compatibility matrix, stable API | All release gates pass; security review complete; API frozen | 6 weeks |
@@ -630,8 +630,8 @@ The M0 prototype ([M0 report](m0-report.md)) met its token-recount and overhead 
 | --- | --- | --- | --- | --- |
 | Text-only fallback drops structured content while an output schema is advertised | Violates MCP; clients that validate reject the result | RES-8 | Add a drop-optional-fields step and an `isError` path; fuzz test over outputs and budgets | Done ([PR #3](https://github.com/subbusainath/ouncemcp/pull/3)) |
 | Framework trimming leaves gaps behind handler cursors | Agents silently miss items | RES-3, RES-9 | Budget-aware page helper; property test that every item is returned exactly once | Done ([PR #3](https://github.com/subbusainath/ouncemcp/pull/3)) |
-| Cursors are unsigned base64 offsets | Tampering, cross-user reuse, filter mismatch | SEC-12 | Signed, principal-bound, expiring cursors with key rotation | Done ([PR #7](https://github.com/subbusainath/ouncemcp/pull/7), in review) |
-| Tokenizer fixed to `o200k_base` | Misleading numbers for other model families | BUD-6 | Tokenizer interface; provider counting adapters in P1 | Open |
+| Cursors are unsigned base64 offsets | Tampering, cross-user reuse, filter mismatch | SEC-12 | Signed, principal-bound, expiring cursors with key rotation | Done ([PR #7](https://github.com/subbusainath/ouncemcp/pull/7), merged) |
+| Tokenizer fixed to `o200k_base` | Misleading numbers for other model families | BUD-6 | Tokenizer interface; provider counting adapters in P1 | Done for tiktoken encodings and callables ([PR #8](https://github.com/subbusainath/ouncemcp/pull/8), in review); provider adapters open (P1) |
 | Unknown which definition fields hosts show the model | Budgets may over- or under-count | BUD-7, BUD-9 | Declared counting scope; host study in Claude Desktop, VS Code, and one more host; decide the output-schema default | Open |
 | Truncation path costs 1.44 ms p50 | Little headroom under PERF-1 | PERF-7 | Per-item token cache and incremental counting | Done: 0.70 ms p50 ([PR #4](https://github.com/subbusainath/ouncemcp/pull/4)) |
 | Example not yet run inside a host app | M0 exit criterion only partly met | M1 exit criteria | Manual run in two hosts, recorded in the compatibility matrix | Open |
@@ -640,7 +640,7 @@ Already fixed in M0 and kept as regression tests: wire-format counting (BUD-1), 
 
 ### 15.3 Implementation status and handoff
 
-This section is the starting point for continuing the work in another tool, such as Cursor, the Claude app or Claude Code, or a new session. It reflects `main` at `eaee7c6` (after [PR #6](https://github.com/subbusainath/ouncemcp/pull/6)) plus [PR #7](https://github.com/subbusainath/ouncemcp/pull/7), which implements SEC-12 and was open for review when this was written. Until it is merged, the code in the PR branch `cursor/sec-12-signed-cursors-d567` is the reference for cursors. The last code change on `main` is [PR #4](https://github.com/subbusainath/ouncemcp/pull/4).
+This section is the starting point for continuing the work in another tool, such as Cursor, the Claude app or Claude Code, or a new session. It reflects `main` at `3e804d4` (after [PR #7](https://github.com/subbusainath/ouncemcp/pull/7), which implements SEC-12) plus [PR #8](https://github.com/subbusainath/ouncemcp/pull/8), which implements BUD-6 and was open for review when this was written. Until it is merged, the code in the PR branch `cursor/bud-6-pluggable-tokenizer-d567` is the reference for tokenizers. The last code change on `main` is [PR #7](https://github.com/subbusainath/ouncemcp/pull/7).
 
 Read these first, in this order:
 
@@ -658,7 +658,7 @@ If this document and the code disagree, the code on `main` wins. Update this doc
 | Repository | [subbusainath/ouncemcp](https://github.com/subbusainath/ouncemcp), private, default branch `main` |
 | Stack | Python 3.11 to 3.13, FastMCP 4.1.6, MCP Python SDK 2.3.0, Pydantic 2.14, tiktoken 0.14 (`o200k_base`), jsonschema 4.26 |
 | CI | GitHub Actions on Python 3.11, 3.12 and 3.13: `ruff check`, `ruff format --check`, `mypy`, `pytest` |
-| Tests | 129 passing, including Hypothesis property tests (85 on `main`, 44 added in PR #7) |
+| Tests | 160 passing, including Hypothesis property tests (129 on `main`, 31 added in PR #8) |
 
 | PR | What it did | State |
 | --- | --- | --- |
@@ -668,7 +668,8 @@ If this document and the code disagree, the code on `main` wins. Update this doc
 | [#4](https://github.com/subbusainath/ouncemcp/pull/4) | Proposal 0002 follow-ups: measured note reserve and short notes, clearer too-large advice, PERF-7 speedups, `m1_truncation.py` benchmark | Merged |
 | [#5](https://github.com/subbusainath/ouncemcp/pull/5) | Spec v0.4 synced into `docs/spec.md`: M1 status, performance numbers and this handoff section (docs only) | Merged |
 | [#6](https://github.com/subbusainath/ouncemcp/pull/6) | Handoff section: reading order, key decisions, open risks, suggested skills (docs only) | Merged |
-| [#7](https://github.com/subbusainath/ouncemcp/pull/7) | SEC-12: signed, principal-bound, expiring cursors; proposal 0003; spec v0.5 | Open, awaiting owner review |
+| [#7](https://github.com/subbusainath/ouncemcp/pull/7) | SEC-12: signed, principal-bound, expiring cursors; proposal 0003; spec v0.5 | Merged |
+| [#8](https://github.com/subbusainath/ouncemcp/pull/8) | BUD-6: pluggable tokenizer named in every report; proposal 0004 | Open, awaiting owner review |
 
 #### Public API today
 
@@ -705,7 +706,7 @@ async def search(args: SearchInput, ctx: ToolContext) -> SearchResult:
     return SearchResult(items=page.items, next_cursor=page.next_cursor)
 ```
 
-Exports from `ouncemcp`: `Budget`, `Cursor`, `CursorSigner`, `Detail`, `Effect`, `InvalidCursor`, `OunceServer`, `PageWindow`, `Paginated`, `ResultTooLarge`, `ServerCost`, `TokenCounter`, `ToolContext`, `ToolCost`, `get_counter`, `measure_tool`, `measure_tools`, `shape_result`.
+Exports from `ouncemcp`: `Budget`, `CallableCounter`, `Cursor`, `CursorSigner`, `Detail`, `Effect`, `InvalidCursor`, `OunceServer`, `PageWindow`, `Paginated`, `ResultTooLarge`, `ServerCost`, `TiktokenCounter`, `TokenCounter`, `ToolContext`, `ToolCost`, `get_counter`, `measure_tool`, `measure_tools`, `shape_result`.
 
 Behavior to keep in mind:
 
@@ -716,6 +717,7 @@ Behavior to keep in mind:
 - **Cursor keys:** `CursorSigner([newest, ..., oldest])` signs with the first key and verifies with all. Without `cursors=`, keys come from `OUNCEMCP_CURSOR_KEYS` (comma-separated, newest first). With no key at all, a random per-process key is used and a warning is logged on first use; cursors then stop working after a restart and across replicas. Keys must be at least 16 bytes.
 - **Caller identity:** `OunceServer(principal=fn)` with `fn(ctx) -> str | None`. The default is the verified FastMCP access token's `subject`, `sub` claim or client id, and `"anonymous"` without authentication. SEC-1 will replace this with the verified identity object.
 - **Notes:** the note's measured size is reserved from the budget. A short note is used when the full note would exceed 10% of the budget.
+- **Tokenizer (BUD-6):** `OunceServer(tokenizer=...)` and `get_counter(...)` take a tiktoken encoding name (default `o200k_base`), a `TokenCounter`, or a function `str -> int` that must also be named (`tokenizer_name=` or `name=`). `TokenCounter` is abstract: implement `name` and `count`. `check` and `context` count with the server's tokenizer, and `--tokenizer ENCODING` overrides it. The name appears in `check` and `context` output, `ServerCost`, `_meta.ouncemcp.tokenizer` on results, and too-large errors. Custom counters must grow with the text; results are always checked with the counter's own `count`. Provider counting APIs are not built (P1).
 - **Optional fields:** unset optional (`None`) fields are omitted in both formats, because compacted schemas don't accept `null`.
 
 #### Code map
@@ -725,13 +727,13 @@ Behavior to keep in mind:
 | `src/ouncemcp/core/server.py` | `OunceServer`, `ToolContext`, tool registration, call wrapper, error results |
 | `src/ouncemcp/core/shaping.py` | `to_jsonable`, `Truncation` notes, `shape_result`, `_Fitter` degrade steps, `list_trim_floor`, `ResultTooLarge` |
 | `src/ouncemcp/core/pagination.py`, `cursor.py` | `Paginated`, `Cursor`, `PageWindow`, `window()`; `CursorSigner`, `BoundCursors` (sign, verify, rotate), `InvalidCursor` with `reason` |
-| `src/ouncemcp/core/schema.py`, `tokens.py`, `costs.py`, `wire.py`, `budget.py`, `effects.py` | Schema compaction, token counting, definition costs, wire-format measurement, budgets, effects |
+| `src/ouncemcp/core/schema.py`, `tokens.py`, `costs.py`, `wire.py`, `budget.py`, `effects.py` | Schema compaction, token counting (`TokenCounter`, `TiktokenCounter`, `CallableCounter`, `get_counter`), definition costs, wire-format measurement, budgets, effects |
 | `src/ouncemcp/cli/` | `ouncemcp check` and `ouncemcp context`; other commands print their planned milestone |
 | `src/ouncemcp/{audit,client,discovery,eval,execution,trace}/` | Empty packages reserved for later milestones |
 | `examples/inventory/` | `server.py` (OunceMCP), `plain_server.py` (plain FastMCP baseline), `data.py` |
 | `benchmarks/scripts/` | `m0_compare.py` (session tokens), `m0_overhead.py` (server overhead), `m1_truncation.py` (shaping time) |
 | `tests/` | `test_sec12_cursors.py`, `test_res8_conformance.py`, `test_res9_pagination.py`, `test_shaping_fit.py`, `test_shaping.py`, `test_server.py`, `test_schema.py`, `test_cli.py`, `test_stdio_e2e.py` and others |
-| `docs/` | `spec.md` (repository copy of this spec, version 0.5), `m0-report.md`, `proposals/0001-m0-core-api.md`, `proposals/0002-schema-safe-shaping-and-pagination.md`, `proposals/0003-signed-cursors.md` |
+| `docs/` | `spec.md` (repository copy of this spec, version 0.5), `m0-report.md`, `proposals/0001-m0-core-api.md`, `proposals/0002-schema-safe-shaping-and-pagination.md`, `proposals/0003-signed-cursors.md`, `proposals/0004-pluggable-tokenizer.md` |
 
 #### Commands
 
@@ -773,11 +775,10 @@ These were measured on Python 3.12.15, x86_64, 2 vCPU.
 
 #### Next tasks, in order
 
-1. **BUD-6 tokenizer interface:** any tiktoken encoding or a custom counting callable, with the tokenizer named in every report.
-2. **BUD-7 and BUD-9:** declared counting scope in `check --json`; output schemas `on`, `off` or `auto`, with the output-schema share of definition tokens reported.
-3. **Host verification:** run the inventory example in Claude Desktop and VS Code and record versions in the compatibility matrix. This is the open M0 exit criterion and the BUD-7 host study.
-4. **Remaining M1 P0 work:** discovery modes `direct` and `search` with automatic switching, ERR, EXE (except idempotency), SEC, the `init` and `dev` commands, the docs site and the quickstart.
-5. **Optional performance work:** convert only the items that could fit, to reduce the cost of shaping large results.
+1. **BUD-7 and BUD-9:** declared counting scope in `check --json`; output schemas `on`, `off` or `auto`, with the output-schema share of definition tokens reported.
+2. **Host verification:** run the inventory example in Claude Desktop and VS Code and record versions in the compatibility matrix. This is the open M0 exit criterion and the BUD-7 host study.
+3. **Remaining M1 P0 work:** discovery modes `direct` and `search` with automatic switching, ERR, EXE (except idempotency), SEC, the `init` and `dev` commands, the docs site and the quickstart.
+4. **Optional performance work:** convert only the items that could fit, to reduce the cost of shaping large results.
 
 #### Open risks
 
@@ -797,7 +798,7 @@ These were measured on Python 3.12.15, x86_64, 2 vCPU.
 
 #### Prompt to start a new session
 
-> You are continuing OunceMCP, an open-source Python framework on FastMCP 4 for building fast, low-noise MCP servers. The repository is `subbusainath/ouncemcp` (private), and `main` is at `eaee7c6` or later. Read section 15.3 of the attached spec (version 0.5, also at `docs/spec.md`) and follow its reading order. RES-8 to RES-10, PERF-7 and SEC-12 are done (SEC-12 is in PR #7; check whether it is merged and start from `main` once it is). Start BUD-6 (pluggable tokenizer) on a new branch: write `docs/proposals/0004-pluggable-tokenizer.md`, then implement test-first. Keep CI green (ruff, ruff format, mypy, pytest), and open a PR into `main` for the owner to review. After it is merged, update BUD-6 and section 15.3 in both copies of the spec.
+> You are continuing OunceMCP, an open-source Python framework on FastMCP 4 for building fast, low-noise MCP servers. The repository is `subbusainath/ouncemcp` (private), and `main` is at `3e804d4` or later. Read section 15.3 of the attached spec (version 0.5, also at `docs/spec.md`) and follow its reading order. RES-8 to RES-10, PERF-7 and SEC-12 are done and merged, and BUD-6 is in PR #8 (check whether it is merged and start from `main` once it is). Start BUD-7 and BUD-9 (counting scope and output schemas) on a new branch, then implement test-first. Keep CI green (ruff, ruff format, mypy, pytest), and open a PR into `main` for the owner to review. After it is merged, update BUD-7, BUD-9 and section 15.3 in both copies of the spec.
 
 ---
 
@@ -890,7 +891,7 @@ Applied here:
 | --- | --- | --- |
 | Project name | Decided: OunceMCP. Reserve `ouncemcp` on PyPI and npm and the GitHub organization; run a trademark search before launch | Done (reservation in M0) |
 | Reference language | Python on FastMCP 4 | M0 |
-| Default tokenizer | Decided for M0: `o200k_base`. Pluggable interface (BUD-6) in M1 | Done (interface in M1) |
+| Default tokenizer | Decided: `o200k_base` stays the default. The pluggable interface is done ([PR #8](https://github.com/subbusainath/ouncemcp/pull/8)); provider counting APIs are P1 | Done (interface in M1) |
 | Output schemas default | `on` until the BUD-7 host study shows whether models see them; then `on` or `auto` | M1 |
 | Cursor signing keys | Decided: keys from `CursorSigner` or `OUNCEMCP_CURSOR_KEYS` (newest first); random per-process key with a one-time warning when none is set. Failing at startup outside `dev` waits for the `dev` command | Done (M1, PR #7) |
 | Over-budget minimal result | Decided: tool error with a recovery hint (RES-8), rather than unstructured text | Done (M1, PR #3) |
