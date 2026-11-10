@@ -25,11 +25,24 @@ from ouncemcp.core import (
     measure_tools,
     shape_result,
 )
+from ouncemcp.core.errors import (
+    AmbiguousWrite,
+    AuthenticationRequired,
+    InvalidInput,
+    NotFound,
+    OunceError,
+    PermissionDenied,
+    RateLimited,
+    TransientError,
+)
 from ouncemcp.discovery import DiscoveryDecision, RecallCase, RecallReport
+from ouncemcp.execution import Limits, RetryPolicy, WriteAttempt, WriteResolver
 
 __version__ = "0.0.1.dev0"
 
 __all__ = [
+    "AmbiguousWrite",
+    "AuthenticationRequired",
     "Budget",
     "CallableCounter",
     "Cursor",
@@ -38,17 +51,27 @@ __all__ = [
     "DiscoveryDecision",
     "Effect",
     "InvalidCursor",
+    "InvalidInput",
+    "Limits",
+    "NotFound",
+    "OunceError",
     "OunceServer",
     "PageWindow",
     "Paginated",
+    "PermissionDenied",
+    "RateLimited",
     "RecallCase",
     "RecallReport",
     "ResultTooLarge",
+    "RetryPolicy",
     "ServerCost",
     "TiktokenCounter",
     "TokenCounter",
     "ToolContext",
     "ToolCost",
+    "TransientError",
+    "WriteAttempt",
+    "WriteResolver",
     "__version__",
     "get_counter",
     "measure_tool",
