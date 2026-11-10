@@ -245,7 +245,9 @@ class ToolContext:
         """The client's answers to a previous ``require_input`` (MCP 2026-07-28)."""
         return getattr(self.fastmcp, "input_responses", None) if self.fastmcp else None
 
-    def require_input(self, input_requests: Any, *, state: Mapping[str, Any] | None = None) -> Any:
+    def require_input(
+        self, input_requests: Any, *, state: Mapping[str, Any] | None = None
+    ) -> typing.NoReturn:
         """Stop and ask the client for input (MCP multi-round-trip, SEP-2322).
 
         Raises an exception the server turns into an ``input_required`` result; the client

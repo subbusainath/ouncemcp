@@ -1,0 +1,30 @@
+# Scenarios OunceMCP does not support in M1, for MCP 2026-07-28 and
+# @modelcontextprotocol/conformance 0.2.0-alpha.12 (spec EVAL-1).
+#
+# This first baseline was written from the scenario descriptions, not from a run.
+# After the first run of .github/workflows/conformance.yml, remove entries the run
+# reports as stale and add or fix anything it reports as unexpected, then make the
+# job required (remove continue-on-error).
+server:
+  # Resources, prompts and completions are CAP-2 (P1).
+  - completion-complete
+  - resources-list
+  - resources-read-text
+  - resources-read-binary
+  - resources-templates-read
+  - sep-2164-resource-not-found
+  - prompts-list
+  - prompts-get-simple
+  - prompts-get-with-args
+  - prompts-get-embedded-resource
+  - prompts-get-with-image
+  - input-required-result-non-tool-request
+  # OunceMCP tools return typed models with a text rendering, not image, audio or
+  # embedded-resource content.
+  - tools-call-image
+  - tools-call-audio
+  - tools-call-embedded-resource
+  - tools-call-mixed-content
+  # Input schemas come from Pydantic models, which cannot express $anchor or
+  # if/then/else as the fixture requires.
+  - json-schema-2020-12
