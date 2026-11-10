@@ -553,17 +553,24 @@ class OunceServer:
         self.cache = cache or PartitionedCache()
         self.state = StateSigner(self.cursors)
         self.tracer = Tracer.coerce(trace)
-        self.fastmcp.add_middleware(
-            OunceMiddleware(
-                limits=self.limits,
-                gate=ConcurrencyGate(self.limits.max_concurrency),
-                effect_of=self._effect_of,
-                principal_of=self._principal_of,
-                tracer=self.tracer,
-                count=self.counter.count,
-                tokenizer=self.counter.name,
-            )
+        self._middleware = OunceMiddleware(
+            limits=self.limits,
+            gate=ConcurrencyGate(self.limits.max_concurrency),
+            effect_of=self._effect_of,
+            principal_of=self._principal_of,
+            tracer=self.tracer,
+            count=self.counter.count,
+            tokenizer=self.counter.name,
         )
+        self.fastmcp.add_middleware(self._middleware)
+
+    def add_trace_sink(self, sink: TraceSink) -> None:
+        """Send traces to one more sink, creating a tracer if the server had none."""
+        if self.tracer is None:
+            self.tracer = Tracer(sink)
+        else:
+            self.tracer.sinks = (*self.tracer.sinks, sink)
+        self._middleware._tracer = self.tracer
 
     def _principal_of(self, tool_name: str, fastmcp_ctx: FastMCPContext | None) -> str:
         """The caller a call counts against, resolved exactly as for cursors.
