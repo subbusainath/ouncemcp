@@ -6,6 +6,7 @@ Pre-alpha (milestone M0). See docs/spec.md for the full specification.
 from ouncemcp.core import (
     Budget,
     Cursor,
+    CursorSigner,
     Detail,
     Effect,
     InvalidCursor,
@@ -28,6 +29,7 @@ __version__ = "0.0.1.dev0"
 __all__ = [
     "Budget",
     "Cursor",
+    "CursorSigner",
     "Detail",
     "Effect",
     "InvalidCursor",

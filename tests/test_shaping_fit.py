@@ -9,11 +9,21 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 from pydantic import BaseModel, Field
 
-from ouncemcp import Budget, Cursor, Effect, OunceServer, Paginated, ToolContext, get_counter
-from ouncemcp.core.cursor import encode_offset
+from ouncemcp import (
+    Budget,
+    Cursor,
+    CursorSigner,
+    Effect,
+    OunceServer,
+    Paginated,
+    ToolContext,
+    get_counter,
+)
 from ouncemcp.core.schema import compact_schema
 from ouncemcp.core.shaping import PageSpec, ResultTooLarge, list_trim_floor, shape_result
 from ouncemcp.core.tokens import compact_json
+
+encode_offset = CursorSigner([b"k" * 32]).bind(tool="t", principal="p", query={}).encode
 
 
 def _output_validator(model: type[BaseModel]) -> jsonschema.Draft202012Validator:

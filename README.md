@@ -64,7 +64,7 @@ What you get:
 - **Compact schemas:** optional fields are advertised without the `anyOf`/`null` noise.
 - **Concise by default:** fields marked `Detail` are only returned when the agent asks for `response_format="detailed"`.
 - **Result budgets:** every result fits its token budget and still matches its output schema. Lists are trimmed first, then long strings, then optional fields, and the agent gets a note saying what was removed and how to get more. If the smallest valid result is still too large, the agent gets an `isError` result asking for a narrower call instead of broken JSON.
-- **Safe pagination:** mark the page list `Paginated` and the cursor `Cursor`, and use `ctx.page(...)`. If OunceMCP trims the page to fit the budget, it moves `next_cursor` so the next call resumes after the last item returned. No item is skipped or repeated. Lists are never trimmed below `min_items` (default 1).
+- **Safe pagination:** mark the page list `Paginated` and the cursor `Cursor`, and use `ctx.page(...)`. If OunceMCP trims the page to fit the budget, it moves `next_cursor` so the next call resumes after the last item returned. No item is skipped or repeated. Lists are never trimmed below `min_items` (default 1). Cursors are signed: they expire, and only work for the same tool, caller and filters. Set `OUNCEMCP_CURSOR_KEYS` in production ([proposal 0003](docs/proposals/0003-signed-cursors.md)).
 - **Budget checks:** `ouncemcp check server.py` counts the tokens of every tool definition as the host receives it, and fails CI when a tool goes over budget.
 
 ```bash
