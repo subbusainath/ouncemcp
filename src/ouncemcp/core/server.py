@@ -13,7 +13,7 @@ import logging
 import re
 import sys
 import typing
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from typing import Any, Literal, TypeVar, cast
 
@@ -230,6 +230,37 @@ class ToolContext:
             request=self.tool if request is None else request,
             consume=consume,
         )
+
+    async def gather(
+        self, steps: Mapping[str, Callable[[], Awaitable[T]]], *, concurrency: int = 4
+    ) -> dict[str, T]:
+        """Run the steps of a composite tool concurrently and return their results by name.
+
+        Each step is a function returning an awaitable, such as one upstream call. At most
+        ``concurrency`` run at once, all inside this call's deadline (EXE-1). If a step
+        fails, the others are cancelled and the error is classified like any handler
+        error, so one composite call costs the agent one round trip whichever way it
+        ends (spec CAP-7).
+        """
+        if concurrency < 1:
+            raise ValueError("concurrency must be at least 1")
+        results: dict[str, T] = {}
+        limiter = anyio.Semaphore(concurrency)
+
+        async def run(name: str, step: Callable[[], Awaitable[T]]) -> None:
+            async with limiter:
+                results[name] = await step()
+
+        try:
+            async with anyio.create_task_group() as group:
+                for name, step in steps.items():
+                    group.start_soon(run, name, step)
+        except BaseExceptionGroup as group_exc:
+            first = group_exc.exceptions[0]
+            while isinstance(first, BaseExceptionGroup):
+                first = first.exceptions[0]
+            raise first from None
+        return {name: results[name] for name in steps}
 
     def effect_applied(self) -> None:
         """Record that this call changed something outside the server.

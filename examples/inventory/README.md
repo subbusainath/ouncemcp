@@ -38,3 +38,13 @@ Then ask, for example: "Which databases in ap-south-1 are degraded, and who owns
 ```bash
 python benchmarks/scripts/m0_compare.py
 ```
+
+## Composite workflow tool (CAP-7)
+
+`workflow.py` defines `inventory.cost_review`, which answers "where is the money going, and what is broken?" for several regions in one call. It makes one upstream call per region concurrently with `ctx.gather`, inside one deadline, and returns only the summary.
+
+Reviewing all four regions this way costs 651 result tokens in 1 call. Getting the same data by paging `inventory.search` costs 9,896 result tokens over 8 calls, and the model still has to add the numbers up itself (measured with `o200k_base`; see `tests/test_cap7_composite.py`).
+
+```bash
+ouncemcp check examples/inventory/workflow.py
+```
