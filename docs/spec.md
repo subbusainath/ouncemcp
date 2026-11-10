@@ -658,7 +658,7 @@ If this document and the code disagree, the code on `main` wins. Update this doc
 | Repository | [subbusainath/ouncemcp](https://github.com/subbusainath/ouncemcp), private, default branch `main` |
 | Stack | Python 3.11 to 3.13, FastMCP 4.1.6, MCP Python SDK 2.3.0, Pydantic 2.14, tiktoken 0.14 (`o200k_base`), jsonschema 4.26 |
 | CI | GitHub Actions on Python 3.11, 3.12 and 3.13: `ruff check`, `ruff format --check`, `mypy`, `pytest` |
-| Tests | 236 passing, including Hypothesis property tests (193 on `main`, 43 added in PR #10) |
+| Tests | 239 passing, including Hypothesis property tests (193 on `main`, 46 added in PR #10) |
 
 | PR | What it did | State |
 | --- | --- | --- |

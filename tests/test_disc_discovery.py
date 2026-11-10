@@ -2,16 +2,26 @@
 
 import contextvars
 import json
-from typing import Any
+import sys
+from typing import Annotated, Any
 
 import pytest
 from fastmcp import Client
+from fastmcp.client.transports import PythonStdioTransport
 from fastmcp.exceptions import ToolError
 from fastmcp.server.auth import AuthContext
 from fastmcp.server.transforms.search import BM25SearchTransform
 from pydantic import BaseModel, Field
 
-from ouncemcp import Budget, Effect, OunceServer
+from ouncemcp import (
+    Budget,
+    Cursor,
+    CursorSigner,
+    Effect,
+    OunceServer,
+    Paginated,
+    ToolContext,
+)
 from ouncemcp.core.costs import definition_payload
 from ouncemcp.core.tokens import compact_json, get_counter
 from ouncemcp.discovery import (
@@ -597,10 +607,6 @@ def test_check_still_applies_per_tool_budgets_in_search_mode(tmp_path, capsys):
 
 @pytest.mark.anyio
 async def test_search_mode_over_a_real_stdio_transport(tmp_path):
-    import sys
-
-    from fastmcp.client.transports import PythonStdioTransport
-
     path = write_server(tmp_path, kwargs='pinned=["invoice_03"]')
     transport = PythonStdioTransport(path, python_cmd=sys.executable)
     async with Client(transport) as client:
@@ -612,3 +618,79 @@ async def test_search_mode_over_a_real_stdio_transport(tmp_path):
             CALL_TOOL, {"name": "invoice_07", "arguments": {"q": "open"}}
         )
         assert proxied.structured_content["name"] == "invoice_7"
+
+
+# ------------------------------------------------------------------ signed cursors in search mode
+
+
+class Row(BaseModel):
+    id: str
+
+
+class RowPage(BaseModel):
+    items: Annotated[list[Row], Paginated]
+    next_cursor: Cursor = None
+
+
+class RowQuery(BaseModel):
+    region: str = "ap-south-1"
+    limit: int = Field(2, ge=1, le=10)
+    cursor: str | None = None
+
+
+def paged_server(principal: Any = None) -> OunceServer:
+    rows = [Row(id=f"r-{i}") for i in range(6)]
+    server = big_server(40, cursors=CursorSigner([b"k" * 32]), principal=principal)
+
+    @server.tool(name="rows_list", effect=Effect.READ, description="List stored rows by region.")
+    def rows_list(args: RowQuery, ctx: ToolContext) -> RowPage:
+        page = ctx.page(rows, cursor=args.cursor, limit=args.limit)
+        return RowPage(items=page.items, next_cursor=page.next_cursor)
+
+    return server
+
+
+@pytest.mark.anyio
+async def test_signed_cursors_resume_through_the_call_tool_meta_tool():
+    server = paged_server()
+    assert (await server.discovery()).mode == "search"
+    async with Client(server.fastmcp) as client:
+        first = await client.call_tool(CALL_TOOL, {"name": "rows_list", "arguments": {}})
+        cursor = first.structured_content["next_cursor"]
+        assert cursor.startswith("s1.")
+        second = await client.call_tool(
+            CALL_TOOL, {"name": "rows_list", "arguments": {"cursor": cursor}}
+        )
+    assert [r["id"] for r in second.structured_content["items"]] == ["r-2", "r-3"]
+
+
+@pytest.mark.anyio
+async def test_cursor_from_search_mode_is_bound_to_the_tool_and_its_filters():
+    server = paged_server()
+    async with Client(server.fastmcp) as client:
+        first = await client.call_tool(CALL_TOOL, {"name": "rows_list", "arguments": {}})
+        cursor = first.structured_content["next_cursor"]
+        changed = await client.call_tool(
+            CALL_TOOL,
+            {"name": "rows_list", "arguments": {"cursor": cursor, "region": "eu-west-1"}},
+            raise_on_error=False,
+        )
+    assert changed.is_error
+    assert changed.meta["ouncemcp"]["reason"] == "query"
+
+
+@pytest.mark.anyio
+async def test_cursor_from_search_mode_is_bound_to_the_principal():
+    who = {"name": "alice"}
+    server = paged_server(principal=lambda ctx: who["name"])
+    async with Client(server.fastmcp) as client:
+        first = await client.call_tool(CALL_TOOL, {"name": "rows_list", "arguments": {}})
+        cursor = first.structured_content["next_cursor"]
+        who["name"] = "bob"
+        other = await client.call_tool(
+            CALL_TOOL,
+            {"name": "rows_list", "arguments": {"cursor": cursor}},
+            raise_on_error=False,
+        )
+    assert other.is_error
+    assert other.meta["ouncemcp"]["reason"] == "principal"
