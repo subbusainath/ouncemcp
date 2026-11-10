@@ -21,6 +21,7 @@ from fastmcp.tools import ToolResult
 from mcp_types import TextContent
 from pydantic import ValidationError as PydanticValidationError
 
+from ouncemcp.core.docs import error_doc
 from ouncemcp.core.effects import Effect
 
 logger = logging.getLogger("ouncemcp")
@@ -353,6 +354,7 @@ class Failure:
             data["retry_after_s"] = round(self.retry_after, 3)
         if self.ref is not None:
             data["ref"] = self.ref
+        data["docs"] = error_doc(self.category)
         return data
 
     def to_result(self) -> ToolResult:

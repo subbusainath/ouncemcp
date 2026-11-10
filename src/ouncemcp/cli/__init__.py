@@ -86,6 +86,7 @@ def _discovery(server: Any) -> Any:
 def _check(ns: argparse.Namespace) -> int:
     from ouncemcp.cli.loader import LoadError, load_server
     from ouncemcp.core.costs import measure_tools
+    from ouncemcp.core.lints import lint_server
     from ouncemcp.core.server import OunceServer
 
     try:
@@ -106,16 +107,23 @@ def _check(ns: argparse.Namespace) -> int:
     )
     report = measure_tools(tools, budget, counter, output_schema_modes=modes)
     decision = _discovery(server)
+    findings = lint_server(server)
+    lint_failed = any(f.severity == "error" for f in findings)
     if ns.json:
         data = report.to_dict()
         if decision is not None:
             data["discovery"] = decision.to_dict()
+        data["lints"] = [f.to_dict() for f in findings]
         print(json.dumps(data, indent=2))
     else:
         print(report.render_text())
         if decision is not None:
             print(decision.render_text())
-    return 1 if report.failed else 0
+        if findings:
+            print("Lints:")
+            for finding in findings:
+                print(f"  {finding.render_text()}")
+    return 1 if report.failed or lint_failed else 0
 
 
 def _context(ns: argparse.Namespace) -> int:

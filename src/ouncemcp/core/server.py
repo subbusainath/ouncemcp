@@ -24,13 +24,15 @@ from fastmcp.server.auth import AuthCheck
 from fastmcp.server.context import Context as FastMCPContext
 from fastmcp.server.dependencies import get_access_token
 from fastmcp.tools import FunctionTool, Tool, ToolResult
-from mcp_types import TextContent, ToolAnnotations
+from fastmcp.tools.base import InputRequiredToolResult
+from mcp_types import InputRequiredResult, TextContent, ToolAnnotations
 from pydantic import BaseModel
 from pydantic import ValidationError as PydanticValidationError
 
 from ouncemcp.core.budget import Budget
 from ouncemcp.core.costs import ServerCost, definition_payload, measure_tools
 from ouncemcp.core.cursor import BoundCursors, CursorSigner, InvalidCursor
+from ouncemcp.core.docs import error_doc
 from ouncemcp.core.effects import Effect
 from ouncemcp.core.errors import Failure, classify, format_validation
 from ouncemcp.core.pagination import PageFields, PageWindow, find_page_fields, window
@@ -67,6 +69,17 @@ from ouncemcp.execution import (
 )
 from ouncemcp.execution.middleware import OunceMiddleware
 from ouncemcp.execution.runner import run_with_policy
+from ouncemcp.security.cache import CacheView, PartitionedCache
+from ouncemcp.security.http import resolve_http_options
+from ouncemcp.security.identity import (
+    ANONYMOUS_IDENTITY,
+    DEFAULT_TENANT_CLAIMS,
+    Identity,
+    identity_from_token,
+)
+from ouncemcp.security.policy import Policy, ToolFacts, policy_check
+from ouncemcp.security.replay import InputRequired, UnsafeInputRequest
+from ouncemcp.security.state import StateSigner
 
 # MCP tool names: 1-128 characters of ASCII letters, digits, underscore, hyphen, dot.
 TOOL_NAME_RE = re.compile(r"^[A-Za-z0-9_.\-]{1,128}$")
@@ -105,13 +118,20 @@ PAGING_ARGS = frozenset({"cursor", "limit", "response_format"})
 PrincipalResolver = Callable[["ToolContext"], str | None]
 
 
-def default_principal(ctx: ToolContext) -> str | None:
-    """The verified caller: the access token's subject (or client id) when the server
-    has authentication configured, otherwise ``None`` (a single local caller)."""
+def _current_identity(tenant_claims: Sequence[str] = DEFAULT_TENANT_CLAIMS) -> Identity:
+    """The verified caller of the current request (SEC-1). Never reads ``clientInfo``."""
     token = get_access_token()
     if token is None:
-        return None
-    return token.subject or str(token.claims.get("sub") or "") or token.client_id
+        return ANONYMOUS_IDENTITY
+    return identity_from_token(token, tenant_claims=tenant_claims)
+
+
+def default_principal(ctx: ToolContext) -> str | None:
+    """The verified caller: ``issuer|subject`` from the access token (or its subject, or
+    client id) when the server has authentication configured, otherwise ``None`` (a
+    single local caller). Self-reported client details are never used (SEC-1)."""
+    identity = _current_identity()
+    return identity.principal if identity.authenticated else None
 
 
 @functools.cache
@@ -145,6 +165,114 @@ class ToolContext:
     _window: PageWindow[Any] | None = field(default=None, repr=False)
     _encode: Callable[[int], str] | None = field(default=None, repr=False)
     _bound: dict[frozenset[str], BoundCursors] = field(default_factory=dict, repr=False)
+    effect: Effect | None = None
+    replay_safe: bool = False
+    _identity: Identity | None = field(default=None, repr=False)
+    _tenant_claims: tuple[str, ...] = field(default=DEFAULT_TENANT_CLAIMS, repr=False)
+    _cache: PartitionedCache | None = field(default=None, repr=False)
+    _state: StateSigner | None = field(default=None, repr=False)
+    _effects_applied: bool = field(default=False, repr=False)
+
+    @property
+    def identity(self) -> Identity:
+        """The verified caller (SEC-1): principal, tenant, scopes and claims from the
+        access token. Anonymous when the request has no verified token."""
+        if self._identity is None:
+            self._identity = _current_identity(self._tenant_claims)
+        return self._identity
+
+    @property
+    def cache(self) -> CacheView:
+        """The server's private cache, partitioned by this caller's principal, tenant and
+        scopes and namespaced by tool, so entries never cross callers (SEC-5)."""
+        if self._cache is None:
+            self._cache = PartitionedCache()
+        identity = replace(self.identity, principal=self.principal)
+        return CacheView(self._cache, identity, self.tool)
+
+    def _state_signer(self) -> StateSigner:
+        if self._state is None:
+            self._state = StateSigner(self._signer or _bare_context_signer())
+        return self._state
+
+    def issue_state(
+        self,
+        kind: str,
+        data: Mapping[str, Any] | None = None,
+        *,
+        request: Any = None,
+        ttl_s: int | None = None,
+    ) -> str:
+        """Issue a signed token for a handle, approval or continuation (SEC-6).
+
+        It is bound to this caller, to ``request`` (any JSON value that identifies the
+        originating request; default: this tool), and expires after ``ttl_s``.
+        """
+        return self._state_signer().issue(
+            kind,
+            principal=self.principal,
+            request=self.tool if request is None else request,
+            data=data,
+            ttl_s=ttl_s,
+        )
+
+    def verify_state(
+        self, token: str, kind: str, *, request: Any = None, consume: bool = False
+    ) -> dict[str, Any]:
+        """Return the data of a token from ``issue_state``, or raise ``InvalidState``,
+        which the caller sees as an actionable validation error. ``consume=True`` makes
+        the token single-use, which blocks replay of an approval."""
+        return self._state_signer().verify(
+            token,
+            kind=kind,
+            principal=self.principal,
+            request=self.tool if request is None else request,
+            consume=consume,
+        )
+
+    def effect_applied(self) -> None:
+        """Record that this call changed something outside the server.
+
+        Call it right after an irreversible upstream effect. Afterwards a write tool that
+        is not ``replay_safe`` may not ask for input (SEC-7), because the client answers
+        by sending the whole request again, which would repeat the effect.
+        """
+        self._effects_applied = True
+
+    @property
+    def input_responses(self) -> Any:
+        """The client's answers to a previous ``require_input`` (MCP 2026-07-28)."""
+        return getattr(self.fastmcp, "input_responses", None) if self.fastmcp else None
+
+    def require_input(self, input_requests: Any, *, state: Mapping[str, Any] | None = None) -> Any:
+        """Stop and ask the client for input (MCP multi-round-trip, SEP-2322).
+
+        Raises an exception the server turns into an ``input_required`` result; the client
+        answers by repeating this call with ``input_responses``. ``state`` is signed and
+        bound to this caller and these arguments (SEC-6); read it back with
+        ``resume_state()``. Refused after ``effect_applied()`` unless the tool is
+        ``replay_safe`` (SEC-7).
+        """
+        writes = (Effect.WRITE, Effect.DESTRUCTIVE)
+        if self._effects_applied and self.effect in writes and not self.replay_safe:
+            raise UnsafeInputRequest(self.tool)
+        token = None
+        if state is not None:
+            token = self.issue_state("input_required", state, request=self._request_key())
+        raise InputRequired(
+            InputRequiredResult(input_requests=input_requests or None, request_state=token)
+        )
+
+    def resume_state(self) -> dict[str, Any] | None:
+        """The ``state`` passed to the last ``require_input``, verified, or ``None``."""
+        raw = getattr(self.fastmcp, "request_state", None) if self.fastmcp else None
+        if not raw:
+            return None
+        return self.verify_state(raw, "input_required", request=self._request_key())
+
+    def _request_key(self) -> Any:
+        args = {k: v for k, v in self._arguments().items() if k not in PAGING_ARGS}
+        return [self.tool, args]
 
     @property
     def principal(self) -> str:
@@ -241,6 +369,10 @@ class ToolSpec:
     page_fields: PageFields | None = None
     output_schema: OutputSchemaMode = "on"
     output_schema_advertised: bool = True
+    tags: frozenset[str] = frozenset()
+    has_policy: bool = False
+    replay_safe: bool = False
+    handler: Callable[..., Any] | None = field(default=None, compare=False, repr=False)
 
 
 OutputSchemaMode = Literal["on", "off", "auto"]
@@ -316,11 +448,24 @@ def _too_large_result(
 
 def _error_result(message: str, meta: dict[str, Any]) -> ToolResult:
     """A tool execution error (``isError: true``) the model can act on."""
+    meta.setdefault("category", "validation")
+    meta.setdefault("docs", error_doc(meta["category"]))
     return ToolResult(
         content=[TextContent(type="text", text=message)],
         meta={"ouncemcp": meta},
         is_error=True,
     )
+
+
+def _as_policies(policy: Policy | Sequence[Policy] | None) -> tuple[Policy, ...]:
+    if policy is None:
+        return ()
+    if callable(policy):
+        return (policy,)
+    policies = tuple(policy)
+    if not all(callable(p) for p in policies):
+        raise TypeError("policy must be a callable or a list of callables")
+    return policies
 
 
 def _is_model(annotation: Any) -> bool:
@@ -364,6 +509,10 @@ class OunceServer:
         limits: Limits | None = None,
         retry: RetryPolicy | None = None,
         write_resolver: WriteResolver | None = None,
+        policy: Policy | Sequence[Policy] | None = None,
+        audience: str | Sequence[str] | None = None,
+        tenant_claims: Sequence[str] = DEFAULT_TENANT_CLAIMS,
+        cache: PartitionedCache | None = None,
         **fastmcp_kwargs: Any,
     ) -> None:
         self.name = name
@@ -392,6 +541,15 @@ class OunceServer:
         self.limits = limits or Limits()
         self.retry = retry or RetryPolicy()
         self.write_resolver = write_resolver
+        self.policies: tuple[Policy, ...] = _as_policies(policy)
+        self.audiences: tuple[str, ...] = (
+            (audience,) if isinstance(audience, str) else tuple(audience or ())
+        )
+        if any(not a for a in self.audiences):
+            raise ValueError("audience must be a non-empty string (the server's resource URL)")
+        self.tenant_claims = tuple(tenant_claims)
+        self.cache = cache or PartitionedCache()
+        self.state = StateSigner(self.cursors)
         self.fastmcp.add_middleware(
             OunceMiddleware(
                 limits=self.limits,
@@ -421,6 +579,11 @@ class OunceServer:
         spec = self._specs.get(tool_name)
         return spec.effect if spec else None
 
+    def _facts(self, tool_name: str) -> ToolFacts | None:
+        """Declared facts for policy decisions (SEC-3): never the MCP annotations."""
+        spec = self._specs.get(tool_name)
+        return ToolFacts(effect=spec.effect, tags=spec.tags) if spec else None
+
     # ------------------------------------------------------------------ registration
 
     def tool(
@@ -437,8 +600,16 @@ class OunceServer:
         min_items: int = 1,
         output_schema: OutputSchemaMode | None = None,
         auth: AuthCheck | list[AuthCheck] | None = None,
+        policy: Policy | Sequence[Policy] | None = None,
+        replay_safe: bool = False,
     ) -> Any:
         """Register a tool. ``effect`` is required.
+
+        ``policy`` decides who may see and call the tool, in addition to the server's
+        ``policy`` (all must allow). It gets the declared effect and the verified caller,
+        never the MCP annotations (SEC-2, SEC-3). ``replay_safe=True`` declares that the
+        handler can run again after an effect without repeating it, which lets a write
+        tool ask for input after ``ctx.effect_applied()`` (SEC-7).
 
         ``output_schema`` sets whether this tool advertises its output schema: ``"on"``,
         ``"off"``, or ``"auto"`` (advertise it unless the definition would then be over
@@ -467,6 +638,8 @@ class OunceServer:
                 min_items=min_items,
                 output_schema=output_schema,
                 auth=auth,
+                policy=policy,
+                replay_safe=replay_safe,
             )
             return handler
 
@@ -491,6 +664,8 @@ class OunceServer:
         min_items: int = 1,
         output_schema: OutputSchemaMode | None = None,
         auth: AuthCheck | list[AuthCheck] | None = None,
+        policy: Policy | Sequence[Policy] | None = None,
+        replay_safe: bool = False,
     ) -> None:
         tool_name = name or handler.__name__
         schema_mode = _tool_mode(output_schema, tool_name) or self.output_schemas
@@ -612,7 +787,24 @@ class OunceServer:
             result_tokens=result_tokens,
             min_items=min_items,
             page_fields=page_fields,
+            tags=frozenset(tags or ()),
+            replay_safe=bool(replay_safe),
+            handler=handler,
         )
+        policies = (*self.policies, *_as_policies(policy))
+        checks: list[AuthCheck] = []
+        if policies or self.audiences:
+            checks.append(
+                policy_check(
+                    policies,
+                    facts=self._facts,
+                    audiences=self.audiences,
+                    tenant_claims=self.tenant_claims,
+                )
+            )
+        if auth is not None:
+            checks.extend(auth if isinstance(auth, list) else [auth])
+        spec = replace(spec, has_policy=bool(checks))
         # Filled in after registration, from the schema actually advertised.
         schema_state: dict[str, Any] = {"validator": None, "strict": True}
         is_async = inspect.iscoroutinefunction(handler)
@@ -657,6 +849,11 @@ class OunceServer:
                     else kwargs
                 ),
                 _resolve=resolve_principal,
+                effect=effect,
+                replay_safe=spec.replay_safe,
+                _tenant_claims=self.tenant_claims,
+                _cache=self.cache,
+                _state=self.state,
             )
             if ctx_param is not None:
                 call_kwargs[ctx_param] = tool_ctx
@@ -683,6 +880,8 @@ class OunceServer:
                 )
                 if not isinstance(result, output_model):
                     result = output_model.model_validate(result)
+            except InputRequired as exc:
+                return InputRequiredToolResult(exc.result)
             except InvalidCursor as exc:
                 return _error_result(
                     str(exc),
@@ -752,7 +951,7 @@ class OunceServer:
             description=doc,
             annotations=ToolAnnotations.model_validate(effect.annotations()),
             tags=tags,
-            auth=auth,
+            auth=checks or None,
         )
         # Advertise compact schemas. Validation still runs on the Pydantic models.
         registered.parameters = compact_schema(registered.parameters)
@@ -907,6 +1106,12 @@ class OunceServer:
 
     # ------------------------------------------------------------------ running
 
+    def http_app(self, **kwargs: Any) -> Any:
+        """The ASGI app for HTTP transports, with ``Host`` and ``Origin`` validation on
+        (SEC-8). Pass ``allowed_hosts`` and ``allowed_origins`` for a public deployment."""
+        kwargs.setdefault("host_origin_protection", True)
+        return self.fastmcp.http_app(**kwargs)
+
     def run(
         self,
         transport: Literal["stdio", "http", "sse", "streamable-http"] = "stdio",
@@ -914,7 +1119,13 @@ class OunceServer:
         check_budget: bool = True,
         **kwargs: Any,
     ) -> None:
-        """Run the server. Prints a budget summary to stderr (stdout stays protocol-only)."""
+        """Run the server. Prints a budget summary to stderr (stdout stays protocol-only).
+
+        HTTP transports bind to ``127.0.0.1`` and validate ``Host`` and ``Origin`` by
+        default (SEC-8). Binding another address needs ``allowed_hosts``.
+        """
+        if transport != "stdio":
+            kwargs = resolve_http_options(kwargs)
         if check_budget:
             report = asyncio.run(self.cost_report())
             print(
