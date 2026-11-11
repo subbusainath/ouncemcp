@@ -13,6 +13,9 @@ Rules:
   which skips the SEC-7 guard. Use ``ctx.require_input``.
 - ``destructive-without-policy`` (warning): a destructive tool has no ``policy`` or
   ``auth``, so any caller who can reach the server can run it (SEC-2).
+- ``stdio-skips-policy`` (warning): tools have policies but the server uses
+  ``stdio_policy="trust"``, so over stdio they are visible and callable by anyone who
+  can start the server. Ignore it for servers served only over HTTP.
 """
 
 from __future__ import annotations
@@ -33,6 +36,7 @@ RULES: dict[str, Severity] = {
     "input-after-effect": "error",
     "elicit-in-write": "warning",
     "destructive-without-policy": "warning",
+    "stdio-skips-policy": "warning",
 }
 
 
@@ -123,6 +127,20 @@ def lint_server(server: Any) -> list[Finding]:
     if not isinstance(specs, dict):
         return []
     findings: list[Finding] = []
+    guarded = sorted(name for name, spec in specs.items() if spec.has_policy)
+    if guarded and getattr(server, "stdio_policy", "trust") == "trust":
+        shown = ", ".join(guarded[:3]) + (
+            f" and {len(guarded) - 3} more" if len(guarded) > 3 else ""
+        )
+        findings.append(
+            Finding(
+                "stdio-skips-policy",
+                "(server)",
+                f"policies on {shown} do not apply over stdio with stdio_policy='trust'; "
+                "set stdio_policy='enforce' if the server is also run over stdio by "
+                "untrusted users",
+            )
+        )
     for name, spec in sorted(specs.items()):
         findings.extend(
             lint_tool(

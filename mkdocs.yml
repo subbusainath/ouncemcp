@@ -32,6 +32,7 @@ nav:
       - input-after-effect: rules/input-after-effect.md
       - elicit-in-write: rules/elicit-in-write.md
       - destructive-without-policy: rules/destructive-without-policy.md
+      - stdio-skips-policy: rules/stdio-skips-policy.md
   - Project:
       - Specification: spec.md
       - M0 report: m0-report.md

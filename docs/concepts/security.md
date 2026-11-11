@@ -28,6 +28,6 @@ server = OunceServer(
 async def purge(...) -> Purged: ...
 ```
 
-Policies apply over HTTP and to in-process calls. Over stdio FastMCP skips component authorization, because the server runs as the local user who started it, so every tool is visible and callable there.
+Policies apply over HTTP and to in-process calls. Over stdio FastMCP skips component authorization, because the server runs as the local user who started it, so by default (`stdio_policy="trust"`) every tool is visible and callable there. Set `OunceServer(stdio_policy="enforce")` to apply every check on stdio with the anonymous caller. `ouncemcp check` warns when tools have policies and stdio is trusted ([`stdio-skips-policy`](../rules/stdio-skips-policy.md)).
 
 Test policies with `ouncemcp.testing.as_caller(subject=..., tenant=..., scopes=[...])`, and probe a whole server with the [security catalog](../guides/testing.md).

@@ -80,6 +80,7 @@ from ouncemcp.security.identity import (
 from ouncemcp.security.policy import Policy, ToolFacts, policy_check
 from ouncemcp.security.replay import InputRequired, UnsafeInputRequest
 from ouncemcp.security.state import StateSigner
+from ouncemcp.security.stdio import StdioPolicy, StdioPolicyFilter
 from ouncemcp.trace import Tracer, TraceSink
 
 # MCP tool names: 1-128 characters of ASCII letters, digits, underscore, hyphen, dot.
@@ -548,6 +549,7 @@ class OunceServer:
         tenant_claims: Sequence[str] = DEFAULT_TENANT_CLAIMS,
         cache: PartitionedCache | None = None,
         trace: Tracer | TraceSink | Sequence[TraceSink] | None = None,
+        stdio_policy: StdioPolicy = "trust",
         **fastmcp_kwargs: Any,
     ) -> None:
         self.name = name
@@ -567,6 +569,9 @@ class OunceServer:
             raise ValueError("search_results must be an integer >= 1")
         self.discovery_setting: DiscoverySetting = discovery
         self._decision: DiscoveryDecision | None = None
+        self._stdio_filter = StdioPolicyFilter(stdio_policy)
+        self.stdio_policy: StdioPolicy = stdio_policy
+        self.fastmcp.add_transform(self._stdio_filter)
         self._search = OunceSearchTransform(
             mode=self._discovery_mode,
             pinned=pinned,

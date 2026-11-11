@@ -824,7 +824,7 @@ These were measured on Python 3.12.15, x86_64, 2 vCPU.
 - **Cursor keys in production:** with no configured key, cursors use a random per-process key. That fails closed, but paging breaks after a restart and across replicas. Set `OUNCEMCP_CURSOR_KEYS` on every replica. When `ouncemcp dev` exists, consider failing at startup outside dev when no key is set.
 - **Caller identity:** until SEC-1, the cursor principal comes from the FastMCP access token or is `"anonymous"`. A server that authenticates in another way must pass `principal=`, or its callers share cursors and one concurrency limit.
 - **Cursor size:** a signed cursor is about 34 tokens longer than the old one on every page except the last. Revisit the layout if it matters for small budgets.
-- **Policies on stdio (open decision):** FastMCP skips component auth on stdio, so policies do not hide or refuse tools there. That matches its trust model (the local user started the server). Decide whether OunceMCP should also refuse policy-denied calls on stdio.
+- **Policies on stdio (decided: option C, proposal 0010):** FastMCP skips component auth on stdio. `OunceServer(stdio_policy="trust")` (default) keeps that; `"enforce"` applies every check on stdio with the anonymous caller. `check` warns with `stdio-skips-policy`. Approvals will be enforced on every transport.
 - **Conformance not yet run:** the conformance baseline was written from the suite's scenario descriptions. Running the suite was not possible in the session that built it.
 - **Single-use state across replicas:** `consume=True` is per process until a shared store exists (EXE-4).
 - **Scaffold dependency:** `ouncemcp init` projects depend on `ouncemcp` from PyPI, which is not published yet.

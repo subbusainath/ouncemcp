@@ -49,7 +49,7 @@ def test_input_after_effect_is_an_error_unless_replay_safe():
         ctx.effect_applied()
         return Out()
 
-    findings = lint_server(server)
+    findings = [f for f in lint_server(server) if f.rule != "stdio-skips-policy"]
     assert [(f.rule, f.tool, f.severity) for f in findings] == [
         ("input-after-effect", "pay.send", "error")
     ]
