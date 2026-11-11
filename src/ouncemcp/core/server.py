@@ -844,6 +844,70 @@ class OunceServer:
             return decorator(fn)
         return decorator
 
+    def resource(
+        self,
+        uri: str,
+        *,
+        name: str | None = None,
+        description: str | None = None,
+        mime_type: str | None = None,
+        max_tokens: int | None = None,
+        policy: Policy | Sequence[Policy] | None = None,
+        tags: set[str] | None = None,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """Register a resource (CAP-2). ``{placeholders}`` in ``uri`` make a template.
+
+        The handler returns ``str``, ``bytes``, a model, a dict or a list. Text over
+        ``max_tokens`` (default ``Budget.result_ceiling``) is cut with a note; JSON over
+        it is refused. ``policy`` works as for tools. See ``ouncemcp.core.primitives``.
+        """
+
+        def decorator(handler: Callable[..., Any]) -> Callable[..., Any]:
+            from ouncemcp.core.primitives import register_resource
+
+            register_resource(
+                self,
+                handler,
+                uri,
+                name=name,
+                description=description,
+                mime_type=mime_type,
+                max_tokens=max_tokens,
+                policy=policy,
+                tags=tags,
+            )
+            return handler
+
+        return decorator
+
+    def prompt(
+        self,
+        name: str | None = None,
+        *,
+        description: str | None = None,
+        max_tokens: int | None = None,
+        policy: Policy | Sequence[Policy] | None = None,
+        tags: set[str] | None = None,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """Register a prompt (CAP-2). Its arguments come from the handler's parameters;
+        prompts over ``max_tokens`` are refused. ``policy`` works as for tools."""
+
+        def decorator(handler: Callable[..., Any]) -> Callable[..., Any]:
+            from ouncemcp.core.primitives import register_prompt
+
+            register_prompt(
+                self,
+                handler,
+                name=name,
+                description=description,
+                max_tokens=max_tokens,
+                policy=policy,
+                tags=tags,
+            )
+            return handler
+
+        return decorator
+
     async def _discovery_mode(self) -> DiscoveryMode:
         return (await self.discovery()).mode
 

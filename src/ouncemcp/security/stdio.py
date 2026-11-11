@@ -16,7 +16,7 @@ Approvals for safe writes are enforced on every transport in both modes.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Literal
+from typing import Any, Literal
 
 from fastmcp.server.auth import AuthContext
 from fastmcp.server.context import _current_transport
@@ -33,12 +33,12 @@ def on_stdio() -> bool:
     return _current_transport.get() == "stdio"
 
 
-async def allowed_on_stdio(tool: Tool) -> bool:
-    """Run the tool's checks as the anonymous caller. Any failure denies."""
-    if tool.auth is None:
+async def allowed_on_stdio(component: Any) -> bool:
+    """Run a component's checks as the anonymous caller. Any failure denies."""
+    if component.auth is None:
         return True
     try:
-        return await run_auth_checks(tool.auth, AuthContext(token=None, component=tool))
+        return await run_auth_checks(component.auth, AuthContext(token=None, component=component))
     except Exception:  # noqa: BLE001 - a failing check must fail closed
         return False
 
@@ -62,7 +62,32 @@ class StdioPolicyFilter(Transform):
     async def get_tool(
         self, name: str, call_next: GetToolNext, *, version: VersionSpec | None = None
     ) -> Tool | None:
-        tool = await call_next(name, version=version)
-        if tool is None or not self._active():
-            return tool
-        return tool if await allowed_on_stdio(tool) else None
+        return await self._one(await call_next(name, version=version))
+
+    async def _many(self, items: Sequence[Any]) -> Sequence[Any]:
+        if not self._active():
+            return items
+        return [item for item in items if await allowed_on_stdio(item)]
+
+    async def _one(self, item: Any) -> Any:
+        if item is None or not self._active():
+            return item
+        return item if await allowed_on_stdio(item) else None
+
+    async def list_resources(self, resources: Sequence[Any]) -> Sequence[Any]:
+        return await self._many(resources)
+
+    async def get_resource(self, uri: str, call_next: Any, *, version: Any = None) -> Any:
+        return await self._one(await call_next(uri, version=version))
+
+    async def list_resource_templates(self, templates: Sequence[Any]) -> Sequence[Any]:
+        return await self._many(templates)
+
+    async def get_resource_template(self, uri: str, call_next: Any, *, version: Any = None) -> Any:
+        return await self._one(await call_next(uri, version=version))
+
+    async def list_prompts(self, prompts: Sequence[Any]) -> Sequence[Any]:
+        return await self._many(prompts)
+
+    async def get_prompt(self, name: str, call_next: Any, *, version: Any = None) -> Any:
+        return await self._one(await call_next(name, version=version))

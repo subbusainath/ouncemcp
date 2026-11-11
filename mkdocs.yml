@@ -10,6 +10,7 @@ nav:
       - Context budgets: concepts/budgets.md
       - Discovery modes: concepts/discovery.md
       - Response shaping: concepts/shaping.md
+      - Resources and prompts: concepts/resources-prompts.md
       - Security and policy: concepts/security.md
       - Errors and execution: concepts/execution.md
       - Traces: concepts/traces.md
@@ -53,3 +54,4 @@ nav:
           - 0011 Store and idempotency: proposals/0011-store-and-idempotency.md
           - 0012 Safe writes: proposals/0012-safe-writes.md
           - 0013 Handles and jobs: proposals/0013-handles-and-jobs.md
+          - 0014 Resources and prompts: proposals/0014-resources-and-prompts.md

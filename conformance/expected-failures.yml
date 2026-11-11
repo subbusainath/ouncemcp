@@ -6,18 +6,9 @@
 # reports as stale and add or fix anything it reports as unexpected, then make the
 # job required (remove continue-on-error).
 server:
-  # Resources, prompts and completions are CAP-2 (P1).
+  # Completions are not supported. Resources and prompts have fixtures since M2
+  # (CAP-2); the prompt-level input_required flow does not.
   - completion-complete
-  - resources-list
-  - resources-read-text
-  - resources-read-binary
-  - resources-templates-read
-  - sep-2164-resource-not-found
-  - prompts-list
-  - prompts-get-simple
-  - prompts-get-with-args
-  - prompts-get-embedded-resource
-  - prompts-get-with-image
   - input-required-result-non-tool-request
   # OunceMCP tools return typed models with a text rendering, not image, audio or
   # embedded-resource content.

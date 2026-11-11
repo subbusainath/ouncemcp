@@ -100,3 +100,28 @@ async def test_tool_names_and_order_are_stable(server):
         second = [t.name for t in await c.list_tools()]
     assert first == second
     assert "test_simple_text" in first
+
+
+@pytest.mark.anyio
+async def test_resource_and_prompt_fixtures(server):
+    async with client(server) as c:
+        (text,) = await c.read_resource("test://static-text")
+        (blob,) = await c.read_resource("test://static-binary")
+        (data,) = await c.read_resource("test://template/123/data")
+        simple = await c.get_prompt("test_simple_prompt")
+        args = await c.get_prompt("test_prompt_with_arguments", {"arg1": "hello", "arg2": "world"})
+        embedded = await c.get_prompt(
+            "test_prompt_with_embedded_resource", {"resourceUri": "test://x"}
+        )
+        image = await c.get_prompt("test_prompt_with_image")
+        listed = await c.list_resources()
+    assert text.text == "This is the content of the static text resource."
+    assert text.mime_type == "text/plain"
+    assert blob.mime_type == "image/png" and blob.blob
+    assert data.text == '{"id":"123","templateTest":true,"data":"Data for ID: 123"}'
+    assert data.mime_type == "application/json"
+    assert simple.messages[0].content.text == "This is a simple prompt for testing."
+    assert args.messages[0].content.text == "Prompt with arguments: arg1='hello', arg2='world'"
+    assert embedded.messages[0].content.type == "resource"
+    assert image.messages[0].content.type == "image"
+    assert all(r.description for r in listed)
