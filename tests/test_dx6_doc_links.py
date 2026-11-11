@@ -41,6 +41,15 @@ def emitted_codes() -> set[tuple[str, str]]:
         ):
             found.add((cat, code))
     found |= {("validation", "invalid_cursor"), ("validation", "result_too_large")}
+    from ouncemcp.execution import idempotency
+
+    for cls in (
+        idempotency.WriteInProgress,
+        idempotency.WriteStillRunning,
+        idempotency.WriteOutcomeUnknown,
+        idempotency.KeyReused,
+    ):
+        found.add((cls.category, str(cls.code)))
     found |= {(c, c) for c in CATEGORIES if c != "internal"}
     return found
 

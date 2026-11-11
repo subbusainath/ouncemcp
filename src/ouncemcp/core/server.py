@@ -67,8 +67,16 @@ from ouncemcp.execution import (
     WriteAttempt,
     WriteResolver,
 )
+from ouncemcp.execution.idempotency import (
+    Idempotency,
+    IdempotencyGuard,
+    as_idempotency,
+    client_key,
+    make_claim,
+)
 from ouncemcp.execution.middleware import CALL_NOTES, OunceMiddleware
 from ouncemcp.execution.runner import run_with_policy
+from ouncemcp.execution.store import MemoryStore, OunceStore
 from ouncemcp.security.cache import CacheView, PartitionedCache
 from ouncemcp.security.http import resolve_http_options
 from ouncemcp.security.identity import (
@@ -173,6 +181,8 @@ class ToolContext:
     _tenant_claims: tuple[str, ...] = field(default=DEFAULT_TENANT_CLAIMS, repr=False)
     _cache: PartitionedCache | None = field(default=None, repr=False)
     _state: StateSigner | None = field(default=None, repr=False)
+    _deps: Any = field(default=None, repr=False)
+    _store: OunceStore | None = field(default=None, repr=False)
     _effects_applied: bool = field(default=False, repr=False)
 
     @property
@@ -191,6 +201,35 @@ class ToolContext:
             self._cache = PartitionedCache()
         identity = replace(self.identity, principal=self.principal)
         return CacheView(self._cache, identity, self.tool)
+
+    @property
+    def deps(self) -> Any:
+        """The server's dependencies (``OunceServer(deps=...)``): upstream clients, pools
+        and anything else handlers need. Replace them with fakes in tests."""
+        if self._deps is None:
+            raise RuntimeError("This server has no deps; pass OunceServer(deps=...)")
+        return self._deps
+
+    @property
+    def store(self) -> OunceStore:
+        """The server's shared store (``OunceServer(store=...)``)."""
+        if self._store is None:
+            self._store = MemoryStore()
+        return self._store
+
+    async def consume_state(self, token: str, kind: str, *, request: Any = None) -> dict[str, Any]:
+        """Like ``verify_state(..., consume=True)``, but single use is recorded in the
+        shared store, so it holds across replicas when the store is shared (SEC-6)."""
+        data = self.verify_state(token, kind, request=request)
+        from ouncemcp.security.state import InvalidState
+
+        nonce = token.rsplit(".", 1)[-1]
+        fresh = await self.store.put_if_absent(
+            "state-used", nonce, {"kind": kind}, ttl_s=self._state_signer().ttl_s * 2
+        )
+        if not fresh:
+            raise InvalidState("replayed")
+        return data
 
     def _state_signer(self) -> StateSigner:
         if self._state is None:
@@ -408,6 +447,7 @@ class ToolSpec:
     has_policy: bool = False
     replay_safe: bool = False
     handler: Callable[..., Any] | None = field(default=None, compare=False, repr=False)
+    idempotency: Idempotency | None = None
 
 
 OutputSchemaMode = Literal["on", "off", "auto"]
@@ -550,6 +590,8 @@ class OunceServer:
         cache: PartitionedCache | None = None,
         trace: Tracer | TraceSink | Sequence[TraceSink] | None = None,
         stdio_policy: StdioPolicy = "trust",
+        store: OunceStore | None = None,
+        deps: Any = None,
         **fastmcp_kwargs: Any,
     ) -> None:
         self.name = name
@@ -588,9 +630,14 @@ class OunceServer:
         if any(not a for a in self.audiences):
             raise ValueError("audience must be a non-empty string (the server's resource URL)")
         self.tenant_claims = tuple(tenant_claims)
-        self.cache = cache or PartitionedCache()
+        self.cache = cache if cache is not None else PartitionedCache()
         self.state = StateSigner(self.cursors)
         self.tracer = Tracer.coerce(trace)
+        if store is not None and not isinstance(store, OunceStore):
+            raise TypeError("store must implement OunceStore (get, put, put_if_absent, delete)")
+        self.store: OunceStore = store if store is not None else MemoryStore()
+        self.idempotency = IdempotencyGuard(self.store)
+        self.deps = deps
         self._middleware = OunceMiddleware(
             limits=self.limits,
             gate=ConcurrencyGate(self.limits.max_concurrency),
@@ -653,6 +700,7 @@ class OunceServer:
         auth: AuthCheck | list[AuthCheck] | None = None,
         policy: Policy | Sequence[Policy] | None = None,
         replay_safe: bool = False,
+        idempotency: bool | Idempotency | None = None,
     ) -> Any:
         """Register a tool. ``effect`` is required.
 
@@ -691,6 +739,7 @@ class OunceServer:
                 auth=auth,
                 policy=policy,
                 replay_safe=replay_safe,
+                idempotency=idempotency,
             )
             return handler
 
@@ -717,6 +766,7 @@ class OunceServer:
         auth: AuthCheck | list[AuthCheck] | None = None,
         policy: Policy | Sequence[Policy] | None = None,
         replay_safe: bool = False,
+        idempotency: bool | Idempotency | None = None,
     ) -> None:
         tool_name = name or handler.__name__
         schema_mode = _tool_mode(output_schema, tool_name) or self.output_schemas
@@ -841,7 +891,13 @@ class OunceServer:
             tags=frozenset(tags or ()),
             replay_safe=bool(replay_safe),
             handler=handler,
+            idempotency=as_idempotency(idempotency),
         )
+        if spec.idempotency is not None and effect is Effect.READ:
+            raise ValueError(
+                f"Tool '{tool_name}': idempotency is for write and destructive tools; reads "
+                "can already be repeated safely"
+            )
         policies = (*self.policies, *_as_policies(policy))
         checks: list[AuthCheck] = []
         if policies or self.audiences:
@@ -905,6 +961,8 @@ class OunceServer:
                 _tenant_claims=self.tenant_claims,
                 _cache=self.cache,
                 _state=self.state,
+                _deps=self.deps,
+                _store=self.store,
             )
             if ctx_param is not None:
                 call_kwargs[ctx_param] = tool_ctx
@@ -923,15 +981,29 @@ class OunceServer:
                 )
 
             resolved = False
+            replayed = False
             notes = CALL_NOTES.get()
             try:
-                result = await run_with_policy(
-                    attempt,
-                    effect=effect,
-                    deadline_s=deadline_s,
-                    retry=self.retry,
-                    deadline_at=deadline_at,
-                )
+                if spec.idempotency is not None:
+                    rc = getattr(fastmcp_ctx, "request_context", None) if fastmcp_ctx else None
+                    claim = make_claim(
+                        tool=tool_name,
+                        principal=tool_ctx.principal,
+                        tenant=tool_ctx.identity.tenant,
+                        arguments=tool_ctx._arguments(),
+                        supplied=client_key(getattr(rc, "meta", None)),
+                    )
+                    result, replayed = await self.idempotency.run(
+                        claim, spec.idempotency, lambda: attempt(1), deadline_at=deadline_at
+                    )
+                else:
+                    result = await run_with_policy(
+                        attempt,
+                        effect=effect,
+                        deadline_s=deadline_s,
+                        retry=self.retry,
+                        deadline_at=deadline_at,
+                    )
                 if not isinstance(result, output_model):
                     result = output_model.model_validate(result)
             except InputRequired as exc:
@@ -985,6 +1057,7 @@ class OunceServer:
                     "ouncemcp": {
                         **shaped.meta(),
                         **({"resolved_by": "write_resolver"} if resolved else {}),
+                        **({"replayed": True} if replayed else {}),
                     }
                 },
             )

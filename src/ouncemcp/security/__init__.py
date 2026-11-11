@@ -21,7 +21,12 @@ from ouncemcp.security.identity import (
     current_identity,
     identity_from_token,
 )
-from ouncemcp.security.passthrough import TokenPassthrough, check_outbound, passthrough_guard
+from ouncemcp.security.passthrough import (
+    TokenPassthrough,
+    check_outbound,
+    guarded_client,
+    passthrough_guard,
+)
 from ouncemcp.security.policy import (
     Policy,
     PolicyRequest,
@@ -55,6 +60,7 @@ __all__ = [
     "authenticated",
     "check_outbound",
     "current_identity",
+    "guarded_client",
     "identity_from_token",
     "partition_key",
     "passthrough_guard",

@@ -8,6 +8,7 @@ Results in this category have `isError: true`, start with `[ouncemcp] Temporary 
 | --- | --- | --- |
 | `deadline_exceeded` | A read did not finish within its deadline and was cancelled. | Try again, or narrow the request. |
 | `upstream_unreachable` | The upstream service could not be reached and the request was not sent, so even a write did not happen. | Try again later. |
+| `write_in_progress` | The same idempotent write is already running for this caller. | Call again with the same arguments in a moment to get its result. |
 | `transient` | A handler raised `TransientError`. | Try again later. |
 
 See [proposal 0007](../proposals/0007-errors-and-execution-limits.md) for how errors are classified.
