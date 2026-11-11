@@ -17,6 +17,7 @@ nav:
   - Guides:
       - Securing tools: guides/securing-tools.md
       - Safe writes: guides/safe-writes.md
+      - Migrating from FastMCP: guides/migrating-from-fastmcp.md
       - Deploying over HTTP: guides/deploying-http.md
       - Testing a server: guides/testing.md
       - Host verification: guides/host-verification.md
@@ -55,3 +56,4 @@ nav:
           - 0012 Safe writes: proposals/0012-safe-writes.md
           - 0013 Handles and jobs: proposals/0013-handles-and-jobs.md
           - 0014 Resources and prompts: proposals/0014-resources-and-prompts.md
+          - 0015 Migration and audit: proposals/0015-migration-and-audit.md

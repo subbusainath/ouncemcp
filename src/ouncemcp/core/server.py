@@ -616,6 +616,18 @@ def _error_result(message: str, meta: dict[str, Any]) -> ToolResult:
     )
 
 
+def _run_sync(coro: Any) -> Any:
+    """Run a coroutine from sync code, also when an event loop is already running."""
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    import concurrent.futures
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(asyncio.run, coro).result()
+
+
 def _as_policies(policy: Policy | Sequence[Policy] | None) -> tuple[Policy, ...]:
     if policy is None:
         return ()
@@ -683,12 +695,18 @@ class OunceServer:
         self.name = name
         self.budget = budget or Budget()
         self.counter = get_counter(tokenizer, name=tokenizer_name)
-        self.fastmcp = FastMCP(name, instructions=instructions, version=version, **fastmcp_kwargs)
+        wrapped = fastmcp_kwargs.pop("_wrap", None)
+        self.fastmcp = (
+            wrapped
+            if wrapped is not None
+            else FastMCP(name, instructions=instructions, version=version, **fastmcp_kwargs)
+        )
+        self._wrapped_effects: dict[str, Effect] = {}
         self.output_schemas: OutputSchemaMode = _server_mode(output_schemas)
         self.cursors = cursors or CursorSigner.from_env()
         self._resolve_principal = principal or default_principal
         self._specs: dict[str, ToolSpec] = {}
-        self._registered: dict[str, FunctionTool] = {}
+        self._registered: dict[str, Tool] = {}
         if discovery not in DISCOVERY_SETTINGS:
             raise ValueError(
                 f"discovery must be one of {', '.join(DISCOVERY_SETTINGS)}, got {discovery!r}"
@@ -742,6 +760,41 @@ class OunceServer:
         )
         self.fastmcp.add_middleware(self._middleware)
 
+    @classmethod
+    def wrap(
+        cls,
+        mcp: FastMCP,
+        *,
+        effects: Mapping[str, Effect] | None = None,
+        **kwargs: Any,
+    ) -> OunceServer:
+        """Put an existing FastMCP server under OunceMCP without changing its tools.
+
+        Step 1 of a migration (DX-7). The wrapped server keeps its tools as they are and
+        gains token accounting (``check``, ``dev``, ``cost_report``), categorized and
+        redacted errors, request limits, traces and automatic discovery. Name each
+        tool's effect in ``effects``; a tool without one is treated as a read, so a
+        timeout is reported as ``transient`` instead of ``ambiguous_write``. Tools added
+        to ``mcp`` after wrapping are served but not measured until wrapped again.
+        ``mcp`` itself is changed (OunceMCP's middleware and transforms are added to
+        it), so wrap a server once and serve the returned ``OunceServer``. Then move
+        tools to ``@server.tool`` one at a time.
+        """
+        if not isinstance(mcp, FastMCP):
+            raise TypeError("wrap() takes a FastMCP server")
+        existing = _run_sync(mcp.list_tools())
+        server = cls(mcp.name, _wrap=mcp, **kwargs)
+        unknown = sorted(set(effects or {}) - {t.name for t in existing})
+        if unknown:
+            raise ValueError(f"effects names tools the server does not have: {', '.join(unknown)}")
+        for name, effect in (effects or {}).items():
+            if not isinstance(effect, Effect):
+                raise TypeError(f"effects['{name}'] must be an Effect")
+        server._wrapped_effects = dict(effects or {})
+        for tool in existing:
+            server._registered[tool.name] = tool
+        return server
+
     def add_trace_sink(self, sink: TraceSink) -> None:
         """Send traces to one more sink, creating a tracer if the server had none."""
         if self.tracer is None:
@@ -768,7 +821,7 @@ class OunceServer:
 
     def _effect_of(self, tool_name: str) -> Effect | None:
         spec = self._specs.get(tool_name)
-        return spec.effect if spec else None
+        return spec.effect if spec else self._wrapped_effects.get(tool_name)
 
     def _facts(self, tool_name: str) -> ToolFacts | None:
         """Declared facts for policy decisions (SEC-3): never the MCP annotations."""

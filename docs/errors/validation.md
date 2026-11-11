@@ -14,6 +14,7 @@ Results in this category have `isError: true`, start with `[ouncemcp] Invalid in
 | `result_too_large` | Even the smallest valid result is over the tool's result budget. `reason` is `item_over_budget`, `min_items_over_budget` or `fixed_over_budget`. | Narrow the request, lower `limit` when the message suggests it, or use `response_format=concise`. Server authors: raise `result_tokens` or return smaller items. |
 | `upstream_rejected_input` | The upstream service answered 400 or 422. | Check the arguments against the tool description. |
 | `idempotency_key_reused` | A client idempotency key was sent again with different arguments. | Use a new key for a different request. |
+| `url_not_allowed` | The URL uses a scheme that is not allowed, names a metadata host, is not on the allowlist, or resolves to a loopback, private or link-local address. | Use a public http or https address. |
 | `validation` | A handler raised `InvalidInput` without a code. | Follow the message. |
 
 See [proposal 0007](../proposals/0007-errors-and-execution-limits.md) for how errors are classified.
