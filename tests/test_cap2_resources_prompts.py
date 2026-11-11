@@ -6,8 +6,8 @@ from typing import Any
 
 import pytest
 from fastmcp import Client
-from mcp.shared.exceptions import MCPError
 from fastmcp.server.context import reset_transport, set_transport
+from mcp.shared.exceptions import MCPError
 from pydantic import BaseModel
 
 from ouncemcp import Budget, OunceServer, ToolContext
