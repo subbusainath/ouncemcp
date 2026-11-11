@@ -67,6 +67,21 @@ from ouncemcp.execution import (
     WriteAttempt,
     WriteResolver,
 )
+from ouncemcp.execution.approval import (
+    APPROVAL_KEY,
+    ApprovalDeclined,
+    ApprovalRequest,
+    ApprovalRule,
+    ApprovalUnavailable,
+    Approver,
+    Preview,
+    accepted,
+    check_rule,
+    confirmation,
+    elicited_yes,
+    needed,
+    summarize,
+)
 from ouncemcp.execution.idempotency import (
     Idempotency,
     IdempotencyGuard,
@@ -184,6 +199,7 @@ class ToolContext:
     _deps: Any = field(default=None, repr=False)
     _store: OunceStore | None = field(default=None, repr=False)
     _effects_applied: bool = field(default=False, repr=False)
+    _approved: bool = field(default=False, repr=False)
 
     @property
     def identity(self) -> Identity:
@@ -331,6 +347,8 @@ class ToolContext:
         if self._effects_applied and self.effect in writes and not self.replay_safe:
             raise UnsafeInputRequest(self.tool)
         token = None
+        if self._approved:
+            state = {**(state or {}), "ouncemcp_approved": True}
         if state is not None:
             token = self.issue_state("input_required", state, request=self._request_key())
         raise InputRequired(
@@ -448,6 +466,8 @@ class ToolSpec:
     replay_safe: bool = False
     handler: Callable[..., Any] | None = field(default=None, compare=False, repr=False)
     idempotency: Idempotency | None = None
+    approval: ApprovalRule | None = None
+    preview: Preview | None = field(default=None, compare=False, repr=False)
 
 
 OutputSchemaMode = Literal["on", "off", "auto"]
@@ -592,6 +612,7 @@ class OunceServer:
         stdio_policy: StdioPolicy = "trust",
         store: OunceStore | None = None,
         deps: Any = None,
+        approver: Approver | None = None,
         **fastmcp_kwargs: Any,
     ) -> None:
         self.name = name
@@ -638,6 +659,9 @@ class OunceServer:
         self.store: OunceStore = store if store is not None else MemoryStore()
         self.idempotency = IdempotencyGuard(self.store)
         self.deps = deps
+        if approver is not None and not callable(approver):
+            raise TypeError("approver must be a function of ApprovalRequest")
+        self.approver = approver
         self._middleware = OunceMiddleware(
             limits=self.limits,
             gate=ConcurrencyGate(self.limits.max_concurrency),
@@ -701,6 +725,8 @@ class OunceServer:
         policy: Policy | Sequence[Policy] | None = None,
         replay_safe: bool = False,
         idempotency: bool | Idempotency | None = None,
+        approval: ApprovalRule = "never",
+        preview: Preview | None = None,
     ) -> Any:
         """Register a tool. ``effect`` is required.
 
@@ -740,6 +766,8 @@ class OunceServer:
                 policy=policy,
                 replay_safe=replay_safe,
                 idempotency=idempotency,
+                approval=approval,
+                preview=preview,
             )
             return handler
 
@@ -767,6 +795,8 @@ class OunceServer:
         policy: Policy | Sequence[Policy] | None = None,
         replay_safe: bool = False,
         idempotency: bool | Idempotency | None = None,
+        approval: ApprovalRule = "never",
+        preview: Preview | None = None,
     ) -> None:
         tool_name = name or handler.__name__
         schema_mode = _tool_mode(output_schema, tool_name) or self.output_schemas
@@ -892,6 +922,8 @@ class OunceServer:
             replay_safe=bool(replay_safe),
             handler=handler,
             idempotency=as_idempotency(idempotency),
+            approval=check_rule(approval, tool_name),
+            preview=preview,
         )
         if spec.idempotency is not None and effect is Effect.READ:
             raise ValueError(
@@ -984,6 +1016,8 @@ class OunceServer:
             replayed = False
             notes = CALL_NOTES.get()
             try:
+                if spec.approval not in (None, "never"):
+                    await self._approval_gate(spec, tool_ctx, fastmcp_ctx, call_kwargs)
                 if spec.idempotency is not None:
                     rc = getattr(fastmcp_ctx, "request_context", None) if fastmcp_ctx else None
                     claim = make_claim(
@@ -1103,6 +1137,64 @@ class OunceServer:
         )
         self._registered[tool_name] = registered
         self._decision = None
+
+    async def _approval_gate(
+        self,
+        spec: ToolSpec,
+        ctx: ToolContext,
+        fastmcp_ctx: FastMCPContext | None,
+        call_kwargs: dict[str, Any],
+    ) -> None:
+        """Return when a person approved this exact call; raise otherwise (gate 4)."""
+        assert spec.approval is not None
+        arguments = ctx._arguments()
+        preview = spec.preview
+        summary = await summarize(
+            (lambda: preview(**call_kwargs)) if preview is not None else None,
+            spec.name,
+            spec.effect,
+            arguments,
+        )
+        request = ApprovalRequest(spec.name, spec.effect, arguments, ctx.identity, summary)
+        if not await needed(spec.approval, request):
+            return
+        if fastmcp_ctx is not None and fastmcp_ctx._is_modern_protocol():
+            raw = getattr(fastmcp_ctx, "request_state", None)
+            responses = ctx.input_responses or {}
+            answer = responses.get(APPROVAL_KEY) if hasattr(responses, "get") else None
+            if raw:
+                data = ctx.verify_state(raw, "input_required", request=ctx._request_key())
+                if data.get("ouncemcp_approved") is True:
+                    ctx._approved = True
+                    return
+                if data.get("ouncemcp_approval") is True and answer is not None:
+                    await ctx.consume_state(raw, "input_required", request=ctx._request_key())
+                    if not accepted(answer):
+                        raise ApprovalDeclined()
+                    ctx._approved = True
+                    return
+            ctx.require_input(
+                {APPROVAL_KEY: confirmation(summary)}, state={"ouncemcp_approval": True}
+            )
+        if fastmcp_ctx is not None and fastmcp_ctx.request_context is not None:
+            try:
+                result = await fastmcp_ctx.elicit(summary, response_type=bool)
+            except Exception:  # noqa: BLE001 - the client cannot ask; fall through
+                result = None
+            if result is not None:
+                if not elicited_yes(result):
+                    raise ApprovalDeclined()
+                ctx._approved = True
+                return
+        if self.approver is not None:
+            decision = self.approver(request)
+            if inspect.isawaitable(decision):
+                decision = await decision
+            if decision is True:
+                ctx._approved = True
+                return
+            raise ApprovalDeclined()
+        raise ApprovalUnavailable()
 
     async def _resolve_write(
         self,

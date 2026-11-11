@@ -15,6 +15,7 @@ nav:
       - Traces: concepts/traces.md
   - Guides:
       - Securing tools: guides/securing-tools.md
+      - Safe writes: guides/safe-writes.md
       - Deploying over HTTP: guides/deploying-http.md
       - Testing a server: guides/testing.md
       - Host verification: guides/host-verification.md
@@ -50,3 +51,4 @@ nav:
           - 0009 Traces: proposals/0009-traces.md
           - 0010 M2 plan: proposals/0010-m2-plan.md
           - 0011 Store and idempotency: proposals/0011-store-and-idempotency.md
+          - 0012 Safe writes: proposals/0012-safe-writes.md

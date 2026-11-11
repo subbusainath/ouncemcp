@@ -5,7 +5,7 @@ Pilot servers from the specification (docs/spec.md section 15.1). Each pilot is 
 | Directory | Pilot | Milestone |
 | --- | --- | --- |
 | `inventory/` | Read-only cloud inventory: pagination, credentials, bounded output | M1 |
-| `ticketing/` | Protected ticketing workflow: preview and commit, approvals, idempotency | M2 |
+| `ticketing/` | Protected ticketing workflow: preview and commit, approvals, idempotency (built) | M2 |
 | `report/` | Long-running report: handles, ownership, expiry, multi-replica | M2 |
 
 `ouncemcp.example.toml` shows the proposed configuration file.
