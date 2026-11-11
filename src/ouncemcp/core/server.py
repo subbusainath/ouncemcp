@@ -82,6 +82,19 @@ from ouncemcp.execution.approval import (
     needed,
     summarize,
 )
+from ouncemcp.execution.handles import (
+    DEFAULT_HANDLE_TTL_S,
+    DEFAULT_JOB_TTL_S,
+    HANDLE_KIND,
+    JOB_KIND,
+    HandlePage,
+    JobResult,
+    JobRunner,
+    JobStatus,
+    binding,
+    get_items,
+    put_items,
+)
 from ouncemcp.execution.idempotency import (
     Idempotency,
     IdempotencyGuard,
@@ -200,6 +213,7 @@ class ToolContext:
     _store: OunceStore | None = field(default=None, repr=False)
     _effects_applied: bool = field(default=False, repr=False)
     _approved: bool = field(default=False, repr=False)
+    _jobs: JobRunner | None = field(default=None, repr=False)
 
     @property
     def identity(self) -> Identity:
@@ -232,6 +246,56 @@ class ToolContext:
         if self._store is None:
             self._store = MemoryStore()
         return self._store
+
+    async def store_result(self, items: Sequence[Any], *, ttl_s: int = DEFAULT_HANDLE_TTL_S) -> str:
+        """Store a large result and return a handle the caller pages with
+        ``handles.read`` (RES-5). Needs ``OunceServer(handles=True)``. The handle is
+        bound to this caller and tenant and expires after ``ttl_s``."""
+        if self._jobs is None:
+            raise RuntimeError("Stored results need OunceServer(handles=True)")
+        ref = await put_items(self.store, items, ttl_s=ttl_s)
+        return self.issue_state(
+            HANDLE_KIND, {"id": ref}, request=binding(self.identity.tenant), ttl_s=ttl_s
+        )
+
+    async def start_job(
+        self,
+        work: Callable[[], Awaitable[Any]],
+        *,
+        ttl_s: int = DEFAULT_JOB_TTL_S,
+    ) -> str:
+        """Run ``work`` in the background and return a job id for ``jobs.get``.
+
+        ``work`` returns a model or dict (the summary) or a ``JobResult`` with a summary
+        and many items, which are stored behind a handle. Needs
+        ``OunceServer(handles=True)``. The id is bound to this caller and tenant.
+        """
+        if self._jobs is None:
+            raise RuntimeError("Jobs need OunceServer(handles=True)")
+        principal, tenant = self.principal, self.identity.tenant
+
+        async def spill(result: Any) -> dict[str, Any]:
+            outcome = result if isinstance(result, JobResult) else JobResult(summary=result)
+            summary = outcome.summary
+            data: dict[str, Any] = {}
+            if isinstance(summary, BaseModel):
+                data["result"] = summary.model_dump(mode="json")
+            elif summary is not None:
+                data["result"] = dict(summary)
+            if outcome.items is not None:
+                ref = await put_items(self.store, outcome.items, ttl_s=ttl_s)
+                data["handle"] = self._state_signer().issue(
+                    HANDLE_KIND,
+                    principal=principal,
+                    request=binding(tenant),
+                    data={"id": ref},
+                    ttl_s=ttl_s,
+                )
+                data["items"] = len(outcome.items)
+            return data
+
+        ref = await self._jobs.start(work, ttl_s=ttl_s, spill=spill)
+        return self.issue_state(JOB_KIND, {"id": ref}, request=binding(tenant), ttl_s=ttl_s)
 
     async def consume_state(self, token: str, kind: str, *, request: Any = None) -> dict[str, Any]:
         """Like ``verify_state(..., consume=True)``, but single use is recorded in the
@@ -613,6 +677,7 @@ class OunceServer:
         store: OunceStore | None = None,
         deps: Any = None,
         approver: Approver | None = None,
+        handles: bool = False,
         **fastmcp_kwargs: Any,
     ) -> None:
         self.name = name
@@ -662,6 +727,10 @@ class OunceServer:
         if approver is not None and not callable(approver):
             raise TypeError("approver must be a function of ApprovalRequest")
         self.approver = approver
+        self.jobs = JobRunner(self.store)
+        self.handles = bool(handles)
+        if handles:
+            self._register_handle_tools()
         self._middleware = OunceMiddleware(
             limits=self.limits,
             gate=ConcurrencyGate(self.limits.max_concurrency),
@@ -995,6 +1064,7 @@ class OunceServer:
                 _state=self.state,
                 _deps=self.deps,
                 _store=self.store,
+                _jobs=self.jobs if self.handles else None,
             )
             if ctx_param is not None:
                 call_kwargs[ctx_param] = tool_ctx
@@ -1137,6 +1207,38 @@ class OunceServer:
         )
         self._registered[tool_name] = registered
         self._decision = None
+
+    def _register_handle_tools(self) -> None:
+        @self.tool(name="handles.read", effect=Effect.READ)
+        async def read_handle(
+            handle: str, ctx: ToolContext, cursor: str | None = None, limit: int = 50
+        ) -> HandlePage:
+            """Page through a large result by its handle. Pass next_cursor to continue."""
+            tenant = ctx.identity.tenant
+            ref = ctx.verify_state(handle, HANDLE_KIND, request=binding(tenant))["id"]
+            items = await get_items(ctx.store, str(ref))
+            page = ctx.page(items, cursor=cursor, limit=max(1, min(limit, 200)))
+            return HandlePage(items=page.items, total=len(items), next_cursor=page.next_cursor)
+
+        @self.tool(name="jobs.get", effect=Effect.READ)
+        async def get_job(job: str, ctx: ToolContext) -> JobStatus:
+            """Check a background job. When done, read large results with handles.read."""
+            ref = ctx.verify_state(job, JOB_KIND, request=binding(ctx.identity.tenant))["id"]
+            record = await self.jobs.status(str(ref))
+            state = record.get("state", "interrupted")
+            error = record.get("error")
+            return JobStatus(
+                state=state,
+                result=record.get("result"),
+                handle=record.get("handle"),
+                items=record.get("items"),
+                error=error.get("message") if isinstance(error, dict) else None,
+                retry=(
+                    "The job stopped when its server restarted. Start it again."
+                    if state == "interrupted"
+                    else None
+                ),
+            )
 
     async def _approval_gate(
         self,
