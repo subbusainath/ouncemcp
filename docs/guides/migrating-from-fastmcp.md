@@ -57,7 +57,7 @@ ouncemcp audit path/to/server.py --compare before.json --fail-on-regression
 
 | | Original | Step 1 (wrapped) | Migrated |
 | --- | ---: | ---: | ---: |
-| Tool definition tokens | 85 | 85 | 394 (134 for the tool, 260 for `handles.read` and `jobs.get`) |
+| Tool definition tokens | 85 | 85 | 400 (134 for the tool, 266 for `handles.read` and `jobs.get`) |
 | Result for a 60-section report | 14,760 tokens, all at once | 14,760 | 388 (preview and handle), then 547 per 2-chunk page |
 | Fetches `http://169.254.169.254/...`, `127.0.0.1`, `[::1]` | Yes | Yes | Refused |
 | `file:` URIs | Any path | Any path | Off unless enabled, then only under one folder |

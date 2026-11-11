@@ -73,7 +73,7 @@ def build(
 
     @server.tool(name="report.start", effect=Effect.READ)
     async def start(args: StartInput, ctx: ToolContext) -> Started:
-        """Start a monthly sales report in the background. Poll jobs.get with the job id."""
+        """Start a monthly sales report in the background, then use jobs.get with the job id."""
 
         async def work() -> JobResult:
             rows = await build_rows(args.period, delay_s)

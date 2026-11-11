@@ -37,9 +37,13 @@ nav:
       - elicit-in-write: rules/elicit-in-write.md
       - destructive-without-policy: rules/destructive-without-policy.md
       - stdio-skips-policy: rules/stdio-skips-policy.md
+      - description-too-short: rules/description-too-short.md
+      - write-without-side-effects: rules/write-without-side-effects.md
+      - missing-usage-guidance: rules/missing-usage-guidance.md
   - Project:
       - Specification: spec.md
       - M0 report: m0-report.md
+      - M2 report: m2-report.md
       - Performance research: performance-research.md
       - Proposals:
           - Overview: proposals/README.md
@@ -59,3 +63,4 @@ nav:
           - 0014 Resources and prompts: proposals/0014-resources-and-prompts.md
           - 0015 Migration and audit: proposals/0015-migration-and-audit.md
           - 0016 Client broker: proposals/0016-client-broker.md
+          - 0017 Operations: proposals/0017-operations.md

@@ -31,10 +31,10 @@ All of it is tested in `tests/test_pilot_ticketing.py`, including the duplicate-
 | Measure | OunceMCP | Plain FastMCP |
 | --- | ---: | ---: |
 | Lines of code (no blank lines, comments or docstrings) | 102 | 26 |
-| Tool definition tokens (`o200k_base`) | 554 | 283 |
+| Tool definition tokens (`o200k_base`) | 555 | 283 |
 | Setup steps beyond `pip install` | none | none |
 
-The extra definition tokens are mostly output schemas (223 of 554); `output_schemas="off"` removes them. The extra lines are typed input and output models, the tenant check, and the two preview functions. Turns and task success with a real model are measured in M3.
+The extra definition tokens are mostly output schemas (223 of 555); `output_schemas="off"` removes them. The extra lines are typed input and output models, the tenant check, and the two preview functions. Turns and task success with a real model are measured in M3.
 
 ## Not covered yet
 

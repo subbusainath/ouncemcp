@@ -118,6 +118,7 @@ from ouncemcp.security.replay import InputRequired, UnsafeInputRequest
 from ouncemcp.security.state import StateSigner
 from ouncemcp.security.stdio import StdioPolicy, StdioPolicyFilter
 from ouncemcp.trace import Tracer, TraceSink
+from ouncemcp.trace.metrics import MetricsSink
 
 # MCP tool names: 1-128 characters of ASCII letters, digits, underscore, hyphen, dot.
 TOOL_NAME_RE = re.compile(r"^[A-Za-z0-9_.\-]{1,128}$")
@@ -702,6 +703,9 @@ class OunceServer:
         deps: Any = None,
         approver: Approver | None = None,
         handles: bool = False,
+        metrics: bool = False,
+        readiness: Sequence[Callable[[], Any]] = (),
+        http_host: str = "127.0.0.1",
         **fastmcp_kwargs: Any,
     ) -> None:
         self.name = name
@@ -761,6 +765,13 @@ class OunceServer:
         self.handles = bool(handles)
         if handles:
             self._register_handle_tools()
+        self.http_host = http_host
+        self.readiness = tuple(readiness)
+        self.metrics: MetricsSink | None = None
+        if metrics:
+            self.metrics = MetricsSink()
+            self.add_trace_sink(self.metrics)
+        self._register_routes()
         self._middleware = OunceMiddleware(
             limits=self.limits,
             gate=ConcurrencyGate(self.limits.max_concurrency),
@@ -771,6 +782,59 @@ class OunceServer:
             tokenizer=self.counter.name,
         )
         self.fastmcp.add_middleware(self._middleware)
+
+    @classmethod
+    def from_config(cls, name: str, path: str | Any, **overrides: Any) -> OunceServer:
+        """A server whose settings come from ``ouncemcp.toml`` at ``path``; keyword
+        arguments override the file. See ``ouncemcp.core.config``."""
+        from ouncemcp.core.config import load_config
+
+        return cls(name, **{**load_config(path), **overrides})
+
+    def _register_routes(self) -> None:
+        """``/healthz``, ``/readyz`` and, with ``metrics=True``, ``/metrics`` on HTTP."""
+        from starlette.requests import Request
+        from starlette.responses import JSONResponse, PlainTextResponse, Response
+
+        @self.fastmcp.custom_route("/healthz", methods=["GET"], include_in_schema=False)
+        async def healthz(request: Request) -> Response:
+            return JSONResponse({"status": "ok", "server": self.name})
+
+        @self.fastmcp.custom_route("/readyz", methods=["GET"], include_in_schema=False)
+        async def readyz(request: Request) -> Response:
+            failing = await self.check_ready()
+            body = {"status": "ready" if not failing else "not ready", "failing": failing}
+            return JSONResponse(body, status_code=200 if not failing else 503)
+
+        if self.metrics is not None:
+            metrics = self.metrics
+
+            @self.fastmcp.custom_route("/metrics", methods=["GET"], include_in_schema=False)
+            async def prometheus(request: Request) -> Response:
+                return PlainTextResponse(
+                    metrics.prometheus(), media_type="text/plain; version=0.0.4"
+                )
+
+    async def check_ready(self) -> list[str]:
+        """Names of failing readiness checks: the store, then each ``readiness`` check."""
+        failing: list[str] = []
+        try:
+            await self.store.put("health", "probe", {"ok": True}, ttl_s=10)
+            if await self.store.get("health", "probe") is None:
+                failing.append("store")
+        except Exception:  # noqa: BLE001 - any failure means not ready
+            failing.append("store")
+        for check in self.readiness:
+            name = getattr(check, "__name__", "check")
+            try:
+                ok = check()
+                if inspect.isawaitable(ok):
+                    ok = await ok
+            except Exception:  # noqa: BLE001
+                ok = False
+            if ok is not True:
+                failing.append(name)
+        return failing
 
     @classmethod
     def wrap(
@@ -813,7 +877,9 @@ class OunceServer:
             self.tracer = Tracer(sink)
         else:
             self.tracer.sinks = (*self.tracer.sinks, sink)
-        self._middleware._tracer = self.tracer
+        middleware = getattr(self, "_middleware", None)
+        if middleware is not None:  # during __init__ the middleware picks it up itself
+            middleware._tracer = self.tracer
 
     def _principal_of(self, tool_name: str, fastmcp_ctx: FastMCPContext | None) -> str:
         """The caller a call counts against, resolved exactly as for cursors.
@@ -1342,7 +1408,7 @@ class OunceServer:
         async def read_handle(
             handle: str, ctx: ToolContext, cursor: str | None = None, limit: int = 50
         ) -> HandlePage:
-            """Page through a large result by its handle. Pass next_cursor to continue."""
+            """Page through a large result. Use it when a tool returns a handle; pass next_cursor to continue."""
             tenant = ctx.identity.tenant
             ref = ctx.verify_state(handle, HANDLE_KIND, request=binding(tenant))["id"]
             items = await get_items(ctx.store, str(ref))
@@ -1581,6 +1647,7 @@ class OunceServer:
         default (SEC-8). Binding another address needs ``allowed_hosts``.
         """
         if transport != "stdio":
+            kwargs.setdefault("host", self.http_host)
             kwargs = resolve_http_options(kwargs)
         if check_budget:
             report = asyncio.run(self.cost_report())

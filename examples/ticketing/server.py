@@ -117,7 +117,7 @@ def build(api: TicketAPI | None = None, *, write_deadline_ms: int = 10_000) -> O
         deadline_ms=write_deadline_ms,
     )
     async def create(args: CreateInput, ctx: ToolContext) -> TicketOut:
-        """Open a ticket. Side effect: notifies the support team. Safe to retry."""
+        """Open a ticket. Use tickets.search first. Side effect: notifies the support team."""
         return out(await ctx.deps.create(tenant(ctx), args.title, args.body))
 
     @server.tool(

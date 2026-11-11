@@ -23,6 +23,6 @@ Results, from `tests/test_pilot_markitdown.py` with a fake converter returning a
 | Result tokens | 14,760 | 388 (then 547 per 2-chunk page) |
 | Metadata, loopback and private URLs | Fetched | Refused (`url_not_allowed`) |
 | `file:` URIs | Any path | Refused unless `MARKITDOWN_ALLOW_FILES=1`, then only under `MARKITDOWN_ROOT` |
-| Tool definition tokens | 85 | 394 (260 of them are `handles.read` and `jobs.get`) |
+| Tool definition tokens | 85 | 400 (266 of them are `handles.read` and `jobs.get`) |
 
 The step-by-step guide is `docs/guides/migrating-from-fastmcp.md`. Not covered: the upstream server's plugin option and its HTTP and SSE transports, which OunceMCP's own transports replace.

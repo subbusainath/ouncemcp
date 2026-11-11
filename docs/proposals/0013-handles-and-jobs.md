@@ -8,7 +8,7 @@ A large result could only be trimmed to the budget or refused. A slow tool held 
 
 ## Proposal
 
-`OunceServer(handles=True)` registers two read tools: `handles.read(handle, cursor, limit)` (109 tokens) and `jobs.get(job)` (151 tokens). They are opt-in, so existing catalogs do not change.
+`OunceServer(handles=True)` registers two read tools: `handles.read(handle, cursor, limit)` (115 tokens) and `jobs.get(job)` (151 tokens). They are opt-in, so existing catalogs do not change.
 
 - `await ctx.store_result(items, ttl_s=3600)` stores a list and returns a handle. `handles.read` pages it with the budget-aware pager, so a page never exceeds the result budget and cursors resume without gaps (RES-9).
 - `await ctx.start_job(work, ttl_s=3600)` runs `work` in the background and returns a job id at once. `work` returns a summary (model or dict) or `JobResult(summary=..., items=[...])`; items are stored behind a handle. `jobs.get` reports `running`, `done` (summary, handle, item count), `failed` (category and message, never internal details) or `interrupted`.
@@ -25,7 +25,7 @@ Measured on the report pilot: all 2,000 rows would cost 52,002 tokens; `jobs.get
 
 ## Impact on tokens and task success
 
-Two extra definitions (260 tokens) when enabled. Large results cost a summary plus the pages the agent actually reads.
+Two extra definitions (266 tokens) when enabled. Large results cost a summary plus the pages the agent actually reads.
 
 ## Migration notes
 
