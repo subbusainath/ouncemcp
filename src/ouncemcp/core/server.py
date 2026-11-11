@@ -616,6 +616,18 @@ def _error_result(message: str, meta: dict[str, Any]) -> ToolResult:
     )
 
 
+def _client_can_elicit(fastmcp_ctx: FastMCPContext | None) -> bool:
+    """Whether the calling client declared elicitation. Approvals are only asked of
+    clients that can show them to a person (release gate 4)."""
+    if fastmcp_ctx is None:
+        return False
+    try:
+        caps = fastmcp_ctx.session.client_capabilities
+    except Exception:  # noqa: BLE001 - no session: in-process call
+        return False
+    return getattr(caps, "elicitation", None) is not None
+
+
 def _run_sync(coro: Any) -> Any:
     """Run a coroutine from sync code, also when an event loop is already running."""
     try:
@@ -1377,7 +1389,8 @@ class OunceServer:
         request = ApprovalRequest(spec.name, spec.effect, arguments, ctx.identity, summary)
         if not await needed(spec.approval, request):
             return
-        if fastmcp_ctx is not None and fastmcp_ctx._is_modern_protocol():
+        can_ask = _client_can_elicit(fastmcp_ctx)
+        if fastmcp_ctx is not None and fastmcp_ctx._is_modern_protocol() and can_ask:
             raw = getattr(fastmcp_ctx, "request_state", None)
             responses = ctx.input_responses or {}
             answer = responses.get(APPROVAL_KEY) if hasattr(responses, "get") else None
@@ -1395,7 +1408,12 @@ class OunceServer:
             ctx.require_input(
                 {APPROVAL_KEY: confirmation(summary)}, state={"ouncemcp_approval": True}
             )
-        if fastmcp_ctx is not None and fastmcp_ctx.request_context is not None:
+        if (
+            fastmcp_ctx is not None
+            and fastmcp_ctx.request_context is not None
+            and can_ask
+            and not fastmcp_ctx._is_modern_protocol()
+        ):
             try:
                 result = await fastmcp_ctx.elicit(summary, response_type=bool)
             except Exception:  # noqa: BLE001 - the client cannot ask; fall through

@@ -161,6 +161,7 @@ def connect_target(
     bearer: str | None = None,
     env: Mapping[str, str] | None = None,
     inherit_env: bool = False,
+    **client_kwargs: Any,
 ) -> tuple[Client, str]:
     """A client for ``target``: an http(s) URL, a ``.py`` file or ``module:attr`` with a
     server object (in-process), or a command line that starts a stdio server."""
@@ -168,13 +169,13 @@ def connect_target(
         from fastmcp.client.transports import StreamableHttpTransport
 
         transport = StreamableHttpTransport(target, headers=dict(headers or {}), auth=bearer)
-        return Client(transport), "http"
+        return Client(transport, **client_kwargs), "http"
     ref = target.partition(":")[0]
     if ref.endswith(".py") and " " not in target and Path(ref).exists():
         from ouncemcp.cli.loader import load_server
 
         server = load_server(target)
-        return Client(getattr(server, "fastmcp", server)), "in-process"
+        return Client(getattr(server, "fastmcp", server), **client_kwargs), "in-process"
     parts = shlex.split(target)
     if not parts:
         raise ValueError("audit needs a URL, a server file, or a command")
@@ -182,7 +183,8 @@ def connect_target(
 
     child_env = dict(os.environ) if inherit_env else {}
     child_env.update(env or {})
-    return Client(StdioTransport(parts[0], parts[1:], env=child_env or None)), "stdio"
+    stdio = StdioTransport(parts[0], parts[1:], env=child_env or None)
+    return Client(stdio, **client_kwargs), "stdio"
 
 
 # ------------------------------------------------------------------ bloat lints (AUD-5)
