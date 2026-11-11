@@ -71,3 +71,16 @@ def passthrough_guard() -> Callable[[Any], Awaitable[None]]:
         check_outbound(request.headers)
 
     return hook
+
+
+def guarded_client(**kwargs: Any) -> Any:
+    """An ``httpx2.AsyncClient`` with ``passthrough_guard`` installed, for ``ctx.deps``.
+
+    Takes the usual client arguments (``base_url``, ``headers``, ``timeout``...). Any
+    ``event_hooks`` you pass are kept; the guard runs first.
+    """
+    import httpx2
+
+    hooks = dict(kwargs.pop("event_hooks", None) or {})
+    hooks["request"] = [passthrough_guard(), *hooks.get("request", [])]
+    return httpx2.AsyncClient(event_hooks=hooks, **kwargs)

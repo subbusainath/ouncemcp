@@ -5,8 +5,9 @@ and checks the protocol answers. This module builds an ``OunceServer`` with the 
 fixtures that M1 supports, so the suite exercises OunceMCP's real call path: typed
 outputs, shaping, error mapping, signed request state, Host and Origin checks.
 
-Resources, prompts, completions and image or audio content are not part of M1
-(CAP-2 is P1), so their scenarios are listed in ``conformance/expected-failures.yml``.
+Resource and prompt fixtures use ``server.resource`` and ``server.prompt`` (CAP-2).
+Completions and tools that return image or audio content are not supported, so their
+scenarios stay in ``conformance/expected-failures.yml``.
 
 Run it with::
 
@@ -19,9 +20,12 @@ Run it with::
 from __future__ import annotations
 
 import argparse
+import base64
 from typing import Any
 
 import anyio
+from fastmcp.prompts import Message
+from mcp_types import EmbeddedResource, ImageContent, TextResourceContents
 from pydantic import BaseModel
 
 from ouncemcp.core.effects import Effect
@@ -211,7 +215,68 @@ def build() -> OunceServer:
         uris = ", ".join(str(r.get("uri")) for r in roots if isinstance(r, dict))
         return Text(text=f"Roots: {uris or 'none'}")
 
+    _resources_and_prompts(server)
     return server
+
+
+# A 1x1 transparent PNG.
+PNG = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+)
+
+
+class TemplateData(BaseModel):
+    id: str
+    templateTest: bool = True
+    data: str
+
+
+def _resources_and_prompts(server: OunceServer) -> None:
+    @server.resource("test://static-text", mime_type="text/plain")
+    def static_text() -> str:
+        """A static text resource."""
+        return "This is the content of the static text resource."
+
+    @server.resource("test://static-binary", mime_type="image/png")
+    def static_binary() -> bytes:
+        """A static binary resource."""
+        return PNG
+
+    @server.resource("test://template/{id}/data", mime_type="application/json")
+    def template_data(id: str) -> TemplateData:
+        """Data for one id, from a template."""
+        return TemplateData(id=id, data=f"Data for ID: {id}")
+
+    @server.prompt("test_simple_prompt")
+    def simple_prompt() -> str:
+        """A simple prompt without arguments."""
+        return "This is a simple prompt for testing."
+
+    @server.prompt("test_prompt_with_arguments")
+    def with_arguments(arg1: str, arg2: str) -> str:
+        """A prompt with two required arguments."""
+        return f"Prompt with arguments: arg1='{arg1}', arg2='{arg2}'"
+
+    @server.prompt("test_prompt_with_embedded_resource")
+    def with_resource(resourceUri: str) -> list[Message]:
+        """A prompt that embeds a resource."""
+        embedded = EmbeddedResource(
+            type="resource",
+            resource=TextResourceContents(
+                uri=resourceUri,
+                mime_type="text/plain",
+                text="Embedded resource content for testing.",
+            ),
+        )
+        return [Message(embedded), Message("Please process the embedded resource above.")]
+
+    @server.prompt("test_prompt_with_image")
+    def with_image() -> list[Message]:
+        """A prompt with an image."""
+        image = ImageContent(
+            type="image", data=base64.b64encode(PNG).decode(), mime_type="image/png"
+        )
+        return [Message(image), Message("Please analyze the image above.")]
 
 
 def main(argv: list[str] | None = None) -> int:

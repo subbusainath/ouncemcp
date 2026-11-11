@@ -13,12 +13,22 @@ Rules:
   which skips the SEC-7 guard. Use ``ctx.require_input``.
 - ``destructive-without-policy`` (warning): a destructive tool has no ``policy`` or
   ``auth``, so any caller who can reach the server can run it (SEC-2).
+- ``description-too-short`` (warning): fewer than five words, which rarely says what
+  the tool is for (CAP-5).
+- ``write-without-side-effects`` (warning): a write or destructive tool's description
+  does not say what it changes (CAP-5).
+- ``missing-usage-guidance`` (warning): in a server with several tools, the description
+  never says when to use it or what to use instead (CAP-5).
+- ``stdio-skips-policy`` (warning): tools have policies but the server uses
+  ``stdio_policy="trust"``, so over stdio they are visible and callable by anyone who
+  can start the server. Ignore it for servers served only over HTTP.
 """
 
 from __future__ import annotations
 
 import ast
 import inspect
+import re
 import textwrap
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -33,7 +43,53 @@ RULES: dict[str, Severity] = {
     "input-after-effect": "error",
     "elicit-in-write": "warning",
     "destructive-without-policy": "warning",
+    "stdio-skips-policy": "warning",
+    "description-too-short": "warning",
+    "write-without-side-effects": "warning",
+    "missing-usage-guidance": "warning",
 }
+
+SIDE_EFFECT = re.compile(
+    r"(?i)\b(side effects?|creates?|deletes?|removes?|updates?|sends?|changes?|modif\w*|"
+    r"writes?|notif\w*|charges?|closes?|opens?|refunds?|stores?|adds?|cancels?|"
+    r"permanent\w*|cannot be undone)\b"
+)
+GUIDANCE = re.compile(
+    r"(?i)\b(use|instead|only|before|after|when|unless|first|then|not|avoid|prefer)\b"
+)
+
+
+def lint_description(
+    name: str, description: str, *, effect: Effect, siblings: int
+) -> list[Finding]:
+    """CAP-5 rules for one tool description."""
+    findings: list[Finding] = []
+    words = len(description.split())
+    if words < 5:
+        findings.append(
+            Finding(
+                "description-too-short",
+                name,
+                f"description has {words} words; say what the tool does and returns",
+            )
+        )
+    if effect in (Effect.WRITE, Effect.DESTRUCTIVE) and not SIDE_EFFECT.search(description):
+        findings.append(
+            Finding(
+                "write-without-side-effects",
+                name,
+                "description does not say what the tool changes; add 'Side effect: ...'",
+            )
+        )
+    if siblings > 1 and not GUIDANCE.search(description):
+        findings.append(
+            Finding(
+                "missing-usage-guidance",
+                name,
+                "description never says when to use the tool or what to use instead",
+            )
+        )
+    return findings
 
 
 @dataclass(frozen=True)
@@ -123,7 +179,32 @@ def lint_server(server: Any) -> list[Finding]:
     if not isinstance(specs, dict):
         return []
     findings: list[Finding] = []
+    guarded = sorted(name for name, spec in specs.items() if spec.has_policy)
+    if guarded and getattr(server, "stdio_policy", "trust") == "trust":
+        shown = ", ".join(guarded[:3]) + (
+            f" and {len(guarded) - 3} more" if len(guarded) > 3 else ""
+        )
+        findings.append(
+            Finding(
+                "stdio-skips-policy",
+                "(server)",
+                f"policies on {shown} do not apply over stdio with stdio_policy='trust'; "
+                "set stdio_policy='enforce' if the server is also run over stdio by "
+                "untrusted users",
+            )
+        )
+    descriptions = {
+        t.name: t.description or "" for t in getattr(server, "_registered", {}).values()
+    }
     for name, spec in sorted(specs.items()):
+        findings.extend(
+            lint_description(
+                name,
+                descriptions.get(name, ""),
+                effect=spec.effect,
+                siblings=len(specs),
+            )
+        )
         findings.extend(
             lint_tool(
                 name,

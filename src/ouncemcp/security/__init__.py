@@ -21,7 +21,12 @@ from ouncemcp.security.identity import (
     current_identity,
     identity_from_token,
 )
-from ouncemcp.security.passthrough import TokenPassthrough, check_outbound, passthrough_guard
+from ouncemcp.security.passthrough import (
+    TokenPassthrough,
+    check_outbound,
+    guarded_client,
+    passthrough_guard,
+)
 from ouncemcp.security.policy import (
     Policy,
     PolicyRequest,
@@ -36,6 +41,7 @@ from ouncemcp.security.policy import (
 )
 from ouncemcp.security.replay import UnsafeInputRequest
 from ouncemcp.security.state import InvalidState, StateSigner
+from ouncemcp.security.urls import URLNotAllowed, check_url
 
 __all__ = [
     "ANONYMOUS_IDENTITY",
@@ -47,6 +53,7 @@ __all__ = [
     "PolicyRequest",
     "StateSigner",
     "TokenPassthrough",
+    "URLNotAllowed",
     "UnsafeInputRequest",
     "all_of",
     "allow_all",
@@ -54,7 +61,9 @@ __all__ = [
     "audience_matches",
     "authenticated",
     "check_outbound",
+    "check_url",
     "current_identity",
+    "guarded_client",
     "identity_from_token",
     "partition_key",
     "passthrough_guard",

@@ -2,7 +2,7 @@
 
 **Every token counts.** OunceMCP is a framework for building Model Context Protocol (MCP) servers and clients that are fast, low-noise, and safe for agents by default. It builds on [FastMCP](https://gofastmcp.com) and the official MCP Python SDK, and targets the MCP `2026-07-28` specification.
 
-> **Status: pre-alpha (M1 in progress).** The core server API, token accounting, result budgets, automatic `direct`/`search` discovery, errors and deadlines, security and policy, traces, the security test catalog, and the `init`, `dev`, `check` and `context` commands work and are tested. Host verification is still open. Safe writes, the client broker, agent task suites and audit are not built yet. APIs will change. See the [roadmap](#roadmap), the [docs](docs/README.md) and the [M0 report](docs/m0-report.md).
+> **Status: pre-alpha (M2 built, under review).** Everything in M1 plus safe writes (approvals and idempotency), results by reference and background jobs, resources and prompts, a migration path from FastMCP, the `audit` command, a client broker for many servers, a config file, health checks and metrics work and are tested. Host verification and the first official conformance run are still open; agent task suites and the public benchmark are M3. APIs will change. See the [roadmap](#roadmap), the [docs](docs/README.md) and the [M0 report](docs/m0-report.md).
 
 ## Why
 
@@ -77,6 +77,12 @@ What you get:
 - **Categorized errors:** every failure is one of validation, authentication, permission, not found, rate limit, transient, ambiguous write or internal, with a `retryable` flag. Validation messages say how to fix the input without repeating it. Unexpected exceptions are never shown to the model: it gets a reference id and the details go to the log. Messages you write are redacted for URLs, addresses, hostnames, paths and credentials. Raise `InvalidInput`, `NotFound`, `RateLimited` and the other `OunceError` classes from handlers.
 - **Execution limits:** every call has a deadline (default 30 s) and is cancelled when it passes or the client cancels. Reads are retried a few times with bounded backoff inside the deadline, and writes never are. A write that times out is reported as ambiguous, not as failed. Request size, nesting depth and calls in flight per principal are bounded (`Limits`). See [proposal 0007](docs/proposals/0007-errors-and-execution-limits.md).
 - **Security and policy:** `ctx.identity` comes from the verified token only. `policy=` on the server or a tool decides who sees and calls it, on the declared effect, never on annotations. `audience=` refuses tokens issued for other servers, `passthrough_guard()` stops the caller's token from reaching upstream APIs, `ctx.cache` is partitioned by tenant, `ctx.issue_state` hands out handles and approvals bound to caller, request and expiry, and HTTP binds to loopback with `Host` and `Origin` checks ([proposal 0008](docs/proposals/0008-security-and-policy.md)).
+- **Safe writes:** `idempotency=True` runs a write once per caller and arguments, and a write that times out finishes in the background so a retry gets its result instead of writing twice. `approval="required"` with a `preview` asks a person first, through the client, and refuses when nobody can be asked ([safe writes](docs/guides/safe-writes.md)).
+- **Large results and slow work:** `OunceServer(handles=True)` adds `handles.read` and `jobs.get`. `await ctx.store_result(rows)` returns a handle to page, and `await ctx.start_job(work)` runs work in the background. Both work across replicas with a shared `RedisStore`.
+- **Resources and prompts:** `@server.resource(uri)` and `@server.prompt()` get the same budgets, policies and verified caller as tools.
+- **Migration and audit:** `OunceServer.wrap(existing_fastmcp_server)` adds all of the above without touching its tools, and `ouncemcp audit <url | file | -- command>` measures any MCP server ([migration guide](docs/guides/migrating-from-fastmcp.md)).
+- **Many servers:** `ouncemcp.client.Broker` connects a host to many servers as one catalog, with namespaced tools, cross-server search, schema checks, deadlines, failure isolation, and no cross-server authority from server output ([broker](docs/guides/client-broker.md)).
+- **Operations:** `OunceServer.from_config(name, "ouncemcp.toml")`, `/healthz`, `/readyz` and, with `metrics=True`, Prometheus `/metrics` ([deploying](docs/guides/deploying-http.md)).
 - **Traces:** `OunceServer(trace=MemorySink())` records each call's result tokens, latency, retries and outcome, redacted by default ([proposal 0009](docs/proposals/0009-traces.md)).
 - **Composite tools:** `ctx.gather(...)` runs several upstream calls in one tool call. The example `inventory.cost_review` returns 651 tokens in 1 call where paging `inventory.search` takes 9,896 tokens over 8 calls.
 - **Testing:** `ouncemcp.testing.as_caller(...)` runs code as a verified caller, and `ouncemcp.eval.run_security_suite(server, cases)` probes for cross-tenant leaks, guessed names, cursor and handle reuse, replay, token passthrough and SSRF.
@@ -90,7 +96,7 @@ ouncemcp dev examples/inventory/server.py      # hot reload, live per-call token
 
 Counts use `o200k_base` by default. Choose another tiktoken encoding with `OunceServer(tokenizer="cl100k_base")` or `ouncemcp check --tokenizer cl100k_base`, or pass your own counting function with `tokenizer=fn, tokenizer_name="my-tokenizer-v1"`. Every report names the tokenizer it used ([proposal 0004](docs/proposals/0004-pluggable-tokenizer.md)).
 
-Planned commands (`eval`, `bench`, `trace`, and the optional `audit`) report the milestone they ship in.
+`ouncemcp audit` is the optional command for measuring any server. Planned commands (`eval`, `bench`, `trace`) report the milestone they ship in.
 
 ## M0 results
 
@@ -110,17 +116,20 @@ Typed output schemas make definitions larger. Results are where the savings come
 
 ```text
 src/ouncemcp/
-  core/        capabilities, budgets, response shaping, token accounting, errors, lints
-  security/    identity, policy, audience and passthrough, caches, bound state, HTTP defaults
+  core/        capabilities, budgets, response shaping, token accounting, errors, lints,
+               resources and prompts, config file
+  security/    identity, policy, audience and passthrough, caches, bound state, HTTP
+               defaults, stdio policy, URL checks
   discovery/   direct and search discovery modes
-  execution/   deadlines, retries, limits, middleware
-  trace/       per-call traces and redaction
+  execution/   deadlines, retries, limits, middleware, store, idempotency, approvals,
+               handles and jobs
+  trace/       per-call traces, redaction and metrics
   eval/        conformance target and security test catalog
-  cli/         init, dev, check, context (eval, bench, trace, audit planned)
-  client/      reference client broker (M2)
-  audit/       optional audit command (M2)
+  cli/         init, dev, check, context, audit (eval, bench, trace planned)
+  client/      reference client broker
+  audit/       optional audit command
   testing.py   as_caller and make_token for tests
-examples/      pilot servers: inventory, ticketing, report
+examples/      pilot servers: inventory, ticketing, report, markitdown migration
 benchmarks/    servers, tasks, scripts, published results
 docs/          specification, research, concepts, guides, proposals
 tests/
@@ -132,7 +141,7 @@ tests/
 | --- | --- | --- |
 | M0: core spike | `OunceServer`, typed tools with effects, token counting, result budgets, one example server | 2 weeks |
 | M1: v0.1 | Framework core, automatic discovery, errors, security, `init`/`dev`/`check`/`context`, docs | 6 weeks |
-| M2: v0.2 | Safe writes, client broker, migration guide, pilots, optional `audit` | 6 weeks |
+| M2: v0.2 | Safe writes, client broker, migration guide, pilots, optional `audit` (built; see the [M2 report](docs/m2-report.md)) | 6 weeks |
 | M3: v0.5 | Eval kit, trace viewer, public benchmark, launch | 6 weeks |
 | M4: v1.0 | Security review, host compatibility matrix, stable API | 6 weeks |
 

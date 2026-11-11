@@ -10,11 +10,15 @@ nav:
       - Context budgets: concepts/budgets.md
       - Discovery modes: concepts/discovery.md
       - Response shaping: concepts/shaping.md
+      - Resources and prompts: concepts/resources-prompts.md
       - Security and policy: concepts/security.md
       - Errors and execution: concepts/execution.md
       - Traces: concepts/traces.md
   - Guides:
       - Securing tools: guides/securing-tools.md
+      - Safe writes: guides/safe-writes.md
+      - Migrating from FastMCP: guides/migrating-from-fastmcp.md
+      - Connecting to many servers: guides/client-broker.md
       - Deploying over HTTP: guides/deploying-http.md
       - Testing a server: guides/testing.md
       - Host verification: guides/host-verification.md
@@ -32,9 +36,14 @@ nav:
       - input-after-effect: rules/input-after-effect.md
       - elicit-in-write: rules/elicit-in-write.md
       - destructive-without-policy: rules/destructive-without-policy.md
+      - stdio-skips-policy: rules/stdio-skips-policy.md
+      - description-too-short: rules/description-too-short.md
+      - write-without-side-effects: rules/write-without-side-effects.md
+      - missing-usage-guidance: rules/missing-usage-guidance.md
   - Project:
       - Specification: spec.md
       - M0 report: m0-report.md
+      - M2 report: m2-report.md
       - Performance research: performance-research.md
       - Proposals:
           - Overview: proposals/README.md
@@ -47,3 +56,11 @@ nav:
           - 0007 Errors and limits: proposals/0007-errors-and-execution-limits.md
           - 0008 Security and policy: proposals/0008-security-and-policy.md
           - 0009 Traces: proposals/0009-traces.md
+          - 0010 M2 plan: proposals/0010-m2-plan.md
+          - 0011 Store and idempotency: proposals/0011-store-and-idempotency.md
+          - 0012 Safe writes: proposals/0012-safe-writes.md
+          - 0013 Handles and jobs: proposals/0013-handles-and-jobs.md
+          - 0014 Resources and prompts: proposals/0014-resources-and-prompts.md
+          - 0015 Migration and audit: proposals/0015-migration-and-audit.md
+          - 0016 Client broker: proposals/0016-client-broker.md
+          - 0017 Operations: proposals/0017-operations.md

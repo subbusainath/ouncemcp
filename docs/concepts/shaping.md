@@ -5,6 +5,7 @@
 - **Structured and text.** Results carry `structuredContent` and a compact text rendering (RES-7).
 - **Pagination without gaps.** Mark the list `Paginated` and the cursor field `Cursor`, and page with `ctx.page(rows, cursor=..., limit=...)`. If shaping trims the page, `next_cursor` moves to resume after the last item returned (RES-9).
 - **Signed cursors.** Cursors expire and only work for the same tool, caller and filters. Set `OUNCEMCP_CURSOR_KEYS` (comma-separated, newest first) on every replica in production ([proposal 0003](../proposals/0003-signed-cursors.md)).
+- **Results by reference.** With `OunceServer(handles=True)`, `await ctx.store_result(items)` returns a handle the agent pages with `handles.read`, and `await ctx.start_job(work)` runs slow work in the background for `jobs.get` ([proposal 0013](../proposals/0013-handles-and-jobs.md)).
 - **Truncation notes.** The agent is told what was removed and how to get more (RES-4).
 
 Details: [proposal 0002](../proposals/0002-schema-safe-shaping-and-pagination.md).

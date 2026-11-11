@@ -49,7 +49,7 @@ def test_input_after_effect_is_an_error_unless_replay_safe():
         ctx.effect_applied()
         return Out()
 
-    findings = lint_server(server)
+    findings = [f for f in lint_server(server) if f.severity == "error"]
     assert [(f.rule, f.tool, f.severity) for f in findings] == [
         ("input-after-effect", "pay.send", "error")
     ]
@@ -71,7 +71,8 @@ def test_elicit_and_unguarded_destructive_are_warnings():
         """Read rows."""
         return Out()
 
-    assert rules(server) == [
+    safety = {"elicit-in-write", "destructive-without-policy"}
+    assert [r for r in rules(server) if r[0] in safety] == [
         ("elicit-in-write", "db.drop"),
         ("destructive-without-policy", "db.drop"),
     ]
@@ -101,6 +102,6 @@ def test_check_reports_lints_and_fails_on_errors(tmp_path: Path, capsys):
     )
     assert main(["check", str(path), "--json"]) == 1
     data = json.loads(capsys.readouterr().out)
-    assert data["lints"][0]["rule"] == "input-after-effect"
+    assert "input-after-effect" in [lint["rule"] for lint in data["lints"]]
     assert main(["check", str(path)]) == 1
     assert "ERROR [input-after-effect] pay.send" in capsys.readouterr().out

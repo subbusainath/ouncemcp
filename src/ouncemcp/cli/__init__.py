@@ -11,6 +11,7 @@ import argparse
 import asyncio
 import json
 import sys
+from pathlib import Path
 from typing import Any
 
 from ouncemcp import __version__
@@ -26,7 +27,7 @@ COMMANDS: dict[str, tuple[str, str]] = {
     "trace": ("Open the trace and context viewer", "M3"),
     "audit": ("Optional: measure any MCP server and recommend fixes", "M2"),
 }
-IMPLEMENTED = {"init", "dev", "check", "context"}
+IMPLEMENTED = {"init", "dev", "check", "context", "audit"}
 
 
 def _add_tokenizer_option(cmd: argparse.ArgumentParser) -> None:
@@ -71,6 +72,36 @@ def build_parser() -> argparse.ArgumentParser:
             cmd.add_argument(
                 "--once", action="store_true", help="print the budget summary once and exit"
             )
+        elif name == "audit":
+            cmd.add_argument(
+                "target",
+                nargs="+",
+                help="an http(s) URL, a server file (path/to/server.py[:name]), or a command "
+                "that starts a stdio server (put it after --)",
+            )
+            cmd.add_argument("--json", action="store_true", help="print a JSON report")
+            cmd.add_argument("--markdown", action="store_true", help="print a Markdown report")
+            cmd.add_argument("--output", metavar="PATH", help="also write the JSON report here")
+            _add_tokenizer_option(cmd)
+            cmd.add_argument("--header", action="append", default=[], metavar="'Name: value'")
+            cmd.add_argument("--bearer", metavar="TOKEN", help="bearer token for HTTP servers")
+            cmd.add_argument("--env", action="append", default=[], metavar="KEY=VALUE")
+            cmd.add_argument(
+                "--inherit-env", action="store_true", help="pass this environment to stdio servers"
+            )
+            cmd.add_argument(
+                "--sample",
+                action="append",
+                default=[],
+                metavar="TOOL=JSON",
+                help="call TOOL with these arguments to measure result size; tools are "
+                "never called without this flag",
+            )
+            cmd.add_argument("--sample-runs", type=int, default=3)
+            cmd.add_argument("--fail-startup", type=int, metavar="TOKENS")
+            cmd.add_argument("--fail-tool", type=int, metavar="TOKENS")
+            cmd.add_argument("--compare", metavar="OLD.json", help="report regressions")
+            cmd.add_argument("--fail-on-regression", action="store_true")
         elif name == "context":
             cmd.add_argument("server", help="path/to/server.py[:name] or module[:name]")
             cmd.add_argument("tool", help="tool name")
@@ -183,6 +214,70 @@ def _context(ns: argparse.Namespace) -> int:
     return 0
 
 
+def _audit(ns: argparse.Namespace) -> int:
+    import shlex
+
+    from ouncemcp.audit.runner import audit, compare, load_report
+    from ouncemcp.core.budget import Budget
+
+    target = ns.target[0] if len(ns.target) == 1 else shlex.join(ns.target)
+    try:
+        headers = dict(h.split(":", 1) for h in ns.header)
+        env = dict(e.split("=", 1) for e in ns.env)
+        samples = {}
+        for item in ns.sample:
+            tool, _, raw = item.partition("=")
+            samples[tool] = json.loads(raw or "{}")
+    except ValueError as exc:
+        print(f"ouncemcp audit: bad option ({exc})", file=sys.stderr)
+        return 2
+    budget = Budget(tool_definition_fail=ns.fail_tool) if ns.fail_tool else Budget()
+    try:
+        report = asyncio.run(
+            audit(
+                target,
+                budget=budget,
+                tokenizer=ns.tokenizer,
+                samples=samples,
+                sample_runs=ns.sample_runs,
+                headers={k.strip(): v.strip() for k, v in headers.items()},
+                bearer=ns.bearer,
+                env=env,
+                inherit_env=ns.inherit_env,
+            )
+        )
+    except Exception as exc:  # noqa: BLE001 - report connection problems plainly
+        print(
+            f"ouncemcp audit: could not audit {target}: {type(exc).__name__}: {exc}",
+            file=sys.stderr,
+        )
+        return 2
+    data = report.to_dict()
+    regressions = compare(load_report(ns.compare), data) if ns.compare else []
+    data["regressions"] = regressions
+    if ns.output:
+        Path(ns.output).write_text(json.dumps(data, indent=2))
+    if ns.json:
+        print(json.dumps(data, indent=2))
+    elif ns.markdown:
+        print(report.render_markdown())
+    else:
+        print(report.render_text())
+        for line in regressions:
+            print(f"REGRESSION {line}")
+    failed = bool(report.cost.failed)
+    if ns.fail_startup is not None and report.startup_tokens > ns.fail_startup:
+        print(
+            f"ouncemcp audit: startup context {report.startup_tokens:,} tokens is over "
+            f"{ns.fail_startup:,}",
+            file=sys.stderr,
+        )
+        failed = True
+    if ns.fail_on_regression and regressions:
+        failed = True
+    return 1 if failed else 0
+
+
 def _init(ns: argparse.Namespace) -> int:
     from ouncemcp.cli.scaffold import ScaffoldError, scaffold
 
@@ -211,6 +306,8 @@ def main(argv: list[str] | None = None) -> int:
         return _context(ns)
     if ns.command == "init":
         return _init(ns)
+    if ns.command == "audit":
+        return _audit(ns)
     if ns.command == "dev":
         from ouncemcp.cli import dev
 

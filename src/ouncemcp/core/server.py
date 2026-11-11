@@ -67,8 +67,44 @@ from ouncemcp.execution import (
     WriteAttempt,
     WriteResolver,
 )
+from ouncemcp.execution.approval import (
+    APPROVAL_KEY,
+    ApprovalDeclined,
+    ApprovalRequest,
+    ApprovalRule,
+    ApprovalUnavailable,
+    Approver,
+    Preview,
+    accepted,
+    check_rule,
+    confirmation,
+    elicited_yes,
+    needed,
+    summarize,
+)
+from ouncemcp.execution.handles import (
+    DEFAULT_HANDLE_TTL_S,
+    DEFAULT_JOB_TTL_S,
+    HANDLE_KIND,
+    JOB_KIND,
+    HandlePage,
+    JobResult,
+    JobRunner,
+    JobStatus,
+    binding,
+    get_items,
+    put_items,
+)
+from ouncemcp.execution.idempotency import (
+    Idempotency,
+    IdempotencyGuard,
+    as_idempotency,
+    client_key,
+    make_claim,
+)
 from ouncemcp.execution.middleware import CALL_NOTES, OunceMiddleware
 from ouncemcp.execution.runner import run_with_policy
+from ouncemcp.execution.store import MemoryStore, OunceStore
 from ouncemcp.security.cache import CacheView, PartitionedCache
 from ouncemcp.security.http import resolve_http_options
 from ouncemcp.security.identity import (
@@ -80,7 +116,9 @@ from ouncemcp.security.identity import (
 from ouncemcp.security.policy import Policy, ToolFacts, policy_check
 from ouncemcp.security.replay import InputRequired, UnsafeInputRequest
 from ouncemcp.security.state import StateSigner
+from ouncemcp.security.stdio import StdioPolicy, StdioPolicyFilter
 from ouncemcp.trace import Tracer, TraceSink
+from ouncemcp.trace.metrics import MetricsSink
 
 # MCP tool names: 1-128 characters of ASCII letters, digits, underscore, hyphen, dot.
 TOOL_NAME_RE = re.compile(r"^[A-Za-z0-9_.\-]{1,128}$")
@@ -172,7 +210,11 @@ class ToolContext:
     _tenant_claims: tuple[str, ...] = field(default=DEFAULT_TENANT_CLAIMS, repr=False)
     _cache: PartitionedCache | None = field(default=None, repr=False)
     _state: StateSigner | None = field(default=None, repr=False)
+    _deps: Any = field(default=None, repr=False)
+    _store: OunceStore | None = field(default=None, repr=False)
     _effects_applied: bool = field(default=False, repr=False)
+    _approved: bool = field(default=False, repr=False)
+    _jobs: JobRunner | None = field(default=None, repr=False)
 
     @property
     def identity(self) -> Identity:
@@ -190,6 +232,85 @@ class ToolContext:
             self._cache = PartitionedCache()
         identity = replace(self.identity, principal=self.principal)
         return CacheView(self._cache, identity, self.tool)
+
+    @property
+    def deps(self) -> Any:
+        """The server's dependencies (``OunceServer(deps=...)``): upstream clients, pools
+        and anything else handlers need. Replace them with fakes in tests."""
+        if self._deps is None:
+            raise RuntimeError("This server has no deps; pass OunceServer(deps=...)")
+        return self._deps
+
+    @property
+    def store(self) -> OunceStore:
+        """The server's shared store (``OunceServer(store=...)``)."""
+        if self._store is None:
+            self._store = MemoryStore()
+        return self._store
+
+    async def store_result(self, items: Sequence[Any], *, ttl_s: int = DEFAULT_HANDLE_TTL_S) -> str:
+        """Store a large result and return a handle the caller pages with
+        ``handles.read`` (RES-5). Needs ``OunceServer(handles=True)``. The handle is
+        bound to this caller and tenant and expires after ``ttl_s``."""
+        if self._jobs is None:
+            raise RuntimeError("Stored results need OunceServer(handles=True)")
+        ref = await put_items(self.store, items, ttl_s=ttl_s)
+        return self.issue_state(
+            HANDLE_KIND, {"id": ref}, request=binding(self.identity.tenant), ttl_s=ttl_s
+        )
+
+    async def start_job(
+        self,
+        work: Callable[[], Awaitable[Any]],
+        *,
+        ttl_s: int = DEFAULT_JOB_TTL_S,
+    ) -> str:
+        """Run ``work`` in the background and return a job id for ``jobs.get``.
+
+        ``work`` returns a model or dict (the summary) or a ``JobResult`` with a summary
+        and many items, which are stored behind a handle. Needs
+        ``OunceServer(handles=True)``. The id is bound to this caller and tenant.
+        """
+        if self._jobs is None:
+            raise RuntimeError("Jobs need OunceServer(handles=True)")
+        principal, tenant = self.principal, self.identity.tenant
+
+        async def spill(result: Any) -> dict[str, Any]:
+            outcome = result if isinstance(result, JobResult) else JobResult(summary=result)
+            summary = outcome.summary
+            data: dict[str, Any] = {}
+            if isinstance(summary, BaseModel):
+                data["result"] = summary.model_dump(mode="json")
+            elif summary is not None:
+                data["result"] = dict(summary)
+            if outcome.items is not None:
+                ref = await put_items(self.store, outcome.items, ttl_s=ttl_s)
+                data["handle"] = self._state_signer().issue(
+                    HANDLE_KIND,
+                    principal=principal,
+                    request=binding(tenant),
+                    data={"id": ref},
+                    ttl_s=ttl_s,
+                )
+                data["items"] = len(outcome.items)
+            return data
+
+        ref = await self._jobs.start(work, ttl_s=ttl_s, spill=spill)
+        return self.issue_state(JOB_KIND, {"id": ref}, request=binding(tenant), ttl_s=ttl_s)
+
+    async def consume_state(self, token: str, kind: str, *, request: Any = None) -> dict[str, Any]:
+        """Like ``verify_state(..., consume=True)``, but single use is recorded in the
+        shared store, so it holds across replicas when the store is shared (SEC-6)."""
+        data = self.verify_state(token, kind, request=request)
+        from ouncemcp.security.state import InvalidState
+
+        nonce = token.rsplit(".", 1)[-1]
+        fresh = await self.store.put_if_absent(
+            "state-used", nonce, {"kind": kind}, ttl_s=self._state_signer().ttl_s * 2
+        )
+        if not fresh:
+            raise InvalidState("replayed")
+        return data
 
     def _state_signer(self) -> StateSigner:
         if self._state is None:
@@ -291,6 +412,8 @@ class ToolContext:
         if self._effects_applied and self.effect in writes and not self.replay_safe:
             raise UnsafeInputRequest(self.tool)
         token = None
+        if self._approved:
+            state = {**(state or {}), "ouncemcp_approved": True}
         if state is not None:
             token = self.issue_state("input_required", state, request=self._request_key())
         raise InputRequired(
@@ -407,6 +530,9 @@ class ToolSpec:
     has_policy: bool = False
     replay_safe: bool = False
     handler: Callable[..., Any] | None = field(default=None, compare=False, repr=False)
+    idempotency: Idempotency | None = None
+    approval: ApprovalRule | None = None
+    preview: Preview | None = field(default=None, compare=False, repr=False)
 
 
 OutputSchemaMode = Literal["on", "off", "auto"]
@@ -491,6 +617,30 @@ def _error_result(message: str, meta: dict[str, Any]) -> ToolResult:
     )
 
 
+def _client_can_elicit(fastmcp_ctx: FastMCPContext | None) -> bool:
+    """Whether the calling client declared elicitation. Approvals are only asked of
+    clients that can show them to a person (release gate 4)."""
+    if fastmcp_ctx is None:
+        return False
+    try:
+        caps = fastmcp_ctx.session.client_capabilities
+    except Exception:  # noqa: BLE001 - no session: in-process call
+        return False
+    return getattr(caps, "elicitation", None) is not None
+
+
+def _run_sync(coro: Any) -> Any:
+    """Run a coroutine from sync code, also when an event loop is already running."""
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    import concurrent.futures
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(asyncio.run, coro).result()
+
+
 def _as_policies(policy: Policy | Sequence[Policy] | None) -> tuple[Policy, ...]:
     if policy is None:
         return ()
@@ -548,17 +698,31 @@ class OunceServer:
         tenant_claims: Sequence[str] = DEFAULT_TENANT_CLAIMS,
         cache: PartitionedCache | None = None,
         trace: Tracer | TraceSink | Sequence[TraceSink] | None = None,
+        stdio_policy: StdioPolicy = "trust",
+        store: OunceStore | None = None,
+        deps: Any = None,
+        approver: Approver | None = None,
+        handles: bool = False,
+        metrics: bool = False,
+        readiness: Sequence[Callable[[], Any]] = (),
+        http_host: str = "127.0.0.1",
         **fastmcp_kwargs: Any,
     ) -> None:
         self.name = name
         self.budget = budget or Budget()
         self.counter = get_counter(tokenizer, name=tokenizer_name)
-        self.fastmcp = FastMCP(name, instructions=instructions, version=version, **fastmcp_kwargs)
+        wrapped = fastmcp_kwargs.pop("_wrap", None)
+        self.fastmcp = (
+            wrapped
+            if wrapped is not None
+            else FastMCP(name, instructions=instructions, version=version, **fastmcp_kwargs)
+        )
+        self._wrapped_effects: dict[str, Effect] = {}
         self.output_schemas: OutputSchemaMode = _server_mode(output_schemas)
         self.cursors = cursors or CursorSigner.from_env()
         self._resolve_principal = principal or default_principal
         self._specs: dict[str, ToolSpec] = {}
-        self._registered: dict[str, FunctionTool] = {}
+        self._registered: dict[str, Tool] = {}
         if discovery not in DISCOVERY_SETTINGS:
             raise ValueError(
                 f"discovery must be one of {', '.join(DISCOVERY_SETTINGS)}, got {discovery!r}"
@@ -567,6 +731,9 @@ class OunceServer:
             raise ValueError("search_results must be an integer >= 1")
         self.discovery_setting: DiscoverySetting = discovery
         self._decision: DiscoveryDecision | None = None
+        self._stdio_filter = StdioPolicyFilter(stdio_policy)
+        self.stdio_policy: StdioPolicy = stdio_policy
+        self.fastmcp.add_transform(self._stdio_filter)
         self._search = OunceSearchTransform(
             mode=self._discovery_mode,
             pinned=pinned,
@@ -583,9 +750,28 @@ class OunceServer:
         if any(not a for a in self.audiences):
             raise ValueError("audience must be a non-empty string (the server's resource URL)")
         self.tenant_claims = tuple(tenant_claims)
-        self.cache = cache or PartitionedCache()
+        self.cache = cache if cache is not None else PartitionedCache()
         self.state = StateSigner(self.cursors)
         self.tracer = Tracer.coerce(trace)
+        if store is not None and not isinstance(store, OunceStore):
+            raise TypeError("store must implement OunceStore (get, put, put_if_absent, delete)")
+        self.store: OunceStore = store if store is not None else MemoryStore()
+        self.idempotency = IdempotencyGuard(self.store)
+        self.deps = deps
+        if approver is not None and not callable(approver):
+            raise TypeError("approver must be a function of ApprovalRequest")
+        self.approver = approver
+        self.jobs = JobRunner(self.store)
+        self.handles = bool(handles)
+        if handles:
+            self._register_handle_tools()
+        self.http_host = http_host
+        self.readiness = tuple(readiness)
+        self.metrics: MetricsSink | None = None
+        if metrics:
+            self.metrics = MetricsSink()
+            self.add_trace_sink(self.metrics)
+        self._register_routes()
         self._middleware = OunceMiddleware(
             limits=self.limits,
             gate=ConcurrencyGate(self.limits.max_concurrency),
@@ -597,13 +783,103 @@ class OunceServer:
         )
         self.fastmcp.add_middleware(self._middleware)
 
+    @classmethod
+    def from_config(cls, name: str, path: str | Any, **overrides: Any) -> OunceServer:
+        """A server whose settings come from ``ouncemcp.toml`` at ``path``; keyword
+        arguments override the file. See ``ouncemcp.core.config``."""
+        from ouncemcp.core.config import load_config
+
+        return cls(name, **{**load_config(path), **overrides})
+
+    def _register_routes(self) -> None:
+        """``/healthz``, ``/readyz`` and, with ``metrics=True``, ``/metrics`` on HTTP."""
+        from starlette.requests import Request
+        from starlette.responses import JSONResponse, PlainTextResponse, Response
+
+        @self.fastmcp.custom_route("/healthz", methods=["GET"], include_in_schema=False)
+        async def healthz(request: Request) -> Response:
+            return JSONResponse({"status": "ok", "server": self.name})
+
+        @self.fastmcp.custom_route("/readyz", methods=["GET"], include_in_schema=False)
+        async def readyz(request: Request) -> Response:
+            failing = await self.check_ready()
+            body = {"status": "ready" if not failing else "not ready", "failing": failing}
+            return JSONResponse(body, status_code=200 if not failing else 503)
+
+        if self.metrics is not None:
+            metrics = self.metrics
+
+            @self.fastmcp.custom_route("/metrics", methods=["GET"], include_in_schema=False)
+            async def prometheus(request: Request) -> Response:
+                return PlainTextResponse(
+                    metrics.prometheus(), media_type="text/plain; version=0.0.4"
+                )
+
+    async def check_ready(self) -> list[str]:
+        """Names of failing readiness checks: the store, then each ``readiness`` check."""
+        failing: list[str] = []
+        try:
+            await self.store.put("health", "probe", {"ok": True}, ttl_s=10)
+            if await self.store.get("health", "probe") is None:
+                failing.append("store")
+        except Exception:  # noqa: BLE001 - any failure means not ready
+            failing.append("store")
+        for check in self.readiness:
+            name = getattr(check, "__name__", "check")
+            try:
+                ok = check()
+                if inspect.isawaitable(ok):
+                    ok = await ok
+            except Exception:  # noqa: BLE001
+                ok = False
+            if ok is not True:
+                failing.append(name)
+        return failing
+
+    @classmethod
+    def wrap(
+        cls,
+        mcp: FastMCP,
+        *,
+        effects: Mapping[str, Effect] | None = None,
+        **kwargs: Any,
+    ) -> OunceServer:
+        """Put an existing FastMCP server under OunceMCP without changing its tools.
+
+        Step 1 of a migration (DX-7). The wrapped server keeps its tools as they are and
+        gains token accounting (``check``, ``dev``, ``cost_report``), categorized and
+        redacted errors, request limits, traces and automatic discovery. Name each
+        tool's effect in ``effects``; a tool without one is treated as a read, so a
+        timeout is reported as ``transient`` instead of ``ambiguous_write``. Tools added
+        to ``mcp`` after wrapping are served but not measured until wrapped again.
+        ``mcp`` itself is changed (OunceMCP's middleware and transforms are added to
+        it), so wrap a server once and serve the returned ``OunceServer``. Then move
+        tools to ``@server.tool`` one at a time.
+        """
+        if not isinstance(mcp, FastMCP):
+            raise TypeError("wrap() takes a FastMCP server")
+        existing = _run_sync(mcp.list_tools())
+        server = cls(mcp.name, _wrap=mcp, **kwargs)
+        unknown = sorted(set(effects or {}) - {t.name for t in existing})
+        if unknown:
+            raise ValueError(f"effects names tools the server does not have: {', '.join(unknown)}")
+        for name, effect in (effects or {}).items():
+            if not isinstance(effect, Effect):
+                raise TypeError(f"effects['{name}'] must be an Effect")
+        server._wrapped_effects = dict(effects or {})
+        for tool in existing:
+            server._registered[tool.name] = tool
+        return server
+
     def add_trace_sink(self, sink: TraceSink) -> None:
         """Send traces to one more sink, creating a tracer if the server had none."""
         if self.tracer is None:
             self.tracer = Tracer(sink)
         else:
             self.tracer.sinks = (*self.tracer.sinks, sink)
-        self._middleware._tracer = self.tracer
+        middleware = getattr(self, "_middleware", None)
+        if middleware is not None:  # during __init__ the middleware picks it up itself
+            middleware._tracer = self.tracer
 
     def _principal_of(self, tool_name: str, fastmcp_ctx: FastMCPContext | None) -> str:
         """The caller a call counts against, resolved exactly as for cursors.
@@ -623,7 +899,7 @@ class OunceServer:
 
     def _effect_of(self, tool_name: str) -> Effect | None:
         spec = self._specs.get(tool_name)
-        return spec.effect if spec else None
+        return spec.effect if spec else self._wrapped_effects.get(tool_name)
 
     def _facts(self, tool_name: str) -> ToolFacts | None:
         """Declared facts for policy decisions (SEC-3): never the MCP annotations."""
@@ -648,6 +924,9 @@ class OunceServer:
         auth: AuthCheck | list[AuthCheck] | None = None,
         policy: Policy | Sequence[Policy] | None = None,
         replay_safe: bool = False,
+        idempotency: bool | Idempotency | None = None,
+        approval: ApprovalRule = "never",
+        preview: Preview | None = None,
     ) -> Any:
         """Register a tool. ``effect`` is required.
 
@@ -686,11 +965,78 @@ class OunceServer:
                 auth=auth,
                 policy=policy,
                 replay_safe=replay_safe,
+                idempotency=idempotency,
+                approval=approval,
+                preview=preview,
             )
             return handler
 
         if fn is not None:
             return decorator(fn)
+        return decorator
+
+    def resource(
+        self,
+        uri: str,
+        *,
+        name: str | None = None,
+        description: str | None = None,
+        mime_type: str | None = None,
+        max_tokens: int | None = None,
+        policy: Policy | Sequence[Policy] | None = None,
+        tags: set[str] | None = None,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """Register a resource (CAP-2). ``{placeholders}`` in ``uri`` make a template.
+
+        The handler returns ``str``, ``bytes``, a model, a dict or a list. Text over
+        ``max_tokens`` (default ``Budget.result_ceiling``) is cut with a note; JSON over
+        it is refused. ``policy`` works as for tools. See ``ouncemcp.core.primitives``.
+        """
+
+        def decorator(handler: Callable[..., Any]) -> Callable[..., Any]:
+            from ouncemcp.core.primitives import register_resource
+
+            register_resource(
+                self,
+                handler,
+                uri,
+                name=name,
+                description=description,
+                mime_type=mime_type,
+                max_tokens=max_tokens,
+                policy=policy,
+                tags=tags,
+            )
+            return handler
+
+        return decorator
+
+    def prompt(
+        self,
+        name: str | None = None,
+        *,
+        description: str | None = None,
+        max_tokens: int | None = None,
+        policy: Policy | Sequence[Policy] | None = None,
+        tags: set[str] | None = None,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """Register a prompt (CAP-2). Its arguments come from the handler's parameters;
+        prompts over ``max_tokens`` are refused. ``policy`` works as for tools."""
+
+        def decorator(handler: Callable[..., Any]) -> Callable[..., Any]:
+            from ouncemcp.core.primitives import register_prompt
+
+            register_prompt(
+                self,
+                handler,
+                name=name,
+                description=description,
+                max_tokens=max_tokens,
+                policy=policy,
+                tags=tags,
+            )
+            return handler
+
         return decorator
 
     async def _discovery_mode(self) -> DiscoveryMode:
@@ -712,6 +1058,9 @@ class OunceServer:
         auth: AuthCheck | list[AuthCheck] | None = None,
         policy: Policy | Sequence[Policy] | None = None,
         replay_safe: bool = False,
+        idempotency: bool | Idempotency | None = None,
+        approval: ApprovalRule = "never",
+        preview: Preview | None = None,
     ) -> None:
         tool_name = name or handler.__name__
         schema_mode = _tool_mode(output_schema, tool_name) or self.output_schemas
@@ -836,7 +1185,15 @@ class OunceServer:
             tags=frozenset(tags or ()),
             replay_safe=bool(replay_safe),
             handler=handler,
+            idempotency=as_idempotency(idempotency),
+            approval=check_rule(approval, tool_name),
+            preview=preview,
         )
+        if spec.idempotency is not None and effect is Effect.READ:
+            raise ValueError(
+                f"Tool '{tool_name}': idempotency is for write and destructive tools; reads "
+                "can already be repeated safely"
+            )
         policies = (*self.policies, *_as_policies(policy))
         checks: list[AuthCheck] = []
         if policies or self.audiences:
@@ -900,6 +1257,9 @@ class OunceServer:
                 _tenant_claims=self.tenant_claims,
                 _cache=self.cache,
                 _state=self.state,
+                _deps=self.deps,
+                _store=self.store,
+                _jobs=self.jobs if self.handles else None,
             )
             if ctx_param is not None:
                 call_kwargs[ctx_param] = tool_ctx
@@ -918,15 +1278,31 @@ class OunceServer:
                 )
 
             resolved = False
+            replayed = False
             notes = CALL_NOTES.get()
             try:
-                result = await run_with_policy(
-                    attempt,
-                    effect=effect,
-                    deadline_s=deadline_s,
-                    retry=self.retry,
-                    deadline_at=deadline_at,
-                )
+                if spec.approval not in (None, "never"):
+                    await self._approval_gate(spec, tool_ctx, fastmcp_ctx, call_kwargs)
+                if spec.idempotency is not None:
+                    rc = getattr(fastmcp_ctx, "request_context", None) if fastmcp_ctx else None
+                    claim = make_claim(
+                        tool=tool_name,
+                        principal=tool_ctx.principal,
+                        tenant=tool_ctx.identity.tenant,
+                        arguments=tool_ctx._arguments(),
+                        supplied=client_key(getattr(rc, "meta", None)),
+                    )
+                    result, replayed = await self.idempotency.run(
+                        claim, spec.idempotency, lambda: attempt(1), deadline_at=deadline_at
+                    )
+                else:
+                    result = await run_with_policy(
+                        attempt,
+                        effect=effect,
+                        deadline_s=deadline_s,
+                        retry=self.retry,
+                        deadline_at=deadline_at,
+                    )
                 if not isinstance(result, output_model):
                     result = output_model.model_validate(result)
             except InputRequired as exc:
@@ -980,6 +1356,7 @@ class OunceServer:
                     "ouncemcp": {
                         **shaped.meta(),
                         **({"resolved_by": "write_resolver"} if resolved else {}),
+                        **({"replayed": True} if replayed else {}),
                     }
                 },
             )
@@ -1025,6 +1402,102 @@ class OunceServer:
         )
         self._registered[tool_name] = registered
         self._decision = None
+
+    def _register_handle_tools(self) -> None:
+        @self.tool(name="handles.read", effect=Effect.READ)
+        async def read_handle(
+            handle: str, ctx: ToolContext, cursor: str | None = None, limit: int = 50
+        ) -> HandlePage:
+            """Page through a large result. Use it when a tool returns a handle; pass next_cursor to continue."""
+            tenant = ctx.identity.tenant
+            ref = ctx.verify_state(handle, HANDLE_KIND, request=binding(tenant))["id"]
+            items = await get_items(ctx.store, str(ref))
+            page = ctx.page(items, cursor=cursor, limit=max(1, min(limit, 200)))
+            return HandlePage(items=page.items, total=len(items), next_cursor=page.next_cursor)
+
+        @self.tool(name="jobs.get", effect=Effect.READ)
+        async def get_job(job: str, ctx: ToolContext) -> JobStatus:
+            """Check a background job. When done, read large results with handles.read."""
+            ref = ctx.verify_state(job, JOB_KIND, request=binding(ctx.identity.tenant))["id"]
+            record = await self.jobs.status(str(ref))
+            state = record.get("state", "interrupted")
+            error = record.get("error")
+            return JobStatus(
+                state=state,
+                result=record.get("result"),
+                handle=record.get("handle"),
+                items=record.get("items"),
+                error=error.get("message") if isinstance(error, dict) else None,
+                retry=(
+                    "The job stopped when its server restarted. Start it again."
+                    if state == "interrupted"
+                    else None
+                ),
+            )
+
+    async def _approval_gate(
+        self,
+        spec: ToolSpec,
+        ctx: ToolContext,
+        fastmcp_ctx: FastMCPContext | None,
+        call_kwargs: dict[str, Any],
+    ) -> None:
+        """Return when a person approved this exact call; raise otherwise (gate 4)."""
+        assert spec.approval is not None
+        arguments = ctx._arguments()
+        preview = spec.preview
+        summary = await summarize(
+            (lambda: preview(**call_kwargs)) if preview is not None else None,
+            spec.name,
+            spec.effect,
+            arguments,
+        )
+        request = ApprovalRequest(spec.name, spec.effect, arguments, ctx.identity, summary)
+        if not await needed(spec.approval, request):
+            return
+        can_ask = _client_can_elicit(fastmcp_ctx)
+        if fastmcp_ctx is not None and fastmcp_ctx._is_modern_protocol() and can_ask:
+            raw = getattr(fastmcp_ctx, "request_state", None)
+            responses = ctx.input_responses or {}
+            answer = responses.get(APPROVAL_KEY) if hasattr(responses, "get") else None
+            if raw:
+                data = ctx.verify_state(raw, "input_required", request=ctx._request_key())
+                if data.get("ouncemcp_approved") is True:
+                    ctx._approved = True
+                    return
+                if data.get("ouncemcp_approval") is True and answer is not None:
+                    await ctx.consume_state(raw, "input_required", request=ctx._request_key())
+                    if not accepted(answer):
+                        raise ApprovalDeclined()
+                    ctx._approved = True
+                    return
+            ctx.require_input(
+                {APPROVAL_KEY: confirmation(summary)}, state={"ouncemcp_approval": True}
+            )
+        if (
+            fastmcp_ctx is not None
+            and fastmcp_ctx.request_context is not None
+            and can_ask
+            and not fastmcp_ctx._is_modern_protocol()
+        ):
+            try:
+                result = await fastmcp_ctx.elicit(summary, response_type=bool)
+            except Exception:  # noqa: BLE001 - the client cannot ask; fall through
+                result = None
+            if result is not None:
+                if not elicited_yes(result):
+                    raise ApprovalDeclined()
+                ctx._approved = True
+                return
+        if self.approver is not None:
+            decision = self.approver(request)
+            if inspect.isawaitable(decision):
+                decision = await decision
+            if decision is True:
+                ctx._approved = True
+                return
+            raise ApprovalDeclined()
+        raise ApprovalUnavailable()
 
     async def _resolve_write(
         self,
@@ -1174,6 +1647,7 @@ class OunceServer:
         default (SEC-8). Binding another address needs ``allowed_hosts``.
         """
         if transport != "stdio":
+            kwargs.setdefault("host", self.http_host)
             kwargs = resolve_http_options(kwargs)
         if check_budget:
             report = asyncio.run(self.cost_report())
