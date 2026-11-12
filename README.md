@@ -2,7 +2,7 @@
 
 **Every token counts.** OunceMCP is a framework for building Model Context Protocol (MCP) servers and clients that are fast, low-noise, and safe for agents by default. It builds on [FastMCP](https://gofastmcp.com) and the official MCP Python SDK, and targets the MCP `2026-07-28` specification.
 
-> **Status: pre-alpha (M2 built, under review).** Everything in M1 plus safe writes (approvals and idempotency), results by reference and background jobs, resources and prompts, a migration path from FastMCP, the `audit` command, a client broker for many servers, a config file, health checks and metrics work and are tested. Host verification and the first official conformance run are still open; agent task suites and the public benchmark are M3. APIs will change. See the [roadmap](#roadmap), the [docs](docs/README.md) and the [M0 report](docs/m0-report.md).
+> **Status: pre-alpha (M2 complete).** Everything in M1 plus safe writes (approvals and idempotency), results by reference and background jobs, resources and prompts, a migration path from FastMCP, the `audit` command, a client broker for many servers, a config file, health checks and metrics work and are tested. The official MCP conformance suite passes in CI, and the examples are verified in Claude Desktop and Cursor ([compatibility](docs/compatibility.md)). Agent task suites and the public benchmark are M3. APIs will change. See the [roadmap](#roadmap), the [docs](docs/README.md) and the [M0 report](docs/m0-report.md).
 
 ## Why
 

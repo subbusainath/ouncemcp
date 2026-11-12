@@ -10,7 +10,7 @@ Project specification
 | Target protocol | MCP specification `2026-07-28`, with tested legacy compatibility |
 | Reference implementation | Python, built on FastMCP 4 and the official MCP Python SDK |
 | License (proposed) | Apache-2.0 |
-| Status | M0 done ([M0 report](m0-report.md)). M1: all automatable P0 work merged ([PR #13](https://github.com/subbusainath/ouncemcp/pull/13)); host verification, DX-8 user testing, the inventory pilot with real data and the first conformance run remain. M2 built on branch `claude/loving-shannon-gm4zxr` ([M2 report](m2-report.md)): exit criteria met except release gate 1 (conformance run). M3 and M4 not started. See sections 15.3 and 15.4 |
+| Status | M0 and M1 done: host verification passed in Claude Desktop and Cursor (12 November 2026, [compatibility matrix](compatibility.md)); DX-8 user testing and the inventory pilot with real data remain. M2 merged ([PR #14](https://github.com/subbusainath/ouncemcp/pull/14), [M2 report](m2-report.md)): exit criteria and release gates 1 to 5 met. M3 and M4 not started. See sections 15.3 and 15.4 |
 | Repository | [github.com/subbusainath/ouncemcp](https://github.com/subbusainath/ouncemcp) (private), default branch `main`, last merge `ebe47c1` (PR #13) |
 
 This specification turns two research investigations into a buildable plan. Protocol facts are cited to primary sources. Requirements, default limits, interfaces, and milestones are proposals and are marked as such; numeric defaults must be validated experimentally before being presented as recommendations to users.
@@ -646,7 +646,7 @@ Already fixed in M0 and kept as regression tests: wire-format counting (BUD-1), 
 
 ### 15.3 Implementation status and handoff
 
-This section is the starting point for continuing the work in another tool or session. `main` is at `ebe47c1` (PR #13, all of M1). Branch `claude/loving-shannon-gm4zxr` adds M2 on top, as one commit per step with proposals 0010 to 0017; it is not merged yet. Section 15.4 summarizes which milestones are complete and which are pending, and the [M2 report](m2-report.md) checks M2's exit criteria.
+This section is the starting point for continuing the work in another tool or session. `main` is at `a36e51c`: M1 ([PR #13](https://github.com/subbusainath/ouncemcp/pull/13)) and M2 ([PR #14](https://github.com/subbusainath/ouncemcp/pull/14)) are merged, with proposals 0010 to 0017 for M2. Host verification passed in Claude Desktop and Cursor on 12 November 2026. Section 15.4 summarizes which milestones are complete and which are pending, and the [M2 report](m2-report.md) checks M2's exit criteria.
 
 Read these first, in this order:
 
@@ -812,15 +812,15 @@ These were measured on Python 3.12.15, x86_64, 2 vCPU.
 
 #### Next tasks, in order
 
-1. **Review and merge** the M2 branch; each commit is one step (stdio policy, store and idempotency, safe writes, handles and jobs, resources and prompts, migration and audit, broker, operations, docs).
-2. **Conformance (gate 1):** read the first `Conformance` workflow run, fix `conformance/expected-failures.yml`, then make the job required.
-3. **Host verification (owner):** Claude Desktop, VS Code and the Claude mobile app (remote MCP over HTTPS), recorded in `docs/compatibility.md`; this also feeds the BUD-7 host study.
+1. **Conformance job:** make it required in CI (remove `continue-on-error`); its first run passed.
+2. **Record host versions** for Claude Desktop and Cursor in `docs/compatibility.md`.
+3. **Host verification follow-ups:** Claude Desktop and Cursor pass (owner, 12 November 2026). Record their versions, run VS Code and the Claude mobile app (remote MCP over HTTPS), and do the BUD-7 host study (which definition fields reach the model), all in `docs/compatibility.md`.
 4. **DX-8 and the inventory pilot** with real data, once people and credentials are available.
 5. **M3:** agent task suites (EVAL-3 to EVAL-7), DISC-6 recall in eval output, `bench`, the trace viewer (DX-5) and the published benchmark.
 
 #### Open risks
 
-- **Host verification:** the M0 exit criterion of checking real hosts (Claude Desktop and VS Code) is still open.
+- **Host verification:** Claude Desktop and Cursor pass on the owner's report, but their versions and the per-prompt details are not recorded yet, so a regression in a later host release would be hard to date.
 - **Large results:** for very large results, most of the shaping time is now spent converting the whole model to JSON (see next task 4).
 - **Cursor keys in production:** with no configured key, cursors use a random per-process key. That fails closed, but paging breaks after a restart and across replicas. Set `OUNCEMCP_CURSOR_KEYS` on every replica. When `ouncemcp dev` exists, consider failing at startup outside dev when no key is set.
 - **Caller identity:** until SEC-1, the cursor principal comes from the FastMCP access token or is `"anonymous"`. A server that authenticates in another way must pass `principal=`, or its callers share cursors and one concurrency limit.
@@ -844,13 +844,13 @@ These were measured on Python 3.12.15, x86_64, 2 vCPU.
 
 ### 15.4 Milestone status: completed and pending
 
-Status as of 11 November 2026. Everything through M1 is merged into `main` ([PR #13](https://github.com/subbusainath/ouncemcp/pull/13)). M2 is built on branch `claude/loving-shannon-gm4zxr` and not merged yet; the [M2 report](m2-report.md) checks its exit criteria and release gates. M0 requirement status is taken from the [M0 report](m0-report.md).
+Status as of 12 November 2026. M1 ([PR #13](https://github.com/subbusainath/ouncemcp/pull/13)) and M2 ([PR #14](https://github.com/subbusainath/ouncemcp/pull/14)) are merged into `main`; the [M2 report](m2-report.md) checks M2's exit criteria and release gates, and the [compatibility matrix](compatibility.md) records the host runs. M0 requirement status is taken from the [M0 report](m0-report.md).
 
 | Milestone | State | Summary |
 | --- | --- | --- |
-| **M0: Core spike** | **Complete**, except host verification (moved to M1) | Core, budgets, shaping, token counting, `check` and `context`, inventory example, overhead measured |
-| **M1: Framework 0.1** | **All automatable P0 work merged** | Open: host verification (owner), DX-8 user testing, the inventory pilot with real data, the first conformance run |
-| **M2: Framework 0.2** | **Built on the branch**; exit criteria met except release gate 1 | Store and idempotency, safe writes, handles and jobs, resources and prompts, migration adapter and guide, `audit`, client broker, `ouncemcp.toml`, health and metrics, description lints; ticketing, report and markitdown-mcp pilots |
+| **M0: Core spike** | **Complete**; host verification done in M1 (Claude Desktop, Cursor) | Core, budgets, shaping, token counting, `check` and `context`, inventory example, overhead measured |
+| **M1: Framework 0.1** | **Merged; host verification passed** | Open: DX-8 user testing and the inventory pilot with real data |
+| **M2: Framework 0.2** | **Complete** ([PR #14](https://github.com/subbusainath/ouncemcp/pull/14)); exit criteria and gates 1 to 5 met | Store and idempotency, safe writes, handles and jobs, resources and prompts, migration adapter and guide, `audit`, client broker, `ouncemcp.toml`, health and metrics, description lints; ticketing, report and markitdown-mcp pilots |
 | **M3: Eval and benchmark 0.5** | Not started | Agent task suites, `bench`, trace viewer, published benchmark, public launch |
 | **M4: 1.0** | Not started | Remaining P1 work, external security review, host matrix, stable API |
 | **Post-1.0** | Not started | TypeScript port, `code` discovery mode, more idempotency backends, `npx` audit wrapper |
@@ -881,7 +881,7 @@ Status as of 11 November 2026. Everything through M1 is merged into `main` ([PR 
 
 | Requirement | Done | Still open |
 | --- | --- | --- |
-| EVAL-1 and release gate 1 | Conformance target with tool, input-required, resource and prompt fixtures, tested in-process; CI workflow | The first run of the official suite, then fix the baseline and make the job required |
+| EVAL-1 | Conformance target and CI workflow; the first run passed (36 checks, 5 expected failures) | Make the job required (remove `continue-on-error`) |
 | SEC-9 (P1) | `check_url` for private, loopback, link-local and metadata targets | Connections pinned to the checked address; redirect checks |
 | AUD-10 | Terminal, JSON, Markdown | HTML (P2) |
 | DISC-6 (search recall) | `measure_recall`, `RecallCase` and `RecallReport` | Recall in eval output (M3) |
@@ -895,7 +895,7 @@ Status as of 11 November 2026. Everything through M1 is merged into `main` ([PR 
 
 | Item | Requirements | Notes |
 | --- | --- | --- |
-| Host verification | M0 and M1 exit criteria | Owner; steps in `docs/guides/host-verification.md`, results in `docs/compatibility.md` |
+| Host verification follow-ups | BUD-7 per-host data | Claude Desktop and Cursor pass; record versions, run VS Code and the Claude mobile app, and note which definition fields reach the model, in `docs/compatibility.md` |
 | Five-minute setup | DX-8 | Needs five testers; publishing to PyPI first simplifies the quickstart |
 | Read-only inventory pilot | Section 15.1 | Needs real data and credentials |
 
