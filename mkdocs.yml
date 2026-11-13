@@ -21,6 +21,7 @@ nav:
       - Connecting to many servers: guides/client-broker.md
       - Deploying over HTTP: guides/deploying-http.md
       - Testing a server: guides/testing.md
+      - Evaluating with task suites: guides/evaluating.md
       - Host verification: guides/host-verification.md
   - Compatibility: compatibility.md
   - Error reference:
@@ -64,3 +65,5 @@ nav:
           - 0015 Migration and audit: proposals/0015-migration-and-audit.md
           - 0016 Client broker: proposals/0016-client-broker.md
           - 0017 Operations: proposals/0017-operations.md
+          - 0018 Trace viewer: proposals/0018-trace-viewer.md
+          - 0019 Eval kit: proposals/0019-eval-kit.md

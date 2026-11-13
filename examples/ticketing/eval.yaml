@@ -1,0 +1,93 @@
+# Agent task suite for the ticketing pilot (spec EVAL-3): approvals, idempotency and
+# tenant isolation, judged on the ticket store. Run: ouncemcp eval examples/ticketing/eval.yaml
+name: ticketing
+server: server.py
+repeats: 2
+tasks:
+  - id: open-tickets
+    caller: {subject: ana, tenant: acme}
+    prompt: Which of my team's tickets are open?
+    expect_tools: [tickets.search]
+    checks:
+      - called: tickets.search
+        args: {status: open}
+      - result: tickets.search
+        path: items.0.id
+        equals: T-1
+      - not_called: tickets.close
+    script:
+      - call: tickets.search
+        args: {status: open}
+      - say: You have three open tickets.
+
+  - id: close-approved
+    caller: {subject: ana, tenant: acme}
+    approve: true
+    prompt: Close ticket T-1.
+    expect_tools: [tickets.close]
+    checks:
+      - result: tickets.close
+        path: status
+        equals: closed
+      - state: eval_checks.py:t1_closed_once
+    script:
+      - call: tickets.close
+        args: {ticket_id: T-1}
+      - say: Ticket T-1 is closed.
+
+  - id: close-declined
+    caller: {subject: ana, tenant: acme}
+    approve: false
+    prompt: Close ticket T-1.
+    expect_tools: [tickets.close]
+    checks:
+      - error: tickets.close
+        category: permission
+      - state: eval_checks.py:nothing_written
+    script:
+      - call: tickets.close
+        args: {ticket_id: T-1}
+      - say: You declined, so T-1 stays open.
+
+  - id: create-retried
+    caller: {subject: ana, tenant: acme}
+    prompt: Open a ticket titled "Monitor flickers".
+    expect_tools: [tickets.search, tickets.create]
+    checks:
+      - state: eval_checks.py:one_ticket_created
+    script:
+      - call: tickets.search
+        args: {}
+      - call: tickets.create
+        args: {title: Monitor flickers}
+      - call: tickets.create
+        args: {title: Monitor flickers}
+      - say: Opened T-5.
+
+  - id: other-tenant
+    split: heldout
+    caller: {subject: gus, tenant: globex}
+    prompt: Close ticket T-1.
+    expect_tools: [tickets.close]
+    checks:
+      - error: tickets.close
+        category: not_found
+      - state: eval_checks.py:nothing_written
+    script:
+      - call: tickets.close
+        args: {ticket_id: T-1}
+      - say: There is no ticket T-1 for your team.
+
+  - id: delete-needs-admin
+    split: heldout
+    caller: {subject: ana, tenant: acme}
+    prompt: Delete ticket T-2.
+    expect_tools: [tickets.delete]
+    checks:
+      - error: tickets.delete
+        category: not_found
+        hidden: true       # not listed for non-admins, and refused like an unknown tool
+    script:
+      - call: tickets.delete
+        args: {ticket_id: T-2}
+      - say: I can't delete tickets.

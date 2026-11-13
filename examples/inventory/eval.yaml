@@ -1,0 +1,93 @@
+# Agent task suite for the inventory example (spec EVAL-3).
+# Run: ouncemcp eval examples/inventory/eval.yaml
+name: inventory
+server: server.py
+repeats: 2
+tasks:
+  - id: running-vms
+    prompt: List running VMs in ap-south-1.
+    expect_tools: [inventory.search]
+    checks:
+      - called: inventory.search
+        args: {region: ap-south-1, kind: vm, status: running}
+      - result: inventory.search
+        path: total
+        equals: 12
+      - result: inventory.search
+        path: items.0.id
+        equals: vm-00040
+    script:
+      - call: inventory.search
+        args: {region: ap-south-1, kind: vm, status: running}
+      - say: There are 12 running VMs in ap-south-1.
+
+  - id: vm-details
+    prompt: Show full details for the first running VM in ap-south-1.
+    expect_tools: [inventory.search, inventory.get]
+    checks:
+      - called: inventory.get
+        args: {id: vm-00040}
+      - result: inventory.get
+        path: region
+        equals: ap-south-1
+    script:
+      - call: inventory.search
+        args: {region: ap-south-1, kind: vm, status: running, limit: 1}
+      - call: inventory.get
+        args: {id: "{{last.inventory.search.items.0.id}}", response_format: detailed}
+      - say: Here are the details.
+
+  - id: page-databases
+    prompt: Page through all databases in us-east-1.
+    expect_tools: [inventory.search]
+    checks:
+      - state: eval_checks.py:every_database_once
+    script:
+      - call: inventory.search
+        args: {region: us-east-1, kind: database, limit: 5}
+        page: next_cursor
+      - say: There are 20 databases in us-east-1.
+
+  - id: unknown-id
+    prompt: Get resource vm-99999.
+    expect_tools: [inventory.get]
+    checks:
+      - error: inventory.get
+        category: not_found
+    script:
+      - call: inventory.get
+        args: {id: vm-99999}
+      - say: There is no resource vm-99999.
+
+  - id: degraded-load-balancers
+    split: heldout
+    prompt: Which load balancers are degraded in eu-west-1?
+    expect_tools: [inventory.search]
+    checks:
+      - called: inventory.search
+        args: {region: eu-west-1, kind: load_balancer, status: degraded}
+      - state: eval_checks.py:degraded_lbs_found
+    script:
+      - call: inventory.search
+        args: {region: eu-west-1, kind: load_balancer, status: degraded}
+      - say: Five load balancers are degraded in eu-west-1.
+
+  - id: stopped-buckets
+    split: heldout
+    prompt: How many buckets are stopped in ap-southeast-1?
+    expect_tools: [inventory.search]
+    checks:
+      - result: inventory.search
+        path: total
+        equals: 3
+    script:
+      - call: inventory.search
+        args: {region: ap-southeast-1, kind: bucket, status: stopped}
+      - say: Three buckets are stopped in ap-southeast-1.
+
+# Search recall (DISC-6): would search mode find the tool an agent needs?
+recall:
+  - query: list virtual machines in a region
+    expect: [inventory.search]
+  - query: full details and config of one resource
+    expect: [inventory.get]

@@ -11,7 +11,7 @@ from typing import Annotated, Literal
 from data import BY_ID, RESOURCES
 from pydantic import BaseModel, Field
 
-from ouncemcp import Cursor, Detail, Effect, OunceServer, Paginated, ToolContext
+from ouncemcp import Cursor, Detail, Effect, NotFound, OunceServer, Paginated, ToolContext
 
 server = OunceServer(
     "inventory",
@@ -85,7 +85,7 @@ async def get(id: str = Field(description="Resource id from inventory.search")) 
     """Get one resource. Use response_format=detailed for config and metrics."""
     row = BY_ID.get(id)
     if row is None:
-        raise ValueError(f"No resource with id '{id}'. Use inventory.search to find ids.")
+        raise NotFound(f"No resource with id '{id}'.", hint="Use inventory.search to find ids.")
     return ResourceDetail(**row)
 
 

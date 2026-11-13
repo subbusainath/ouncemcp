@@ -83,7 +83,8 @@ What you get:
 - **Migration and audit:** `OunceServer.wrap(existing_fastmcp_server)` adds all of the above without touching its tools, and `ouncemcp audit <url | file | -- command>` measures any MCP server ([migration guide](docs/guides/migrating-from-fastmcp.md)).
 - **Many servers:** `ouncemcp.client.Broker` connects a host to many servers as one catalog, with namespaced tools, cross-server search, schema checks, deadlines, failure isolation, and no cross-server authority from server output ([broker](docs/guides/client-broker.md)).
 - **Operations:** `OunceServer.from_config(name, "ouncemcp.toml")`, `/healthz`, `/readyz` and, with `metrics=True`, Prometheus `/metrics` ([deploying](docs/guides/deploying-http.md)).
-- **Traces:** `OunceServer(trace=MemorySink())` records each call's result tokens, latency, retries and outcome, redacted by default ([proposal 0009](docs/proposals/0009-traces.md)).
+- **Traces:** `OunceServer(trace=MemorySink())` records each call's result tokens, latency, retries and outcome, redacted by default ([proposal 0009](docs/proposals/0009-traces.md)). `ouncemcp trace calls.jsonl` writes an HTML report and `OTelSink()` exports spans to OpenTelemetry ([proposal 0018](docs/proposals/0018-trace-viewer.md)).
+- **Task suites:** `ouncemcp eval suite.yaml` runs YAML tasks against a server, judges outcomes on the server, and reports success, tool choice, tokens, latency and regressions against a baseline ([proposal 0019](docs/proposals/0019-eval-kit.md)).
 - **Composite tools:** `ctx.gather(...)` runs several upstream calls in one tool call. The example `inventory.cost_review` returns 651 tokens in 1 call where paging `inventory.search` takes 9,896 tokens over 8 calls.
 - **Testing:** `ouncemcp.testing.as_caller(...)` runs code as a verified caller, and `ouncemcp.eval.run_security_suite(server, cases)` probes for cross-tenant leaks, guessed names, cursor and handle reuse, replay, token passthrough and SSRF.
 - **Budget checks:** `ouncemcp check server.py` counts the tokens of every tool definition as the host receives it, and fails CI when a tool goes over budget or a lint error is found. It also reports which discovery mode the server will use and why. Every lint and error links to a page explaining it.
@@ -96,7 +97,7 @@ ouncemcp dev examples/inventory/server.py      # hot reload, live per-call token
 
 Counts use `o200k_base` by default. Choose another tiktoken encoding with `OunceServer(tokenizer="cl100k_base")` or `ouncemcp check --tokenizer cl100k_base`, or pass your own counting function with `tokenizer=fn, tokenizer_name="my-tokenizer-v1"`. Every report names the tokenizer it used ([proposal 0004](docs/proposals/0004-pluggable-tokenizer.md)).
 
-`ouncemcp audit` is the optional command for measuring any server. Planned commands (`eval`, `bench`, `trace`) report the milestone they ship in.
+`ouncemcp audit` is the optional command for measuring any server. `ouncemcp eval` and `ouncemcp trace` read task suites and traces. `bench` is planned for M3.
 
 ## M0 results
 
@@ -124,8 +125,8 @@ src/ouncemcp/
   execution/   deadlines, retries, limits, middleware, store, idempotency, approvals,
                handles and jobs
   trace/       per-call traces, redaction and metrics
-  eval/        conformance target and security test catalog
-  cli/         init, dev, check, context, audit (eval, bench, trace planned)
+  eval/        conformance target, security test catalog and agent task suites
+  cli/         init, dev, check, context, audit, eval, trace (bench planned)
   client/      reference client broker
   audit/       optional audit command
   testing.py   as_caller and make_token for tests

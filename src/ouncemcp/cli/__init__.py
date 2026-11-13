@@ -22,12 +22,12 @@ COMMANDS: dict[str, tuple[str, str]] = {
     "dev": ("Run with hot reload and a live budget summary", "M1"),
     "check": ("Check tool definition sizes against the budget", "M0"),
     "context": ("Show exactly what the model receives for a tool", "M0"),
-    "eval": ("Run security and agent task suites", "M3"),
+    "eval": ("Run an agent task suite and report success, tools, tokens", "M3"),
     "bench": ("Run the reproducible benchmark harness", "M3"),
     "trace": ("Open the trace and context viewer", "M3"),
     "audit": ("Optional: measure any MCP server and recommend fixes", "M2"),
 }
-IMPLEMENTED = {"init", "dev", "check", "context", "audit", "trace"}
+IMPLEMENTED = {"init", "dev", "check", "context", "audit", "trace", "eval"}
 
 
 def _add_tokenizer_option(cmd: argparse.ArgumentParser) -> None:
@@ -112,6 +112,26 @@ def build_parser() -> argparse.ArgumentParser:
                 "exactly as the model receives it",
             )
             _add_tokenizer_option(cmd)
+        elif name == "eval":
+            cmd.add_argument("suite", help="a task suite in YAML")
+            cmd.add_argument(
+                "--model",
+                default="replay",
+                choices=["replay"],
+                help="replay plays each task's script (no API key, deterministic)",
+            )
+            cmd.add_argument("--repeats", type=int, help="runs per task (default: the suite's)")
+            cmd.add_argument("--split", choices=["all", "train", "heldout"], default="all")
+            cmd.add_argument("--server", help="run against this server instead of the suite's")
+            _add_tokenizer_option(cmd)
+            cmd.add_argument("--json", action="store_true", help="print the report as JSON")
+            cmd.add_argument("--output", metavar="PATH", help="also write the JSON report here")
+            cmd.add_argument("--html", metavar="PATH", help="also write an HTML report here")
+            cmd.add_argument("--compare", metavar="OLD.json", help="list regressions against it")
+            cmd.add_argument("--fail-on-regression", action="store_true")
+            cmd.add_argument(
+                "--allow-failures", action="store_true", help="exit 0 even if a task fails"
+            )
         elif name == "trace":
             cmd.add_argument("file", help="a JSONL trace file written by JsonlSink")
             cmd.add_argument(
@@ -325,6 +345,39 @@ def _audit(ns: argparse.Namespace) -> int:
     return 1 if failed else 0
 
 
+def _eval(ns: argparse.Namespace) -> int:
+    from ouncemcp.eval.agent import SuiteError, load_suite, run_suite
+    from ouncemcp.eval.agent.report import compare, load_report
+
+    try:
+        suite = load_suite(ns.suite)
+    except SuiteError as exc:
+        print(f"ouncemcp eval: {exc}", file=sys.stderr)
+        return 2
+    report = asyncio.run(
+        run_suite(
+            suite, repeats=ns.repeats, split=ns.split, server=ns.server, tokenizer=ns.tokenizer
+        )
+    )
+    data = report.to_dict()
+    regressions = compare(load_report(ns.compare), data) if ns.compare else []
+    data["regressions"] = regressions
+    if ns.output:
+        Path(ns.output).write_text(json.dumps(data, indent=2, default=str))
+    if ns.html:
+        Path(ns.html).write_text(report.render_html(), encoding="utf-8")
+    if ns.json:
+        print(json.dumps(data, indent=2, default=str))
+    else:
+        print(report.render_text())
+        for line in regressions:
+            print(f"REGRESSION {line}")
+    failed = (not report.passed and not ns.allow_failures) or (
+        ns.fail_on_regression and bool(regressions)
+    )
+    return 1 if failed else 0
+
+
 def _trace(ns: argparse.Namespace) -> int:
     from ouncemcp.trace.report import load_traces, render_html, render_text, summarize
 
@@ -379,6 +432,8 @@ def main(argv: list[str] | None = None) -> int:
         return _audit(ns)
     if ns.command == "trace":
         return _trace(ns)
+    if ns.command == "eval":
+        return _eval(ns)
     if ns.command == "dev":
         from ouncemcp.cli import dev
 
