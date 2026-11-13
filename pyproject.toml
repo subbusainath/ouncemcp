@@ -31,10 +31,20 @@ dependencies = [
 
 [project.optional-dependencies]
 client = []
-eval = []
+eval = ["pyyaml>=6"]
+otel = ["opentelemetry-api>=1.28"]
 ui = []
 docs = ["mkdocs==1.6.1"]
-dev = ["pytest>=8", "ruff>=0.6", "anyio>=4", "hypothesis>=6.100", "mypy>=1.10"]
+dev = [
+  "pytest>=8",
+  "ruff>=0.6",
+  "anyio>=4",
+  "hypothesis>=6.100",
+  "mypy>=1.10",
+  "pyyaml>=6",
+  "types-PyYAML",
+  "opentelemetry-sdk>=1.28",
+]
 
 [project.scripts]
 ouncemcp = "ouncemcp.cli:main"

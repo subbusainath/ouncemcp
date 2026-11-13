@@ -57,6 +57,8 @@ class CallTrace:
     principal: str | None = None
     parent: str | None = None
     resolved_by: str | None = None
+    replayed: bool = False
+    truncation: Mapping[str, Any] | None = None
     arguments: Mapping[str, Any] | None = None
     trace_id: str = field(default_factory=lambda: secrets.token_hex(8))
 
