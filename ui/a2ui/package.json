@@ -1,0 +1,14 @@
+{
+  "name": "ouncemcp-a2ui-render",
+  "private": true,
+  "type": "module",
+  "description": "Builds the offline A2UI renderer embedded in OunceMCP HTML reports.",
+  "dependencies": {
+    "@a2ui/lit": "0.15.0",
+    "@a2ui/web_core": "0.15.0",
+    "lit": "3.3.3"
+  },
+  "devDependencies": {
+    "esbuild": "0.24.2"
+  }
+}

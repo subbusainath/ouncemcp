@@ -9,7 +9,6 @@ between the train and held-out splits shows descriptions tuned to the training t
 
 from __future__ import annotations
 
-import html
 import json
 import platform
 import statistics
@@ -214,34 +213,91 @@ class EvalReport:
                 lines.append(f"  {task_id} ({t['split']}): {t['success_rate']:.0%} success; {why}")
         return "\n".join(lines)
 
-    def render_html(self) -> str:
+    def a2ui_surface(self) -> Any:
+        """The report as an A2UI surface (proposal 0020)."""
+        from ouncemcp.ui.a2ui import Surface, bind
+
         data = self.to_dict()
         h = data["header"]
-        rows = "".join(
-            f"<tr><td>{html.escape(k)}</td><td>{html.escape(v['split'])}</td>"
-            f"<td class='num'>{v['success_rate']:.0%}</td><td class='num'>{v['calls_per_task']}</td>"
-            f"<td class='num'>{v['tokens_per_task']}</td><td>"
-            + html.escape(", ".join(f"{c} x{n}" for c, n in v["failed_checks"].items()))
-            + "</td></tr>"
-            for k, v in data["tasks"].items()
+
+        def pct(value: float | None) -> str:
+            return "-" if value is None else f"{value:.0%}"
+
+        splits = [
+            {
+                "name": {"all": "All tasks", "train": "Train", "heldout": "Held out"}[name],
+                "success": f"{pct(s['success_rate'])} success over {s['runs']} runs",
+                "choice": f"Tool selection {pct(s['tool_selection_accuracy'])} · "
+                f"arguments valid {pct(s['argument_validity'])}",
+                "cost": f"{s['calls_per_task']} calls · {s['turns_per_task']} turns · "
+                f"{s['tokens_per_task']:,.0f} tokens per task ({s['definition_tokens']:,.0f} in definitions)",
+                "latency": f"Latency p50 {s['latency_ms_p50']} ms, p95 {s['latency_ms_p95']} ms"
+                + (
+                    f" · errors {', '.join(f'{k} {v}' for k, v in s['errors'].items())}"
+                    if s["errors"]
+                    else ""
+                ),
+            }
+            for name, s in data["splits"].items()
+        ]
+        tasks = [
+            {
+                "id": task_id,
+                "result": f"{'passed' if t['success_rate'] == 1 else 'failed'} · {pct(t['success_rate'])}",
+                "facts": f"{t['split']} · {t['calls_per_task']} calls · {t['turns_per_task']} turns · "
+                f"{t['tokens_per_task']:,.0f} tokens",
+                "failed": "; ".join(f"{c} x{n}" for c, n in t["failed_checks"].items()),
+            }
+            for task_id, t in data["tasks"].items()
+        ]
+        notes = []
+        if data["train_heldout_gap"] is not None:
+            notes.append(f"Train minus held-out success: {data['train_heldout_gap']:+.0%}.")
+        if self.recall:
+            notes.append(f"Search recall: {self.recall.get('mean_recall', self.recall)}.")
+        header = [{"key": k, "value": "-" if v is None else str(v)} for k, v in h.items()]
+
+        ui = Surface("eval", theme={"primaryColor": "#0969da", "agentDisplayName": "OunceMCP"})
+        ui.data = {"splits": splits, "tasks": tasks, "header": header}
+        ui.text("title", f"Eval: {self.suite}", "h1")
+        ui.text(
+            "about",
+            f"Model {self.model} · {h['host']} · target {self.target} · commit "
+            f"{h['server_commit'] or '?'} · {h['time']}",
+            "caption",
         )
-        head = "".join(
-            f"<tr><th>{html.escape(k)}</th><td>{html.escape(str(v))}</td></tr>"
-            for k, v in h.items()
-        )
-        return f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"><title>Eval {html.escape(self.suite)}</title>
-<style>:root{{--bg:#fff;--fg:#1f2328;--line:#d1d9e0;--card:#f6f8fa}}
-@media (prefers-color-scheme:dark){{:root{{--bg:#0d1117;--fg:#e6edf3;--line:#30363d;--card:#151b23}}}}
-body{{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 -apple-system,Segoe UI,sans-serif}}
-main{{max-width:1100px;margin:0 auto;padding:24px 16px}}.scroll{{overflow-x:auto;border:1px solid var(--line);border-radius:8px;margin:12px 0}}
-table{{border-collapse:collapse;width:100%}}th,td{{text-align:left;padding:6px 10px;border-bottom:1px solid var(--line)}}
-th{{background:var(--card)}}.num{{text-align:right;font-variant-numeric:tabular-nums}}</style></head>
-<body><main><h1>Eval: {html.escape(self.suite)}</h1>
-<div class="scroll"><table>{head}</table></div>
-<pre>{html.escape(self.render_text())}</pre>
-<div class="scroll"><table><tr><th>Task</th><th>Split</th><th class="num">Success</th><th class="num">Calls</th>
-<th class="num">Tokens</th><th>Failed checks</th></tr>{rows}</table></div></main></body></html>"""
+        verdict = "All runs passed." if self.passed else "Some runs failed."
+        ui.text("verdict", " ".join([verdict, *notes]))
+        ui.text("s_name", bind("name"), "h3")
+        for key in ("success", "choice", "cost", "latency"):
+            ui.text(f"s_{key}", bind(key), "body" if key == "success" else "caption")
+        ui.column("s_col", ["s_name", "s_success", "s_choice", "s_cost", "s_latency"])
+        ui.card("s_card", "s_col")
+        ui.repeat("splits", "s_card", "/splits")
+        ui.text("k_id", bind("id"), "h4", weight=1)
+        ui.text("k_result", bind("result"))
+        ui.row("k_head", ["k_id", "k_result"])
+        ui.text("k_facts", bind("facts"), "caption")
+        ui.text("k_failed", bind("failed"), "caption")
+        ui.column("k_col", ["k_head", "k_facts", "k_failed"])
+        ui.card("k_card", "k_col")
+        ui.repeat("tasks", "k_card", "/tasks")
+        ui.text("h_key", bind("key"), "caption", weight=1)
+        ui.text("h_value", bind("value"), weight=3)
+        ui.row("h_row", ["h_key", "h_value"])
+        ui.repeat("header", "h_row", "/header")
+        ui.tabs("tabs", [("Results", "splits"), ("Tasks", "tasks"), ("Environment", "header")])
+        ui.column("root", ["title", "about", "verdict", "tabs"])
+        return ui
+
+    def a2ui_messages(self) -> list[dict[str, Any]]:
+        return self.a2ui_surface().messages()  # type: ignore[no-any-return]
+
+    def render_html(self) -> str:
+        """One HTML file that renders the report with the bundled A2UI renderer."""
+        from ouncemcp.ui.a2ui import render_page
+
+        return render_page(f"Eval {self.suite}", self.a2ui_messages(), fallback=self.render_text())
 
 
 def compare(

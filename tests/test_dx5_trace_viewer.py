@@ -89,7 +89,7 @@ async def test_trace_report_from_jsonl(tmp_path: Path, capsys):
     page = render_html(traces, title="t</script><b>x")
     assert page.startswith("<!DOCTYPE html>")
     assert "<b>x" not in page and "t&lt;/script&gt;" in page
-    assert '"tool": "rows.fail"' in page
+    assert '"tool":"rows.fail"' in page
 
 
 def test_trace_command(tmp_path: Path, capsys):

@@ -1,23 +1,25 @@
 """Trace reports for ``ouncemcp trace`` (spec DX-5, proposal 0018).
 
-Reads traces written by ``JsonlSink`` and renders them as a terminal summary or as one
-self-contained HTML file: summary figures, a per-tool table (calls, errors by
-category, truncations, result tokens, latency) and every call with its outcome,
-tokens against budget, attempts, truncation decisions and error code. The HTML has no
-external resources, so it opens offline and can be attached to an issue.
+Reads traces written by ``JsonlSink`` and renders them as a terminal summary or as an
+A2UI surface (proposal 0020): summary figures, each tool's calls, errors by category,
+truncations, result tokens and latency, and every call with its outcome, tokens
+against budget, attempts, truncation decisions and error code. ``render_html`` puts
+the surface in one HTML file that opens offline; ``a2ui_messages`` gives the A2UI
+messages for any host that renders A2UI.
 """
 
 from __future__ import annotations
 
 import dataclasses
-import html
 import json
+import time
 from collections.abc import Iterable, Sequence
 from pathlib import Path
 from typing import Any
 
 from ouncemcp.trace import CallTrace
 from ouncemcp.trace.metrics import MetricsSink
+from ouncemcp.ui.a2ui import Surface, bind, render_page
 
 _FIELDS = {f.name for f in dataclasses.fields(CallTrace)}
 
@@ -74,114 +76,155 @@ def render_text(traces: Sequence[CallTrace]) -> str:
     return "\n".join(lines)
 
 
-_STYLE = """
-:root { --bg:#ffffff; --fg:#1f2328; --muted:#59636e; --line:#d1d9e0; --card:#f6f8fa;
-  --ok:#1a7f37; --err:#cf222e; --warn:#9a6700; --accent:#0969da; }
-@media (prefers-color-scheme: dark) { :root { --bg:#0d1117; --fg:#e6edf3; --muted:#9198a1;
-  --line:#30363d; --card:#151b23; --ok:#3fb950; --err:#f85149; --warn:#d29922; --accent:#4493f8; } }
-* { box-sizing: border-box; }
-body { margin:0; background:var(--bg); color:var(--fg);
-  font:14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-main { max-width:1200px; margin:0 auto; padding:24px 16px 48px; }
-h1 { font-size:20px; margin:0 0 4px; } h2 { font-size:16px; margin:32px 0 8px; }
-.muted { color:var(--muted); }
-.cards { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin-top:16px; }
-.card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:12px; }
-.card b { display:block; font-size:22px; font-variant-numeric:tabular-nums; }
-.scroll { overflow-x:auto; border:1px solid var(--line); border-radius:8px; }
-table { border-collapse:collapse; width:100%; font-variant-numeric:tabular-nums; }
-th, td { text-align:left; padding:6px 10px; border-bottom:1px solid var(--line); white-space:nowrap; vertical-align:top; }
-th { background:var(--card); font-weight:600; position:sticky; top:0; }
-td.num, th.num { text-align:right; }
-tr:last-child td { border-bottom:none; }
-.ok { color:var(--ok); } .error { color:var(--err); } .warn { color:var(--warn); }
-.controls { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0; }
-select, input { font:inherit; color:var(--fg); background:var(--bg); border:1px solid var(--line);
-  border-radius:6px; padding:4px 8px; }
-details summary { cursor:pointer; color:var(--accent); }
-code { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px; }
-"""
+MAX_CALLS = 2000  # calls listed in a report; the summary always covers every call
 
-_SCRIPT = """
-const data = JSON.parse(document.getElementById('trace-data').textContent);
-const body = document.getElementById('calls');
-const toolSel = document.getElementById('tool'), outSel = document.getElementById('outcome');
-const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-for (const t of [...new Set(data.map(d => d.tool))].sort()) toolSel.add(new Option(t, t));
-function render() {
-  const tool = toolSel.value, outcome = outSel.value;
-  const rows = data.filter(d => (!tool || d.tool === tool) && (!outcome || d.outcome === outcome));
-  body.innerHTML = rows.map(d => {
-    const when = new Date(d.started_at * 1000).toISOString().replace('T', ' ').slice(0, 23);
-    const budget = d.budget ? ` / ${d.budget}` : '';
-    const notes = [];
-    if (d.truncated) notes.push('<span class="warn">truncated</span>');
-    if (d.replayed) notes.push('replayed');
-    if (d.resolved_by) notes.push('resolved by ' + esc(d.resolved_by));
-    if (d.parent) notes.push('via ' + esc(d.parent));
-    const detail = d.truncation ? `<details><summary>what was removed</summary><code>${esc(JSON.stringify(d.truncation))}</code></details>` : '';
-    const err = d.error_code ? `${esc(d.error_category)}: ${esc(d.error_code)}` : '';
-    return `<tr><td>${when}</td><td>${esc(d.tool)}</td><td class="${d.outcome === 'error' ? 'error' : 'ok'}">${esc(d.outcome)}</td>
-      <td class="num">${d.result_tokens}${budget}</td><td class="num">${d.duration_ms.toFixed(1)}</td>
-      <td class="num">${d.attempts}</td><td>${err}</td><td>${notes.join(', ')}${detail}</td></tr>`;
-  }).join('');
-  document.getElementById('shown').textContent = `${rows.length} of ${data.length} calls`;
-}
-toolSel.onchange = outSel.onchange = render; render();
-"""
+
+def _call_row(t: CallTrace) -> dict[str, str]:
+    when = (
+        time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(t.started_at))
+        + f".{int(t.started_at % 1 * 1000):03d}"
+    )
+    budget = f" / {t.budget:,}" if t.budget else ""
+    facts = [when, f"{t.result_tokens:,}{budget} tokens", f"{t.duration_ms:.1f} ms"]
+    if t.attempts != 1:
+        facts.append(f"{t.attempts} attempts")
+    notes = []
+    if t.replayed:
+        notes.append("replayed")
+    if t.resolved_by:
+        notes.append(f"resolved by {t.resolved_by}")
+    if t.parent:
+        notes.append(f"via {t.parent}")
+    removed = ""
+    if t.truncated:
+        removed = "Truncated: " + (
+            json.dumps(t.truncation, separators=(", ", ": "), default=str)
+            if t.truncation
+            else "yes"
+        )
+    return {
+        "tool": t.tool,
+        "outcome": t.outcome,
+        "facts": " · ".join(facts),
+        "error": f"{t.error_category}: {t.error_code}" if t.error_code else "",
+        "notes": ", ".join(notes),
+        "removed": removed,
+    }
+
+
+def _tool_row(tool: str, m: dict[str, Any]) -> dict[str, Any]:
+    errors = ", ".join(f"{k} {v}" for k, v in sorted(m["errors"].items())) or "no errors"
+    return {
+        "tool": tool,
+        "counts": f"{m['calls']:,} calls · {errors} · {m['truncated']:,} truncated",
+        "tokens": f"Result tokens avg {m['result_tokens_avg']:,.0f}, max {m['result_tokens_max']:,}",
+        "latency": f"Latency p50 {m['latency_ms_p50']:.1f} ms, p95 {m['latency_ms_p95']:.1f} ms",
+    }
+
+
+def _stat(surface: Surface, key: str, label: str, value: str) -> str:
+    surface.text(f"stat_{key}_label", label, "caption")
+    surface.text(f"stat_{key}_value", value, "h2")
+    surface.column(f"stat_{key}_col", [f"stat_{key}_label", f"stat_{key}_value"])
+    return surface.card(f"stat_{key}", f"stat_{key}_col", weight=1)
+
+
+def a2ui_surface(
+    traces: Sequence[CallTrace], *, title: str = "OunceMCP trace"
+) -> tuple[Surface, dict[str, dict[str, Any]]]:
+    """The trace report as an A2UI surface, and the views its buttons switch between."""
+    s = summarize(traces)
+    shown = list(traces)[-MAX_CALLS:]
+    rows = [_call_row(t) for t in shown]
+    tokenizers = ", ".join(s["tokenizers"]) or "an unknown tokenizer"
+    limit = f" The last {MAX_CALLS:,} calls are listed." if len(traces) > MAX_CALLS else ""
+
+    def view(label: str, keep: Any) -> dict[str, Any]:
+        picked = [r for t, r in zip(shown, rows, strict=True) if keep(t)]
+        return {"/calls": picked, "/calls_label": f"{label}: {len(picked):,} calls"}
+
+    views = {
+        "all": view("All calls", lambda t: True),
+        "errors": view("Errors", lambda t: t.outcome == "error"),
+        "truncated": view("Truncated", lambda t: t.truncated),
+        "replayed": view("Replayed", lambda t: t.replayed),
+    }
+    for tool in s["tools"]:
+        views[f"tool:{tool}"] = view(tool, lambda t, tool=tool: t.tool == tool)
+
+    ui = Surface("trace", theme={"primaryColor": "#0969da", "agentDisplayName": "OunceMCP"})
+    ui.data = {
+        "tools": [_tool_row(tool, m) for tool, m in s["tools"].items()],
+        **views["all"],
+    }
+    ui.text("title", title, "h1")
+    ui.text(
+        "about",
+        f"Result tokens counted with {tokenizers}. Principals are digests; arguments, results "
+        f"and error messages are not recorded unless the tracer was set to record arguments.{limit}",
+        "caption",
+    )
+    stats = [
+        _stat(ui, "calls", "Calls", f"{s['calls']:,}"),
+        _stat(ui, "errors", "Errors", f"{s['errors']:,}"),
+        _stat(ui, "truncated", "Truncated", f"{s['truncated']:,}"),
+        _stat(ui, "tokens", "Result tokens", f"{s['result_tokens']:,}"),
+    ]
+    ui.row("stats", stats, align="stretch")
+
+    # By tool: one card per tool.
+    ui.text("t_name", bind("tool"), "h4")
+    ui.text("t_counts", bind("counts"), "caption")
+    ui.text("t_tokens", bind("tokens"), "caption")
+    ui.text("t_latency", bind("latency"), "caption")
+    ui.column("t_col", ["t_name", "t_counts", "t_tokens", "t_latency"])
+    ui.card("t_card", "t_col")
+    ui.repeat("tools_list", "t_card", "/tools")
+
+    # Calls: filters by outcome and by tool, then one card per call.
+    filters = [
+        ui.button(f"f_{name}", label, "show", {"view": name})
+        for name, label in (
+            ("all", "All"),
+            ("errors", "Errors"),
+            ("truncated", "Truncated"),
+            ("replayed", "Replayed"),
+        )
+    ]
+    ui.add("filters", "List", children=filters, direction="horizontal", align="center")
+    tool_filters = [
+        ui.button(f"f_tool_{i}", tool, "show", {"view": f"tool:{tool}"}, variant="borderless")
+        for i, tool in enumerate(s["tools"])
+    ]
+    ui.text("tool_filters_label", "By tool", "caption")
+    ui.add("tool_filters", "List", children=tool_filters, direction="horizontal", align="center")
+    ui.text("calls_label", bind("/calls_label"), "h3")
+    ui.text("c_tool", bind("tool"), "h4", weight=1)
+    ui.text("c_outcome", bind("outcome"))
+    ui.row("c_head", ["c_tool", "c_outcome"])
+    ui.text("c_facts", bind("facts"), "caption")
+    ui.text("c_error", bind("error"), "caption")
+    ui.text("c_notes", bind("notes"), "caption")
+    ui.text("c_removed", bind("removed"), "caption")
+    ui.column("c_col", ["c_head", "c_facts", "c_error", "c_notes", "c_removed"])
+    ui.card("c_card", "c_col")
+    ui.repeat("calls_list", "c_card", "/calls")
+    ui.column(
+        "calls_tab", ["filters", "tool_filters_label", "tool_filters", "calls_label", "calls_list"]
+    )
+
+    ui.tabs("tabs", [("By tool", "tools_list"), ("Calls", "calls_tab")])
+    ui.column("root", ["title", "about", "stats", "tabs"])
+    return ui, views
+
+
+def a2ui_messages(
+    traces: Sequence[CallTrace], *, title: str = "OunceMCP trace"
+) -> list[dict[str, Any]]:
+    return a2ui_surface(traces, title=title)[0].messages()
 
 
 def render_html(traces: Sequence[CallTrace], *, title: str = "OunceMCP trace") -> str:
-    s = summarize(traces)
-    tool_rows = "".join(
-        "<tr><td>{}</td><td class='num'>{}</td><td>{}</td><td class='num'>{}</td>"
-        "<td class='num'>{}</td><td class='num'>{}</td><td class='num'>{}</td>"
-        "<td class='num'>{}</td></tr>".format(
-            html.escape(tool),
-            m["calls"],
-            html.escape(", ".join(f"{k} {v}" for k, v in sorted(m["errors"].items())) or "none"),
-            m["truncated"],
-            m["result_tokens_avg"],
-            m["result_tokens_max"],
-            f"{m['latency_ms_p50']:.1f}",
-            f"{m['latency_ms_p95']:.1f}",
-        )
-        for tool, m in s["tools"].items()
-    )
-    payload = json.dumps([t.to_dict() for t in traces], default=str).replace("</", "<\\/")
-    cards = [
-        ("Calls", f"{s['calls']:,}"),
-        ("Errors", f"{s['errors']:,}"),
-        ("Truncated", f"{s['truncated']:,}"),
-        ("Result tokens", f"{s['result_tokens']:,}"),
-    ]
-    card_html = "".join(
-        f"<div class='card'><span class='muted'>{k}</span><b>{v}</b></div>" for k, v in cards
-    )
-    tokenizers = html.escape(", ".join(s["tokenizers"]) or "unknown")
-    return f"""<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{html.escape(title)}</title><style>{_STYLE}</style></head>
-<body><main>
-<h1>{html.escape(title)}</h1>
-<p class="muted">Result tokens counted with {tokenizers}. Principals are digests; arguments,
-results and error messages are not recorded unless the tracer was set to record arguments.</p>
-<div class="cards">{card_html}</div>
-<h2>By tool</h2>
-<div class="scroll"><table><thead><tr><th>Tool</th><th class="num">Calls</th><th>Errors</th>
-<th class="num">Truncated</th><th class="num">Tokens avg</th><th class="num">Tokens max</th>
-<th class="num">p50 ms</th><th class="num">p95 ms</th></tr></thead><tbody>{tool_rows}</tbody></table></div>
-<h2>Calls</h2>
-<div class="controls"><label>Tool <select id="tool"><option value="">all</option></select></label>
-<label>Outcome <select id="outcome"><option value="">all</option><option>ok</option>
-<option>error</option><option>input_required</option></select></label>
-<span class="muted" id="shown"></span></div>
-<div class="scroll"><table><thead><tr><th>Started (UTC)</th><th>Tool</th><th>Outcome</th>
-<th class="num">Tokens / budget</th><th class="num">ms</th><th class="num">Attempts</th>
-<th>Error</th><th>Notes</th></tr></thead><tbody id="calls"></tbody></table></div>
-</main>
-<script type="application/json" id="trace-data">{payload}</script>
-<script>{_SCRIPT}</script>
-</body></html>
-"""
+    """One HTML file that renders the trace report with the bundled A2UI renderer."""
+    surface, views = a2ui_surface(traces, title=title)
+    return render_page(title, surface.messages(), fallback=render_text(traces), views=views)

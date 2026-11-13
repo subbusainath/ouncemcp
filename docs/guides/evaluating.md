@@ -33,4 +33,6 @@ A task:
 - `--server` runs the same suite against another server, for example a plain FastMCP version, to compare tokens per task.
 - The replay model checks the server, not a model's judgment. Real-model runs use the same suites once a model adapter and API keys are set up.
 
+`--html report.html` writes the report as a page built from [A2UI](https://a2ui.org) components, and `--a2ui report.jsonl` writes the A2UI messages ([proposal 0020](../proposals/0020-a2ui-reports.md)).
+
 Read traces from a run with `ouncemcp trace calls.jsonl` ([traces](../concepts/traces.md)).
