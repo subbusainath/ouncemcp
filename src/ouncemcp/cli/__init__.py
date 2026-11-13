@@ -27,7 +27,7 @@ COMMANDS: dict[str, tuple[str, str]] = {
     "trace": ("Open the trace and context viewer", "M3"),
     "audit": ("Optional: measure any MCP server and recommend fixes", "M2"),
 }
-IMPLEMENTED = {"init", "dev", "check", "context", "audit"}
+IMPLEMENTED = {"init", "dev", "check", "context", "audit", "trace"}
 
 
 def _add_tokenizer_option(cmd: argparse.ArgumentParser) -> None:
@@ -105,7 +105,20 @@ def build_parser() -> argparse.ArgumentParser:
         elif name == "context":
             cmd.add_argument("server", help="path/to/server.py[:name] or module[:name]")
             cmd.add_argument("tool", help="tool name")
+            cmd.add_argument(
+                "--call",
+                metavar="JSON",
+                help="also call the tool in-process with these arguments and show the result "
+                "exactly as the model receives it",
+            )
             _add_tokenizer_option(cmd)
+        elif name == "trace":
+            cmd.add_argument("file", help="a JSONL trace file written by JsonlSink")
+            cmd.add_argument(
+                "--html", metavar="PATH", help="where to write the HTML report (default: FILE.html)"
+            )
+            cmd.add_argument("--no-html", action="store_true", help="print the summary only")
+            cmd.add_argument("--json", action="store_true", help="print the summary as JSON")
         else:
             cmd.add_argument("args", nargs=argparse.REMAINDER, help=argparse.SUPPRESS)
     return parser
@@ -211,7 +224,41 @@ def _context(ns: argparse.Namespace) -> int:
         f"Counted: {', '.join(COUNTED_FIELDS)}; not counted: {', '.join(UNCOUNTED_FIELDS)}",
         file=sys.stderr,
     )
+    if ns.call is not None:
+        return _context_call(server, ns.tool, ns.call, counter)
     return 0
+
+
+def _context_call(server: Any, tool: str, raw: str, counter: TokenCounter) -> int:
+    """Call ``tool`` in-process and show the result as the model receives it (DX-4)."""
+    from fastmcp import Client
+
+    try:
+        arguments = json.loads(raw or "{}")
+    except json.JSONDecodeError as exc:
+        print(f"ouncemcp context: --call is not valid JSON ({exc})", file=sys.stderr)
+        return 2
+
+    async def run() -> Any:
+        async with Client(getattr(server, "fastmcp", server)) as client:
+            return await client.call_tool_mcp(tool, arguments)
+
+    result = asyncio.run(run())
+    text = "".join(getattr(c, "text", "") for c in result.content or [])
+    print("\n--- result content (what the model reads) ---")
+    print(text)
+    if result.structured_content is not None:
+        print("--- structuredContent ---")
+        print(json.dumps(result.structured_content, indent=2, ensure_ascii=False))
+    meta = (result.meta or {}).get("ouncemcp")
+    tokens = counter.count(text)
+    status = "error" if result.is_error else "ok"
+    print(
+        f"\nresult: {status}, {tokens} tokens of content counted with {counter.name}"
+        + (f"; _meta.ouncemcp = {json.dumps(meta)}" if meta else ""),
+        file=sys.stderr,
+    )
+    return 1 if result.is_error else 0
 
 
 def _audit(ns: argparse.Namespace) -> int:
@@ -278,6 +325,28 @@ def _audit(ns: argparse.Namespace) -> int:
     return 1 if failed else 0
 
 
+def _trace(ns: argparse.Namespace) -> int:
+    from ouncemcp.trace.report import load_traces, render_html, render_text, summarize
+
+    path = Path(ns.file)
+    if not path.is_file():
+        print(f"ouncemcp trace: no such file: {path}", file=sys.stderr)
+        return 2
+    traces = load_traces(path)
+    if not traces:
+        print(f"ouncemcp trace: no traces in {path}", file=sys.stderr)
+        return 2
+    if ns.json:
+        print(json.dumps(summarize(traces), indent=2))
+    else:
+        print(render_text(traces))
+    if not ns.no_html:
+        out = Path(ns.html) if ns.html else path.with_suffix(path.suffix + ".html")
+        out.write_text(render_html(traces, title=f"Trace: {path.name}"), encoding="utf-8")
+        print(f"\nHTML report: {out}", file=sys.stderr)
+    return 0
+
+
 def _init(ns: argparse.Namespace) -> int:
     from ouncemcp.cli.scaffold import ScaffoldError, scaffold
 
@@ -308,6 +377,8 @@ def main(argv: list[str] | None = None) -> int:
         return _init(ns)
     if ns.command == "audit":
         return _audit(ns)
+    if ns.command == "trace":
+        return _trace(ns)
     if ns.command == "dev":
         from ouncemcp.cli import dev
 

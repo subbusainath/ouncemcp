@@ -23,6 +23,18 @@ CALL_NOTES: ContextVar[dict[str, Any] | None] = ContextVar("ouncemcp_call_notes"
 _CURRENT_TOOL: ContextVar[str | None] = ContextVar("ouncemcp_current_tool", default=None)
 
 
+def _truncation_summary(note: Any) -> dict[str, Any] | None:
+    """What shaping removed, by field path and count only: no values (SEC-11)."""
+    if not isinstance(note, dict):
+        return None
+    return {
+        "lists": note.get("lists") or {},
+        "strings": list(note.get("strings") or []),
+        "dropped": list(note.get("dropped") or []),
+        "text_only": bool(note.get("text_only")),
+    }
+
+
 class OunceMiddleware(Middleware):
     """Wraps every tool call.
 
@@ -117,6 +129,8 @@ class OunceMiddleware(Middleware):
             error_code=info.get("error") if result.is_error else None,
             parent=parent,
             resolved_by=info.get("resolved_by"),
+            replayed=bool(info.get("replayed")),
+            truncation=_truncation_summary(info.get("truncation")),
         )
 
     async def _call(
