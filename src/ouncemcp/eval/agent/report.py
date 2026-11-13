@@ -213,91 +213,19 @@ class EvalReport:
                 lines.append(f"  {task_id} ({t['split']}): {t['success_rate']:.0%} success; {why}")
         return "\n".join(lines)
 
-    def a2ui_surface(self) -> Any:
-        """The report as an A2UI surface (proposal 0020)."""
-        from ouncemcp.ui.a2ui import Surface, bind
+    def render_html(self, regressions: Sequence[str] = ()) -> str:
+        """One HTML file with the report (proposal 0020); it opens offline."""
+        from ouncemcp.ui import render_report
 
         data = self.to_dict()
-        h = data["header"]
-
-        def pct(value: float | None) -> str:
-            return "-" if value is None else f"{value:.0%}"
-
-        splits = [
+        return render_report(
             {
-                "name": {"all": "All tasks", "train": "Train", "heldout": "Held out"}[name],
-                "success": f"{pct(s['success_rate'])} success over {s['runs']} runs",
-                "choice": f"Tool selection {pct(s['tool_selection_accuracy'])} · "
-                f"arguments valid {pct(s['argument_validity'])}",
-                "cost": f"{s['calls_per_task']} calls · {s['turns_per_task']} turns · "
-                f"{s['tokens_per_task']:,.0f} tokens per task ({s['definition_tokens']:,.0f} in definitions)",
-                "latency": f"Latency p50 {s['latency_ms_p50']} ms, p95 {s['latency_ms_p95']} ms"
-                + (
-                    f" · errors {', '.join(f'{k} {v}' for k, v in s['errors'].items())}"
-                    if s["errors"]
-                    else ""
-                ),
+                "kind": "eval",
+                "title": f"Eval: {self.suite}",
+                **data,
+                "regressions": list(regressions),
             }
-            for name, s in data["splits"].items()
-        ]
-        tasks = [
-            {
-                "id": task_id,
-                "result": f"{'passed' if t['success_rate'] == 1 else 'failed'} · {pct(t['success_rate'])}",
-                "facts": f"{t['split']} · {t['calls_per_task']} calls · {t['turns_per_task']} turns · "
-                f"{t['tokens_per_task']:,.0f} tokens",
-                "failed": "; ".join(f"{c} x{n}" for c, n in t["failed_checks"].items()),
-            }
-            for task_id, t in data["tasks"].items()
-        ]
-        notes = []
-        if data["train_heldout_gap"] is not None:
-            notes.append(f"Train minus held-out success: {data['train_heldout_gap']:+.0%}.")
-        if self.recall:
-            notes.append(f"Search recall: {self.recall.get('mean_recall', self.recall)}.")
-        header = [{"key": k, "value": "-" if v is None else str(v)} for k, v in h.items()]
-
-        ui = Surface("eval", theme={"primaryColor": "#0969da", "agentDisplayName": "OunceMCP"})
-        ui.data = {"splits": splits, "tasks": tasks, "header": header}
-        ui.text("title", f"Eval: {self.suite}", "h1")
-        ui.text(
-            "about",
-            f"Model {self.model} · {h['host']} · target {self.target} · commit "
-            f"{h['server_commit'] or '?'} · {h['time']}",
-            "caption",
         )
-        verdict = "All runs passed." if self.passed else "Some runs failed."
-        ui.text("verdict", " ".join([verdict, *notes]))
-        ui.text("s_name", bind("name"), "h3")
-        for key in ("success", "choice", "cost", "latency"):
-            ui.text(f"s_{key}", bind(key), "body" if key == "success" else "caption")
-        ui.column("s_col", ["s_name", "s_success", "s_choice", "s_cost", "s_latency"])
-        ui.card("s_card", "s_col")
-        ui.repeat("splits", "s_card", "/splits")
-        ui.text("k_id", bind("id"), "h4", weight=1)
-        ui.text("k_result", bind("result"))
-        ui.row("k_head", ["k_id", "k_result"])
-        ui.text("k_facts", bind("facts"), "caption")
-        ui.text("k_failed", bind("failed"), "caption")
-        ui.column("k_col", ["k_head", "k_facts", "k_failed"])
-        ui.card("k_card", "k_col")
-        ui.repeat("tasks", "k_card", "/tasks")
-        ui.text("h_key", bind("key"), "caption", weight=1)
-        ui.text("h_value", bind("value"), weight=3)
-        ui.row("h_row", ["h_key", "h_value"])
-        ui.repeat("header", "h_row", "/header")
-        ui.tabs("tabs", [("Results", "splits"), ("Tasks", "tasks"), ("Environment", "header")])
-        ui.column("root", ["title", "about", "verdict", "tabs"])
-        return ui
-
-    def a2ui_messages(self) -> list[dict[str, Any]]:
-        return self.a2ui_surface().messages()  # type: ignore[no-any-return]
-
-    def render_html(self) -> str:
-        """One HTML file that renders the report with the bundled A2UI renderer."""
-        from ouncemcp.ui.a2ui import render_page
-
-        return render_page(f"Eval {self.suite}", self.a2ui_messages(), fallback=self.render_text())
 
 
 def compare(

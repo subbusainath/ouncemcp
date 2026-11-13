@@ -87,8 +87,8 @@ async def test_trace_report_from_jsonl(tmp_path: Path, capsys):
     assert summary["calls"] == 4 and summary["errors"] == 1 and summary["truncated"] == 1
     assert summary["tools"]["rows.list"]["calls"] == 3
     page = render_html(traces, title="t</script><b>x")
-    assert page.startswith("<!DOCTYPE html>")
-    assert "<b>x" not in page and "t&lt;/script&gt;" in page
+    assert page.lower().startswith("<!doctype html>")
+    assert "<b>x" not in page and "t\\u003c/script\\u003e\\u003cb\\u003ex" in page
     assert '"tool":"rows.fail"' in page
 
 

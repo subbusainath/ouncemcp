@@ -127,9 +127,6 @@ def build_parser() -> argparse.ArgumentParser:
             cmd.add_argument("--json", action="store_true", help="print the report as JSON")
             cmd.add_argument("--output", metavar="PATH", help="also write the JSON report here")
             cmd.add_argument("--html", metavar="PATH", help="also write an HTML report here")
-            cmd.add_argument(
-                "--a2ui", metavar="PATH", help="also write the report as A2UI messages (JSON lines)"
-            )
             cmd.add_argument("--compare", metavar="OLD.json", help="list regressions against it")
             cmd.add_argument("--fail-on-regression", action="store_true")
             cmd.add_argument(
@@ -141,9 +138,6 @@ def build_parser() -> argparse.ArgumentParser:
                 "--html", metavar="PATH", help="where to write the HTML report (default: FILE.html)"
             )
             cmd.add_argument("--no-html", action="store_true", help="print the summary only")
-            cmd.add_argument(
-                "--a2ui", metavar="PATH", help="also write the report as A2UI messages (JSON lines)"
-            )
             cmd.add_argument("--json", action="store_true", help="print the summary as JSON")
         else:
             cmd.add_argument("args", nargs=argparse.REMAINDER, help=argparse.SUPPRESS)
@@ -371,11 +365,7 @@ def _eval(ns: argparse.Namespace) -> int:
     if ns.output:
         Path(ns.output).write_text(json.dumps(data, indent=2, default=str))
     if ns.html:
-        Path(ns.html).write_text(report.render_html(), encoding="utf-8")
-    if ns.a2ui:
-        from ouncemcp.ui.a2ui import to_jsonl
-
-        Path(ns.a2ui).write_text(to_jsonl(report.a2ui_messages()), encoding="utf-8")
+        Path(ns.html).write_text(report.render_html(regressions), encoding="utf-8")
     if ns.json:
         print(json.dumps(data, indent=2, default=str))
     else:
@@ -389,14 +379,7 @@ def _eval(ns: argparse.Namespace) -> int:
 
 
 def _trace(ns: argparse.Namespace) -> int:
-    from ouncemcp.trace.report import (
-        a2ui_messages,
-        load_traces,
-        render_html,
-        render_text,
-        summarize,
-    )
-    from ouncemcp.ui.a2ui import to_jsonl
+    from ouncemcp.trace.report import load_traces, render_html, render_text, summarize
 
     path = Path(ns.file)
     if not path.is_file():
@@ -414,9 +397,6 @@ def _trace(ns: argparse.Namespace) -> int:
         out = Path(ns.html) if ns.html else path.with_suffix(path.suffix + ".html")
         out.write_text(render_html(traces, title=f"Trace: {path.name}"), encoding="utf-8")
         print(f"\nHTML report: {out}", file=sys.stderr)
-    if ns.a2ui:
-        title = f"Trace: {path.name}"
-        Path(ns.a2ui).write_text(to_jsonl(a2ui_messages(traces, title=title)), encoding="utf-8")
     return 0
 
 

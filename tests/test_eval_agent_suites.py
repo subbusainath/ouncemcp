@@ -156,7 +156,7 @@ def test_eval_command(tmp_path: Path, capsys):
     text = capsys.readouterr().out
     assert "Eval inventory" in text and "heldout" in text
     data = json.loads(out.read_text())
-    assert data["regressions"] == [] and page.read_text().startswith("<!DOCTYPE html>")
+    assert data["regressions"] == [] and page.read_text().lower().startswith("<!doctype html>")
     assert (
         main(
             [
