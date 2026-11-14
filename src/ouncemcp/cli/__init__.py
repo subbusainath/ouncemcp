@@ -145,8 +145,22 @@ def build_parser() -> argparse.ArgumentParser:
             cmd.add_argument(
                 "--model",
                 default="replay",
-                choices=["replay"],
-                help="replay plays each task's script (no API key, deterministic)",
+                help="replay (each task's script; no key, deterministic) or openrouter:MODEL_ID "
+                "(a real model through OpenRouter; needs OPENROUTER_API_KEY)",
+            )
+            cmd.add_argument(
+                "--max-cost",
+                type=float,
+                default=1.0,
+                metavar="USD",
+                help="stop starting runs once a real model has cost this much (default 1.00)",
+            )
+            cmd.add_argument(
+                "--fallback-model",
+                action="append",
+                default=[],
+                metavar="MODEL_ID",
+                help="OpenRouter model to use when the first is unavailable (repeatable)",
             )
             cmd.add_argument("--repeats", type=int, help="runs per task (default: the suite's)")
             cmd.add_argument("--split", choices=["all", "train", "heldout"], default="all")
@@ -432,9 +446,30 @@ def _eval(ns: argparse.Namespace) -> int:
     except SuiteError as exc:
         print(f"ouncemcp eval: {exc}", file=sys.stderr)
         return 2
+    model: Any = None
+    if ns.model.startswith("openrouter:"):
+        from ouncemcp.eval.agent.openrouter import OpenRouterModel
+
+        try:
+            model = OpenRouterModel(
+                ns.model.partition(":")[2],
+                max_cost_usd=ns.max_cost,
+                fallbacks=ns.fallback_model,
+            )
+        except ValueError as exc:
+            print(f"ouncemcp eval: {exc}", file=sys.stderr)
+            return 2
+    elif ns.model != "replay":
+        print("ouncemcp eval: --model is replay or openrouter:MODEL_ID", file=sys.stderr)
+        return 2
     report = asyncio.run(
         run_suite(
-            suite, repeats=ns.repeats, split=ns.split, server=ns.server, tokenizer=ns.tokenizer
+            suite,
+            model,
+            repeats=ns.repeats,
+            split=ns.split,
+            server=ns.server,
+            tokenizer=ns.tokenizer,
         )
     )
     data = report.to_dict()

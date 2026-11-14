@@ -31,7 +31,16 @@ A task:
 - Put some tasks in `split: heldout` and keep them out of description tuning; the report shows the train minus held-out gap.
 - Use `{{last.<tool>.<path>}}` in script arguments to reuse a value from an earlier result, and `page: next_cursor` to follow cursors.
 - `--server` runs the same suite against another server, for example a plain FastMCP version, to compare tokens per task.
-- The replay model checks the server, not a model's judgment. Real-model runs use the same suites once a model adapter and API keys are set up.
+- The replay model checks the server, not a model's judgment. To measure a real model, run the same suite through OpenRouter ([proposal 0026](../proposals/0026-real-model-evals.md)):
+
+    ```bash
+    export OPENROUTER_API_KEY=...
+    ouncemcp eval examples/inventory/eval.yaml --model openrouter:anthropic/claude-haiku-5.5 \
+        --repeats 3 --max-cost 2.00
+    ```
+
+    `--max-cost` (default $1.00) stops the suite before it spends more. The report shows the provider's token counts, the cost per task and which model answered. Real models vary between runs, so use several `--repeats` and compare rates.
+- Write checks about outcomes, not about a script: a real model may reach the right result by another path, or rightly refuse. `approve: false` makes the simulated user decline confirmations, for tasks where the user would not want the write.
 
 `--html report.html` writes the report as one page that opens offline: splits, tasks with their failed checks, regressions and the environment ([proposal 0020](../proposals/0020-report-ui.md)).
 

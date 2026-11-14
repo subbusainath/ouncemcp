@@ -52,6 +52,7 @@ class RunRecord:
     definition_tokens: int = 0
     latency_ms: float = 0.0
     harness_error: str | None = None
+    cost_usd: float | None = None  # reported by the model's provider, when it has one
 
     @property
     def success(self) -> bool:
@@ -266,9 +267,25 @@ async def run_suite(
     counter = get_counter(tokenizer) if tokenizer is not None else _server_counter(target)
     runs: list[RunRecord] = []
     tasks = suite.select(split)
+    notes: list[str] = []
     for task in tasks:
         for repeat in range(repeats or suite.repeats):
-            runs.append(await run_task(task, repeat, model, target, counter))
+            if getattr(model, "exhausted", False):
+                break
+            spent = getattr(model, "spent_usd", None)
+            run = await run_task(task, repeat, model, target, counter)
+            if spent is not None:
+                run.cost_usd = round(float(getattr(model, "spent_usd", 0.0)) - spent, 6)
+            if (run.harness_error or "").startswith(("SpendingLimitReached", "QuotaExhausted")):
+                notes.append(f"Run {task.id}#{repeat} was cut off by the limit and left out.")
+                continue
+            runs.append(run)
+        if getattr(model, "exhausted", False):
+            reason = getattr(model, "quota_reason", None) or (
+                f"the spending limit (${getattr(model, 'max_cost_usd', 0):.2f}) was reached"
+            )
+            notes.append(f"Stopped early: {reason}; later runs were not started.")
+            break
     recall = await _recall(suite, target)
     return EvalReport(
         suite=suite.name,
@@ -280,7 +297,20 @@ async def run_suite(
         tasks={t.id: t for t in tasks},
         runs=runs,
         recall=recall,
+        notes=notes,
+        usage=_usage(model),
     )
+
+
+def _usage(model: Model) -> dict[str, Any] | None:
+    if not hasattr(model, "spent_usd"):
+        return None
+    return {
+        "cost_usd": round(float(model.spent_usd), 6),
+        "max_cost_usd": getattr(model, "max_cost_usd", None),
+        "requests": getattr(model, "requests", None),
+        "served_by": dict(getattr(model, "served_by", {}) or {}),
+    }
 
 
 def _server_counter(target: str) -> TokenCounter:

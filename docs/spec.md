@@ -345,7 +345,7 @@ Budgets are declared per server and per tool. The defaults below are **proposed 
 | --- | --- | --- | --- |
 | EVAL-1 | MUST run the official conformance suite for declared revisions ([conformance](https://github.com/modelcontextprotocol/conformance)) | P0 | CI job. **Done: `ouncemcp.eval.conformance` target and `.github/workflows/conformance.yml` (suite 0.2.0-alpha.12, revision 2026-07-28); baseline confirmed by CI (36 passed, 5 expected failures) and the job gates since M4 (no `continue-on-error`)** |
 | EVAL-2 | MUST provide security tests: cross-tenant access, guessed names and handles, replay, SSRF, token passthrough | P0 | Test catalog. **Done in M1: `ouncemcp.eval.security` with six probe types and automatic guessed-name probes** |
-| EVAL-3 | MUST run agent task suites defined in YAML with verifiable outcomes | P1 | Example suite per pilot. **Done with the replay model: `examples/inventory/eval.yaml`, `examples/ticketing/eval.yaml` ([proposal 0019](proposals/0019-eval-kit.md)); real-model adapters await API keys** |
+| EVAL-3 | MUST run agent task suites defined in YAML with verifiable outcomes | P1 | Example suite per pilot. **Done: replay model ([proposal 0019](proposals/0019-eval-kit.md)) and real models through OpenRouter with a spending cap ([proposal 0026](proposals/0026-real-model-evals.md)); suites for the inventory and ticketing pilots, both run against a real model** |
 | EVAL-4 | MUST report task success, correct tool selection, argument validity, calls per task, turns, tokens, latency, and errors, as Anthropic recommends measuring ([Anthropic tool guidance](https://www.anthropic.com/research/writing-tools-for-agents)) | P1 | Report fields. **Done ([proposal 0019](proposals/0019-eval-kit.md))** |
 | EVAL-5 | MUST record model, host, tokenizer, server version, and environment with every result | P1 | Report header. **Done** |
 | EVAL-6 | MUST support held-out tasks to detect overfitting of descriptions | P1 | Split configuration. **Done: `split: heldout` and the train minus held-out gap** |
@@ -900,7 +900,7 @@ Status as of 12 November 2026. M1 ([PR #13](https://github.com/subbusainath/ounc
 
 | Group | Requirements |
 | --- | --- |
-| Eval | Real-model adapters for EVAL-3 to EVAL-7 and release gate 6 (need API keys) |
+| Eval | Release gate 6 with paid models (OpenRouter account needs credits; free models are limited to about 50 requests a day) |
 | Benchmark | `bench`, the published benchmark, PERF-6 (M3) |
 | Tokenizers | BUD-6 provider counting adapters (need API keys) |
 | Discovery | DISC-8 (`code` mode, post-1.0) |

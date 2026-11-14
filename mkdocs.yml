@@ -78,3 +78,4 @@ nav:
           - 0023 Safe fetch: proposals/0023-safe-fetch.md
           - 0024 Context and audit pages: proposals/0024-context-and-audit-pages.md
           - 0025 OAuth: proposals/0025-oauth.md
+          - 0026 Real-model evals: proposals/0026-real-model-evals.md

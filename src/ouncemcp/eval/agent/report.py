@@ -16,7 +16,7 @@ import subprocess
 import time
 from collections import Counter
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -112,6 +112,11 @@ def _aggregate(runs: Sequence[RunRecord], tasks: Mapping[str, Task]) -> dict[str
         "latency_ms_p95": _p95([r.latency_ms for r in runs]),
         "errors": dict(errors),
         "harness_errors": sum(1 for r in runs if r.harness_error),
+        "cost_usd_per_task": (
+            round(statistics.fmean(costs), 6)
+            if (costs := [r.cost_usd for r in runs if r.cost_usd is not None])
+            else None
+        ),
     }
 
 
@@ -126,6 +131,8 @@ class EvalReport:
     tasks: dict[str, Task]
     runs: list[RunRecord]
     recall: dict[str, Any] | None = None
+    notes: list[str] = field(default_factory=list)
+    usage: dict[str, Any] | None = None
 
     def splits(self) -> dict[str, dict[str, Any]]:
         out = {"all": _aggregate(self.runs, self.tasks)}
@@ -173,6 +180,8 @@ class EvalReport:
             "train_heldout_gap": gap,
             "tasks": self.per_task(),
             "recall": self.recall,
+            "usage": self.usage,
+            "notes": list(self.notes),
         }
 
     def render_text(self) -> str:
@@ -203,6 +212,14 @@ class EvalReport:
             )
         if data["train_heldout_gap"] is not None:
             lines.append(f"Train minus held-out success: {data['train_heldout_gap']:+.0%}")
+        if self.usage:
+            u = self.usage
+            served = ", ".join(f"{k} x{v}" for k, v in u["served_by"].items()) or "none"
+            lines.append(
+                f"Cost ${u['cost_usd']:.4f} of ${u['max_cost_usd']:.2f} over "
+                f"{u['requests']} requests; served by {served}"
+            )
+        lines += [f"Note: {n}" for n in self.notes]
         if self.recall:
             lines.append(f"Search recall: {self.recall.get('mean_recall', self.recall)}")
         failing = {k: v for k, v in data["tasks"].items() if v["success_rate"] < 1}
