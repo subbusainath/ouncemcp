@@ -34,7 +34,7 @@ from ouncemcp.core.budget import Budget, BudgetOverride, BudgetOverrideWarning
 from ouncemcp.core.costs import ServerCost, definition_payload, measure_tools
 from ouncemcp.core.cursor import BoundCursors, CursorSigner, InvalidCursor
 from ouncemcp.core.docs import error_doc
-from ouncemcp.core.effects import Effect
+from ouncemcp.core.effects import PARALLEL_SAFE_META, Effect
 from ouncemcp.core.errors import Failure, classify, format_validation
 from ouncemcp.core.pagination import PageFields, PageWindow, find_page_fields, window
 from ouncemcp.core.schema import compact_schema
@@ -573,6 +573,7 @@ class ToolSpec:
     approval: ApprovalRule | None = None
     preview: Preview | None = field(default=None, compare=False, repr=False)
     budget_override: BudgetOverride | None = None
+    parallel_safe: bool = False
 
 
 OutputSchemaMode = Literal["on", "off", "auto"]
@@ -969,8 +970,14 @@ class OunceServer:
         preview: Preview | None = None,
         definition_tokens: int | None = None,
         budget_reason: str | None = None,
+        parallel_safe: bool | None = None,
     ) -> Any:
         """Register a tool. ``effect`` is required.
+
+        ``parallel_safe`` marks the tool as safe for clients to call in parallel with
+        other calls, in ``_meta["ouncemcp/parallelSafe"]`` (EXE-5). Read tools are
+        parallel-safe unless they depend on call order (a shared queue, a cursor kept on
+        the server); set ``parallel_safe=False`` for those. Writes are never marked.
 
         ``result_tokens`` and ``definition_tokens`` give this tool its own budget (BUD-4):
         the concise result budget, and the definition size above which ``ouncemcp check``
@@ -1017,6 +1024,7 @@ class OunceServer:
                 preview=preview,
                 definition_tokens=definition_tokens,
                 budget_reason=budget_reason,
+                parallel_safe=parallel_safe,
             )
             return handler
 
@@ -1161,6 +1169,7 @@ class OunceServer:
         preview: Preview | None = None,
         definition_tokens: int | None = None,
         budget_reason: str | None = None,
+        parallel_safe: bool | None = None,
     ) -> None:
         tool_name = name or handler.__name__
         schema_mode = _tool_mode(output_schema, tool_name) or self.output_schemas
@@ -1190,6 +1199,14 @@ class OunceServer:
                 f"Tool '{tool_name}': result_tokens must be between 1 and the server's "
                 f"result_ceiling ({self.budget.result_ceiling})"
             )
+        if parallel_safe is not None and not isinstance(parallel_safe, bool):
+            raise TypeError(f"Tool '{tool_name}': parallel_safe must be True, False or None")
+        if parallel_safe and effect is not Effect.READ:
+            raise ValueError(
+                f"Tool '{tool_name}': only read tools can be parallel_safe; clients must "
+                "order writes (EXE-5)"
+            )
+        concurrent = effect is Effect.READ and parallel_safe is not False
         override = self._budget_override(tool_name, result_tokens, definition_tokens, budget_reason)
         if not isinstance(min_items, int) or min_items < 1:
             raise ValueError(
@@ -1290,6 +1307,7 @@ class OunceServer:
             approval=check_rule(approval, tool_name),
             preview=preview,
             budget_override=override,
+            parallel_safe=concurrent,
         )
         if spec.idempotency is not None and effect is Effect.READ:
             raise ValueError(
@@ -1481,6 +1499,7 @@ class OunceServer:
             annotations=ToolAnnotations.model_validate(effect.annotations()),
             tags=tags,
             auth=checks or None,
+            meta={PARALLEL_SAFE_META: concurrent},
         )
         # Advertise compact schemas. Validation still runs on the Pydantic models.
         registered.parameters = compact_schema(registered.parameters)

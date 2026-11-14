@@ -70,3 +70,4 @@ nav:
           - 0019 Eval kit: proposals/0019-eval-kit.md
           - 0020 Report UI: proposals/0020-report-ui.md
           - 0021 Budget overrides: proposals/0021-budget-overrides.md
+          - 0022 Parallel-safe tools: proposals/0022-parallel-safe-tools.md
