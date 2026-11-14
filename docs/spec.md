@@ -10,7 +10,7 @@ Project specification
 | Target protocol | MCP specification `2026-07-28`, with tested legacy compatibility |
 | Reference implementation | Python, built on FastMCP 4 and the official MCP Python SDK |
 | License (proposed) | Apache-2.0 |
-| Status | M0 and M1 done: host verification passed in Claude Desktop and Cursor (12 November 2026, [compatibility matrix](compatibility.md)); DX-8 user testing and the inventory pilot with real data remain. M2 merged ([PR #14](https://github.com/subbusainath/ouncemcp/pull/14), [M2 report](m2-report.md)): exit criteria and release gates 1 to 5 met. M3 and M4 not started. See sections 15.3 and 15.4 |
+| Status | M0 and M1 done: host verification passed in Claude Desktop and Cursor (12 November 2026, [compatibility matrix](compatibility.md)); DX-8 user testing and the inventory pilot with real data remain. M2 merged ([PR #14](https://github.com/subbusainath/ouncemcp/pull/14), [M2 report](m2-report.md)): exit criteria and release gates 1 to 5 met. M3 in progress ([PR #16](https://github.com/subbusainath/ouncemcp/pull/16): trace viewer, task suites with the replay model, report UI); real-model runs, `bench` and the benchmark need API keys. M4: the P1 requirements that need no people or keys are built on branch `claude/loving-shannon-gm4zxr` (BUD-4, RES-11, EXE-5, SEC-9, SEC-10, DX-3, DX-4 web, AUD-10 HTML, conformance gating). See sections 15.3 and 15.4 |
 | Repository | [github.com/subbusainath/ouncemcp](https://github.com/subbusainath/ouncemcp) (private), default branch `main`, last merge `ebe47c1` (PR #13) |
 
 This specification turns two research investigations into a buildable plan. Protocol facts are cited to primary sources. Requirements, default limits, interfaces, and milestones are proposals and are marked as such; numeric defaults must be validated experimentally before being presented as recommendations to users.
@@ -240,7 +240,7 @@ Budgets are declared per server and per tool. The defaults below are **proposed 
 | BUD-1 | MUST compute definition token counts at startup and in `ouncemcp check`, measured on definitions as an MCP client receives them (wire serialization and field order), not on in-process objects | P0 | Counts appear in `check` output and equal a recount of `tools/list` over stdio (done in M0) |
 | BUD-2 | MUST fail `check` when a fail threshold is exceeded | P0 | CI exit code tests |
 | BUD-3 | MUST enforce result budgets at runtime through response shaping (8.1.4) | P0 | Oversized results never exceed hard ceiling |
-| BUD-4 | MUST allow overrides per tool with a recorded justification | P1 | Override without reason produces a warning |
+| BUD-4 | MUST allow overrides per tool with a recorded justification | P1 | Override without reason produces a warning. **Done in M4 ([proposal 0021](proposals/0021-budget-overrides.md)): `definition_tokens=` and `budget_reason=` on tools, `BudgetOverrideWarning`, the `budget-override-without-reason` lint, overrides listed by `check`** |
 | BUD-5 | SHOULD record actual token usage per call in traces | P0 | Trace includes result tokens. **Done in M1 (branch `claude/loving-shannon-gm4zxr`, not yet merged, [proposal 0009](proposals/0009-traces.md)): `OunceServer(trace=...)` records result tokens, budget, truncation, latency, attempts and outcome per call** |
 | BUD-6 | MUST make the tokenizer pluggable: any tiktoken encoding, a custom counting callable, and provider token-counting APIs; every report MUST name the tokenizer used | P0 (interface and tiktoken), P1 (provider APIs) | Same server reported with two tokenizers; reports show the tokenizer name; provider adapter tested against a recorded response. **Interface, tiktoken encodings and custom callables done in M1** ([PR #8](https://github.com/subbusainath/ouncemcp/pull/8), merged): `get_counter` and `OunceServer(tokenizer=, tokenizer_name=)` take an encoding, a `TokenCounter` or a named function; `check`, `context`, `ServerCost`, results and too-large errors name the tokenizer. Provider APIs (P1) remain |
 | BUD-7 | MUST state which definition fields are counted (name, description, input schema, output schema) and which are not (`title`, annotations, `_meta`); SHOULD record per host which fields reach the model | P0 (declared scope), P1 (per-host data) | `check --json` includes the counting scope; host findings published in the compatibility matrix. **Declared scope done in M1** ([PR #9](https://github.com/subbusainath/ouncemcp/pull/9), merged): `counting_scope` in `check --json`, `Counted` and `Not counted` lines in `check` and `context`, and `verified_hosts: []` until the host study. Per-host data (P1) remains |
@@ -280,7 +280,7 @@ Budgets are declared per server and per tool. The defaults below are **proposed 
 | RES-8 | When an output schema is advertised, every successful result MUST include structured content that conforms to it, since MCP requires this of servers ([tools](https://modelcontextprotocol.io/specification/2026-07-28/server/tools.md)). Shaping MUST degrade in this order: trim lists (RES-10), shorten strings, drop optional fields. If the result still exceeds the budget, it MUST return a tool error (`isError: true`) with a short, actionable message such as asking for a smaller `limit`, rather than unstructured text. Text-only truncation is allowed only for tools without an output schema | P0 | Fuzz test over random outputs and budgets: every successful result validates against the advertised schema; over-budget minimal results return `isError` with a recovery hint. **Done in M1** ([PR #3](https://github.com/subbusainath/ouncemcp/pull/3)): every change is checked against the advertised schema; errors carry `reason` (`item_over_budget`, `min_items_over_budget`, `fixed_over_budget`) and suggest a lower `limit` only when it can help ([PR #4](https://github.com/subbusainath/ouncemcp/pull/4)) |
 | RES-9 | MUST provide budget-aware pagination: a `ctx.page(rows, cursor=..., limit=...)` helper (settled in proposal 0002, with `Paginated` and `Cursor` field markers) that keeps as many items as fit the remaining result budget and builds the cursor from the last kept item. When the framework trims a list that a handler paginated itself, it MUST warn in the note that the cursor skips the removed items and give a `limit` that pages without gaps | P0 | Property test: for any data set, page size, and budget, following cursors returns every item exactly once. **Done in M1** ([PR #3](https://github.com/subbusainath/ouncemcp/pull/3)) |
 | RES-10 | MUST NOT trim a non-empty list to zero items; the minimum is configurable per tool (default 1), and an oversized single item is shortened instead of dropped | P0 | Test with one item larger than the budget (fixed in M0); `min_items` per tool, default 1, values below 1 rejected. **Done in M1** ([PR #3](https://github.com/subbusainath/ouncemcp/pull/3)) |
-| RES-11 | SHOULD let handlers skip expensive work for fields that will not be returned, by exposing the response format and remaining budget on the context | P1 | Example tool that skips a detail lookup in concise mode |
+| RES-11 | SHOULD let handlers skip expensive work for fields that will not be returned, by exposing the response format and remaining budget on the context | P1 | Example tool that skips a detail lookup in concise mode. **Done in M4: `ctx.includes(path)` and `ctx.detailed` alongside `ctx.response_format` and `ctx.result_budget`; `inventory.get` fetches metrics only for detailed calls** |
 
 #### 8.1.5 Errors and execution
 
@@ -293,7 +293,7 @@ Budgets are declared per server and per tool. The defaults below are **proposed 
 | EXE-2 | MUST retry only transient read failures, with bounded backoff inside the deadline | P0 | No automatic write retries. **Done in M1 ([PR #11](https://github.com/subbusainath/ouncemcp/pull/11)): `RetryPolicy`, reads only, shares the call's deadline** |
 | EXE-3 | MUST report ambiguous status for write timeouts unless idempotency resolves them | P0 | Fault-injection test. **Done in M1 ([PR #11](https://github.com/subbusainath/ouncemcp/pull/11)): `ambiguous_write` on write timeouts; `write_resolver` seam, with no idempotency store yet** |
 | EXE-4 | MUST provide an idempotency mechanism for writes, keyed by principal, tenant, operation, and normalized argument digest | P1 | Duplicate replay produces one effect. **Not started; the `write_resolver` seam in [PR #11](https://github.com/subbusainath/ouncemcp/pull/11) is where it plugs in**. **Done in M2 ([proposal 0011](proposals/0011-store-and-idempotency.md)): `idempotency=True`, keyed by principal, tenant, tool and argument digest or a client key; shared store; a timed-out write finishes and is replayed** |
-| EXE-5 | MUST mark read-only, independent tools as parallel-safe for clients | P1 | Metadata present. **Not started; needs a metadata convention first** |
+| EXE-5 | MUST mark read-only, independent tools as parallel-safe for clients | P1 | Metadata present. **Done in M4 ([proposal 0022](proposals/0022-parallel-safe-tools.md)): `_meta["ouncemcp/parallelSafe"]` on every tool, `true` for reads unless `parallel_safe=False`, never for writes; `is_parallel_safe()` for clients** |
 | EXE-6 | MUST bound request size, nesting depth, output size, and concurrency per principal | P0 | Limit tests. **Done in M1 ([PR #11](https://github.com/subbusainath/ouncemcp/pull/11)): `Limits` for request bytes, nesting depth and per-principal concurrency; output is bounded by the result ceiling** |
 
 ### 8.2 Security and policy
@@ -308,8 +308,8 @@ Budgets are declared per server and per tool. The defaults below are **proposed 
 | SEC-6 | MUST bind handles, approvals, and request state to principal, expiry, and originating request ([MRTR](https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr.md)) | P0 | Replay and cross-principal tests. **Done in M1: `ctx.issue_state` and `ctx.verify_state(consume=...)`, signed `b1.` tokens; single use is per process until a shared store (EXE-4)** |
 | SEC-7 | MUST NOT perform irreversible effects before an input-required return unless replay-safe | P0 | Lint rule plus test. **Done in M1: `ctx.require_input` refuses after `ctx.effect_applied()` unless `replay_safe`; `check` rule `input-after-effect`** |
 | SEC-8 | MUST validate `Origin` on HTTP and bind local HTTP servers to loopback by default ([HTTP transport](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http.md)) | P0 | Delegated to SDK; verified in tests. **Done in M1: HTTP binds `127.0.0.1` with `Host` and `Origin` checks on; public binds need `allowed_hosts`** |
-| SEC-9 | MUST protect outbound fetches from SSRF using allowlists and private-range blocking ([security best practices](https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/security_best_practices.md)) | P1 | SSRF test suite. **Partly done in M2 ([proposal 0015](proposals/0015-migration-and-audit.md)): `check_url` refuses private, loopback, link-local and metadata targets; pinned connections and redirect checks remain** |
-| SEC-10 | SHOULD use maintained OAuth integrations; client registration order is pre-registration, then Client ID Metadata Documents, then deprecated Dynamic Client Registration ([client registration](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/client-registration.md)) | P1 | Integration tests with one provider |
+| SEC-9 | MUST protect outbound fetches from SSRF using allowlists and private-range blocking ([security best practices](https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/security_best_practices.md)) | P1 | SSRF test suite. **Done: `check_url` in M2 ([proposal 0015](proposals/0015-migration-and-audit.md)); in M4, `safe_client` pins each connection to the checked address, checks every redirect and keeps one pool per host name ([proposal 0023](proposals/0023-safe-fetch.md))** |
+| SEC-10 | SHOULD use maintained OAuth integrations; client registration order is pre-registration, then Client ID Metadata Documents, then deprecated Dynamic Client Registration ([client registration](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/client-registration.md)) | P1 | Integration tests with one provider. **Done in M4 ([proposal 0025](proposals/0025-oauth.md)): servers use FastMCP's maintained providers via `OunceServer(auth=...)`; clients use `OunceOAuth`, which applies the registration order and records it; `audit --oauth` and `Broker(auth=...)`; full flows tested over HTTP against FastMCP's in-memory OAuth provider** |
 | SEC-11 | MUST redact secrets and personal data from traces by default | P0 | Redaction tests. **Done in M1 ([proposal 0009](proposals/0009-traces.md)): hashed principals, no messages or results, arguments only on request and redacted** |
 | SEC-12 | MUST issue tamper-evident cursors: HMAC-signed and bound to the principal, the tool, a digest of the normalized query arguments, and an expiry; support key rotation; reject invalid, expired, or foreign cursors with an actionable validation error (MCP suggests `-32602 Invalid params` for invalid list cursors, [pagination](https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/pagination.md)) | P0 | Tests for tampering, expiry, cross-principal reuse, use with changed filters, and rotation; the M0 base64 offset cursor is removed. **Done in M1** ([PR #7](https://github.com/subbusainath/ouncemcp/pull/7), merged): `s1.` cursors of 59 characters, bound to tool, principal and arguments other than `cursor`, `limit` and `response_format`; one-hour expiry by default; keys from `CursorSigner` or `OUNCEMCP_CURSOR_KEYS`, newest first; a random per-process key with a one-time warning when none is set; errors carry a `reason` (`malformed`, `legacy`, `signature`, `expired`, `tool`, `principal`, `query`) |
 
@@ -332,8 +332,8 @@ Budgets are declared per server and per tool. The defaults below are **proposed 
 | --- | --- | --- | --- |
 | DX-1 | `ouncemcp init` MUST scaffold a working server with one read tool, one write tool, tests, and CI config | P0 | Scaffold passes its own tests. **Done in M1 (branch `claude/loving-shannon-gm4zxr`, not yet merged): the generated project's 6 tests run in the suite** |
 | DX-2 | `ouncemcp dev` MUST run with hot reload and print a live budget summary | P0 | Manual and automated checks. **Done in M1 (branch `claude/loving-shannon-gm4zxr`, not yet merged): restarts on `.py`/`.toml` changes, prints the summary and one line per call; end-to-end test over HTTP** |
-| DX-3 | `ouncemcp check` MUST run schema, naming, description, budget, and policy lints | P0 | Rule catalog documented. **Partly done: budgets, naming (CAP-4 at registration) and three policy and safety rules (`input-after-effect`, `elicit-in-write`, `destructive-without-policy`) in `docs/rules/`; description lints are CAP-5 (P1)** |
-| DX-4 | A context view MUST show exactly what the model received for each definition and result, with token counts | P0 (terminal), P1 (web) | Matches serialized payload. **Terminal done: `context` for definitions, `context --call` for results ([proposal 0018](proposals/0018-trace-viewer.md)); a live web view is open** |
+| DX-3 | `ouncemcp check` MUST run schema, naming, description, budget, and policy lints | P0 | Rule catalog documented. **Done: budgets; naming (CAP-4 at registration, `inconsistent-tool-names`); schema (`undocumented-parameter`, `free-form-input`, `unpaginated-list`); descriptions (CAP-5); budget overrides (BUD-4); policy and safety (`input-after-effect`, `elicit-in-write`, `destructive-without-policy`, `stdio-skips-policy`). Every rule has a page in `docs/rules/`, and the examples and the `init` scaffold are lint-clean (tested)** |
+| DX-4 | A context view MUST show exactly what the model received for each definition and result, with token counts | P0 (terminal), P1 (web) | Matches serialized payload. **Done: terminal `context` and `context --call` ([proposal 0018](proposals/0018-trace-viewer.md)); `context --html` page with every definition as received, its token breakdown and call results ([proposal 0024](proposals/0024-context-and-audit-pages.md))** |
 | DX-5 | A trace view MUST show latency, retries, errors, truncation decisions, and policy outcomes per call | P1 | Trace export as OpenTelemetry. **Done: `OTelSink` and `ouncemcp trace` HTML report ([proposal 0018](proposals/0018-trace-viewer.md))** |
 | DX-6 | Every lint and error MUST link to a documentation page explaining cause and fix | P0 | Link check in CI. **Done in M1: `_meta.ouncemcp.docs` on errors, a page per category and rule, and `tests/test_dx6_doc_links.py` checks pages, codes and relative links** |
 | DX-7 | A migration guide MUST convert an existing FastMCP server in small steps | P0 | Pilot migrations (section 15). **Done in M2 ([proposal 0015](proposals/0015-migration-and-audit.md)): `OunceServer.wrap` and `docs/guides/migrating-from-fastmcp.md`, worked on markitdown-mcp** |
@@ -343,9 +343,9 @@ Budgets are declared per server and per tool. The defaults below are **proposed 
 
 | ID | Requirement | Priority | Acceptance criteria |
 | --- | --- | --- | --- |
-| EVAL-1 | MUST run the official conformance suite for declared revisions ([conformance](https://github.com/modelcontextprotocol/conformance)) | P0 | CI job. **Done in M1, not yet gating: `ouncemcp.eval.conformance` target and `.github/workflows/conformance.yml` (suite 0.2.0-alpha.12, revision 2026-07-28); the baseline needs confirming on the first CI run** |
+| EVAL-1 | MUST run the official conformance suite for declared revisions ([conformance](https://github.com/modelcontextprotocol/conformance)) | P0 | CI job. **Done: `ouncemcp.eval.conformance` target and `.github/workflows/conformance.yml` (suite 0.2.0-alpha.12, revision 2026-07-28); baseline confirmed by CI (36 passed, 5 expected failures) and the job gates since M4 (no `continue-on-error`)** |
 | EVAL-2 | MUST provide security tests: cross-tenant access, guessed names and handles, replay, SSRF, token passthrough | P0 | Test catalog. **Done in M1: `ouncemcp.eval.security` with six probe types and automatic guessed-name probes** |
-| EVAL-3 | MUST run agent task suites defined in YAML with verifiable outcomes | P1 | Example suite per pilot. **Done with the replay model: `examples/inventory/eval.yaml`, `examples/ticketing/eval.yaml` ([proposal 0019](proposals/0019-eval-kit.md)); real-model adapters await API keys** |
+| EVAL-3 | MUST run agent task suites defined in YAML with verifiable outcomes | P1 | Example suite per pilot. **Done: replay model ([proposal 0019](proposals/0019-eval-kit.md)) and real models through OpenRouter with a spending cap ([proposal 0026](proposals/0026-real-model-evals.md)); suites for the inventory and ticketing pilots, both run against a real model** |
 | EVAL-4 | MUST report task success, correct tool selection, argument validity, calls per task, turns, tokens, latency, and errors, as Anthropic recommends measuring ([Anthropic tool guidance](https://www.anthropic.com/research/writing-tools-for-agents)) | P1 | Report fields. **Done ([proposal 0019](proposals/0019-eval-kit.md))** |
 | EVAL-5 | MUST record model, host, tokenizer, server version, and environment with every result | P1 | Report header. **Done** |
 | EVAL-6 | MUST support held-out tasks to detect overfitting of descriptions | P1 | Split configuration. **Done: `split: heldout` and the train minus held-out gap** |
@@ -366,7 +366,7 @@ The audit command is an **optional** feature of the CLI. It is never required to
 | AUD-7 | SHOULD sample responses from read-only tools using user-supplied or generated safe arguments, reporting median and p95 result tokens | P2 | Runs only tools the user marks safe or annotated read-only, and asks before calling. **Done in M2 ([proposal 0015](proposals/0015-migration-and-audit.md))** |
 | AUD-8 | SHOULD measure discovery and call latency (p50, p95) and connection failures | P2 | Latency reported with environment details. **Done in M2: connect time and `tools/list` p50/p95; connection failures reported** |
 | AUD-9 | MUST recommend a discovery mode and estimate its startup cost | P1 | Recommendation follows rules in section 8.1.3. **Done in M2 ([proposal 0015](proposals/0015-migration-and-audit.md))** |
-| AUD-10 | MUST output terminal summary, JSON, Markdown, and HTML reports | P1 (JSON, terminal), P2 (HTML) | JSON validates against a published schema. **Terminal, JSON and Markdown done in M2; HTML (P2) open** |
+| AUD-10 | MUST output terminal summary, JSON, Markdown, and HTML reports | P1 (JSON, terminal), P2 (HTML) | JSON validates against a published schema. **Done: terminal, JSON and Markdown in M2; HTML (`audit --html`) in M4 ([proposal 0024](proposals/0024-context-and-audit-pages.md))** |
 | AUD-11 | MUST support `--budget` thresholds and non-zero exit on failure for CI | P1 | Exit code tests. **Done in M2 ([proposal 0015](proposals/0015-migration-and-audit.md))** |
 | AUD-12 | MUST never call tools without explicit permission except discovery methods | P1 | Default run makes only list and discover calls. **Done in M2 ([proposal 0015](proposals/0015-migration-and-audit.md))** |
 | AUD-13 | SHOULD compare two reports and show regressions | P2 | `ouncemcp audit --compare old.json`. **Done in M2: `--compare`, `--fail-on-regression`** |
@@ -403,7 +403,7 @@ Protocol overhead is small, so performance targets focus on tokens and turns fir
 | PERF-3 | Token counting at startup for 500 tools | Under 2 seconds |
 | PERF-4 | Optional audit of a 100-tool server, discovery only | Under 10 seconds on a normal network |
 | PERF-5 | Startup context in `search` mode | Under 400 tokens |
-| PERF-6 | Benchmark target versus naive equivalent | At least 70% fewer startup tokens and fewer total task tokens with no drop in task success |
+| PERF-6 | Benchmark target versus naive equivalent | At least 70% fewer startup tokens and fewer total task tokens with no drop in task success. **First benchmark (M3, [results](https://github.com/subbusainath/ouncemcp/blob/main/benchmarks/results/m3-bench.md)): met for 0 of 8 pairs. Success never dropped (100% against 68–100%) and inventory task tokens fell 58–85%, but on 2–4 tool servers definitions are 77–139% larger and ticketing tasks cost 17–40% more. A revision is proposed in [proposal 0027](proposals/0027-benchmark.md), for the owner to decide** |
 | PERF-7 | Added overhead when a 50-item result is truncated | p50 under 1 ms (M0 measured 1.44 ms). **Met in M1: 0.70 ms p50, 0.80 ms p95** |
 
 M0 measured PERF-1 at +0.14 to +0.44 ms p50 for untruncated results and +1.44 ms p50 when truncating, on Python 3.12, x86_64, 2 vCPUs ([M0 report](m0-report.md)).
@@ -812,7 +812,7 @@ These were measured on Python 3.12.15, x86_64, 2 vCPU.
 
 #### Next tasks, in order
 
-1. **Conformance job:** make it required in CI (remove `continue-on-error`); its first run passed.
+1. **Conformance job:** done; it gates since M4. Ask the owner to mark it as a required check in the branch protection settings.
 2. **Record host versions** for Claude Desktop and Cursor in `docs/compatibility.md`.
 3. **Host verification follow-ups:** Claude Desktop and Cursor pass (owner, 12 November 2026). Record their versions, run VS Code and the Claude mobile app (remote MCP over HTTPS), and do the BUD-7 host study (which definition fields reach the model), all in `docs/compatibility.md`.
 4. **DX-8 and the inventory pilot** with real data, once people and credentials are available.
@@ -851,8 +851,8 @@ Status as of 12 November 2026. M1 ([PR #13](https://github.com/subbusainath/ounc
 | **M0: Core spike** | **Complete**; host verification done in M1 (Claude Desktop, Cursor) | Core, budgets, shaping, token counting, `check` and `context`, inventory example, overhead measured |
 | **M1: Framework 0.1** | **Merged; host verification passed** | Open: DX-8 user testing and the inventory pilot with real data |
 | **M2: Framework 0.2** | **Complete** ([PR #14](https://github.com/subbusainath/ouncemcp/pull/14)); exit criteria and gates 1 to 5 met | Store and idempotency, safe writes, handles and jobs, resources and prompts, migration adapter and guide, `audit`, client broker, `ouncemcp.toml`, health and metrics, description lints; ticketing, report and markitdown-mcp pilots |
-| **M3: Eval and benchmark 0.5** | Not started | Agent task suites, `bench`, trace viewer, published benchmark, public launch |
-| **M4: 1.0** | Not started | Remaining P1 work, external security review, host matrix, stable API |
+| **M3: Eval and benchmark 0.5** | **In progress**: trace viewer, OpenTelemetry, task suites and report UI merged ([PR #16](https://github.com/subbusainath/ouncemcp/pull/16)); real models through OpenRouter, `ouncemcp bench` and the first benchmark (four models, 840 runs) on branch `claude/loving-shannon-gm4zxr` (proposals 0026, 0027) | Open: decide the PERF-6 revision; open-source servers in the benchmark; desktop hosts; public launch |
+| **M4: 1.0** | **In progress**: P1 work that needs no people or keys built on branch `claude/loving-shannon-gm4zxr` (proposals 0021 to 0025) | Open: external security review, host matrix, accuracy gate (needs real-model runs), API freeze |
 | **Post-1.0** | Not started | TypeScript port, `code` discovery mode, more idempotency backends, `npx` audit wrapper |
 
 #### Completed
@@ -876,18 +876,15 @@ Status as of 12 November 2026. M1 ([PR #13](https://github.com/subbusainath/ounc
 | Migration, `audit`, URL checks, markitdown-mcp pilot | DX-7, AUD-1 to AUD-13 (HTML excepted), part of SEC-9 | Branch ([proposal 0015](proposals/0015-migration-and-audit.md)) |
 | Client broker | CLI-1 to CLI-8 | Branch ([proposal 0016](proposals/0016-client-broker.md)) |
 | Configuration, health and readiness, metrics, description lints | Spec 9.2, 9.4, CAP-5 | Branch ([proposal 0017](proposals/0017-operations.md)) |
+| Trace viewer, OpenTelemetry, task suites with the replay model, report UI | DX-4 (results view), DX-5, EVAL-3 to EVAL-7 (replay model), DISC-6 | [PR #16](https://github.com/subbusainath/ouncemcp/pull/16) |
+| Budget overrides, handler hints, parallel-safe marks, safe fetch, schema lints, context and audit pages, OAuth, conformance gating | BUD-4, RES-11, EXE-5, SEC-9, DX-3, DX-4 (web), AUD-10 (HTML), SEC-10, EVAL-1 (gating) | Branch `claude/loving-shannon-gm4zxr` (proposals 0021 to 0025) |
 
 #### Partly done
 
 | Requirement | Done | Still open |
 | --- | --- | --- |
-| EVAL-1 | Conformance target and CI workflow; the first run passed (36 checks, 5 expected failures) | Make the job required (remove `continue-on-error`) |
-| SEC-9 (P1) | `check_url` for private, loopback, link-local and metadata targets | Connections pinned to the checked address; redirect checks |
-| AUD-10 | Terminal, JSON, Markdown | HTML (P2) |
-| DISC-6 (search recall) | `measure_recall`, `RecallCase` and `RecallReport` | Recall in eval output (M3) |
 | BUD-7 (per-host data, P1) | Declared counting scope | Host study in real hosts; decide the output-schema default |
 | BUD-6 (P1 part) | tiktoken encodings and callables | Provider counting adapters |
-| DX-4 (context view) | `ouncemcp context` for definitions; per-call result tokens in `dev` | Results view in `context`; the web view is P1 |
 | Section 16.3 docs | Quickstart, concepts, guides (including migration, safe writes, deployment, the broker), references | API reference generated from code; publishing the site |
 | Jobs | Background jobs with leases; `interrupted` after a restart | Resuming interrupted jobs; mapping onto the MCP tasks extension |
 
@@ -903,12 +900,9 @@ Status as of 12 November 2026. M1 ([PR #13](https://github.com/subbusainath/ounc
 
 | Group | Requirements |
 | --- | --- |
-| Budgets | BUD-4 (per-tool overrides with justification) |
-| Results | RES-11 (skip work for unreturned fields) |
-| Execution | EXE-5 (parallel-safe marks) |
-| Security | SEC-9 (rest), SEC-10 (maintained OAuth integrations) |
-| Developer experience | DX-5 (trace view, M3) |
-| Eval | EVAL-3 to EVAL-7 (M3) |
+| Eval | Release gate 6 with paid models (OpenRouter account needs credits; free models are limited to about 50 requests a day) |
+| Benchmark | Open-source servers (10–20), desktop hosts, larger catalogs; the PERF-6 decision (proposal 0027) |
+| Tokenizers | BUD-6 provider counting adapters (need API keys) |
 | Discovery | DISC-8 (`code` mode, post-1.0) |
 
 ---

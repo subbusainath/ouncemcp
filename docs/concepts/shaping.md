@@ -1,6 +1,12 @@
 # Response shaping
 
 - **Concise by default.** Fields marked `Detail` are returned only with `response_format="detailed"` (RES-1).
+- **Skip work that will not be returned (RES-11).** `ctx.includes("metrics")` says whether a field is returned in this call, `ctx.detailed` whether the caller asked for detail, and `ctx.result_budget` how many tokens the result may use. `inventory.get` only fetches metrics for detailed calls:
+
+    ```python
+    if ctx.includes("metrics"):
+        detail.metrics = metrics_for(id)
+    ```
 - **Only declared fields.** Results contain exactly the output model's fields; upstream extras are dropped (RES-6).
 - **Structured and text.** Results carry `structuredContent` and a compact text rendering (RES-7).
 - **Pagination without gaps.** Mark the list `Paginated` and the cursor field `Cursor`, and page with `ctx.page(rows, cursor=..., limit=...)`. If shaping trims the page, `next_cursor` moves to resume after the last item returned (RES-9).

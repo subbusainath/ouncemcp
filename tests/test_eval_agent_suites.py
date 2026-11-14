@@ -177,3 +177,12 @@ def test_eval_command(tmp_path: Path, capsys):
         main(["eval", str(INVENTORY), "--repeats", "1", "--server", plain, "--allow-failures"]) == 0
     )
     assert main(["eval", str(tmp_path / "none.yaml")]) == 2
+
+
+def test_answer_checks_ignore_typographic_quotes():
+    from ouncemcp.eval.agent.runner import RunRecord, _evaluate
+    from ouncemcp.eval.agent.suite import Check
+
+    run = RunRecord("t", "train", 0, final_text="I couldn’t find vm‑99999.")
+    check = Check("answer", any_of=("couldn't find",), contains=("vm-99999",))
+    assert _evaluate(check, run, None)

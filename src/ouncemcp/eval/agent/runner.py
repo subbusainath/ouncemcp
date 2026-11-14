@@ -52,6 +52,7 @@ class RunRecord:
     definition_tokens: int = 0
     latency_ms: float = 0.0
     harness_error: str | None = None
+    cost_usd: float | None = None  # reported by the model's provider, when it has one
 
     @property
     def success(self) -> bool:
@@ -116,6 +117,16 @@ def _open(target: str, task: Task) -> tuple[Client, Any]:
     return Client(getattr(server, "fastmcp", server), **kwargs), server
 
 
+_TYPOGRAPHIC = str.maketrans(
+    {"\u2019": "'", "\u2018": "'", "\u201c": '"', "\u201d": '"', "\u2011": "-", "\u2013": "-"}
+)
+
+
+def _plain(text: str) -> str:
+    """Lower case with typographic quotes and dashes made plain, for answer checks."""
+    return text.translate(_TYPOGRAPHIC).lower()
+
+
 def _evaluate(check: Check, run: RunRecord, server: Any) -> bool:
     calls = [c for c in run.calls if c.tool == check.tool]
     if check.kind == "called":
@@ -146,6 +157,13 @@ def _evaluate(check: Check, run: RunRecord, server: Any) -> bool:
         if isinstance(value, (list, str)):
             return check.contains in value
         return False
+    if check.kind == "answer":
+        text = _plain(run.final_text)
+        return (
+            all(_plain(t) in text for t in check.contains or ())
+            and (not check.any_of or any(_plain(t) in text for t in check.any_of))
+            and not any(_plain(t) in text for t in check.not_contains)
+        )
     if check.kind == "state":
         assert check.function is not None
         try:
@@ -257,18 +275,42 @@ async def run_suite(
     split: str = "all",
     server: str | None = None,
     tokenizer: str | TokenCounter | None = None,
+    tool_map: Mapping[str, str] | None = None,
 ) -> Any:
-    """Run ``suite`` and return an ``EvalReport``. ``server`` overrides the suite's."""
+    """Run ``suite`` and return an ``EvalReport``. ``server`` overrides the suite's.
+
+    ``tool_map`` renames the suite's tools for a server that names them differently
+    (``{"inventory.search": "search_resources"}``), so one suite can compare servers."""
     from ouncemcp.eval.agent.report import EvalReport, environment
 
     target = server or suite.server
     model = model or ReplayModel(suite.scripts())
     counter = get_counter(tokenizer) if tokenizer is not None else _server_counter(target)
     runs: list[RunRecord] = []
-    tasks = suite.select(split)
+    tasks = (
+        tuple(map_tools(t, tool_map) for t in suite.select(split))
+        if tool_map
+        else suite.select(split)
+    )
+    notes: list[str] = []
     for task in tasks:
         for repeat in range(repeats or suite.repeats):
-            runs.append(await run_task(task, repeat, model, target, counter))
+            if getattr(model, "exhausted", False):
+                break
+            spent = getattr(model, "spent_usd", None)
+            run = await run_task(task, repeat, model, target, counter)
+            if spent is not None:
+                run.cost_usd = round(float(getattr(model, "spent_usd", 0.0)) - spent, 6)
+            if (run.harness_error or "").startswith(("SpendingLimitReached", "QuotaExhausted")):
+                notes.append(f"Run {task.id}#{repeat} was cut off by the limit and left out.")
+                continue
+            runs.append(run)
+        if getattr(model, "exhausted", False):
+            reason = getattr(model, "quota_reason", None) or (
+                f"the spending limit (${getattr(model, 'max_cost_usd', 0):.2f}) was reached"
+            )
+            notes.append(f"Stopped early: {reason}; later runs were not started.")
+            break
     recall = await _recall(suite, target)
     return EvalReport(
         suite=suite.name,
@@ -280,7 +322,34 @@ async def run_suite(
         tasks={t.id: t for t in tasks},
         runs=runs,
         recall=recall,
+        notes=notes,
+        usage=_usage(model),
     )
+
+
+def map_tools(task: Task, tool_map: Mapping[str, str]) -> Task:
+    """``task`` with its tool names renamed for another server."""
+    from dataclasses import replace
+
+    def rename(name: str | None) -> str | None:
+        return tool_map.get(name, name) if name else name
+
+    return replace(
+        task,
+        expect_tools=tuple(tool_map.get(t, t) for t in task.expect_tools),
+        checks=tuple(replace(c, tool=rename(c.tool)) for c in task.checks),
+    )
+
+
+def _usage(model: Model) -> dict[str, Any] | None:
+    if not hasattr(model, "spent_usd"):
+        return None
+    return {
+        "cost_usd": round(float(model.spent_usd), 6),
+        "max_cost_usd": getattr(model, "max_cost_usd", None),
+        "requests": getattr(model, "requests", None),
+        "served_by": dict(getattr(model, "served_by", {}) or {}),
+    }
 
 
 def _server_counter(target: str) -> TokenCounter:

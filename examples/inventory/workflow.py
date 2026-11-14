@@ -61,8 +61,8 @@ class RegionReview(BaseModel):
 
 class CostReview(BaseModel):
     total_cost_per_month: float
-    regions: list[RegionReview]
-    costliest: list[Costly]
+    regions: list[RegionReview] = Field(max_length=10)  # bounded by ReviewInput.regions
+    costliest: list[Costly] = Field(max_length=10)  # bounded by ReviewInput.top
 
 
 @server.tool(name="inventory.cost_review", effect=Effect.READ, deadline_ms=10_000)

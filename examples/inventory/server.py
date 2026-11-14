@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from data import BY_ID, RESOURCES
+from data import BY_ID, RESOURCES, metrics_for
 from pydantic import BaseModel, Field
 
 from ouncemcp import Cursor, Detail, Effect, NotFound, OunceServer, Paginated, ToolContext
@@ -62,7 +62,8 @@ class ResourceDetail(BaseModel):
 @server.tool(name="inventory.search", effect=Effect.READ, deadline_ms=5_000)
 async def search(args: SearchInput, ctx: ToolContext) -> SearchResult:
     """Find cloud resources in a region, optionally filtered by kind and status.
-    Use inventory.get for full details of one resource."""
+    Use response_format=detailed for monthly cost and tags of every result, and
+    inventory.get for config and metrics of one resource."""
     rows = [
         r
         for r in RESOURCES
@@ -81,12 +82,19 @@ async def search(args: SearchInput, ctx: ToolContext) -> SearchResult:
 
 
 @server.tool(name="inventory.get", effect=Effect.READ, deadline_ms=5_000)
-async def get(id: str = Field(description="Resource id from inventory.search")) -> ResourceDetail:
+async def get(
+    ctx: ToolContext, id: str = Field(description="Resource id from inventory.search")
+) -> ResourceDetail:
     """Get one resource. Use response_format=detailed for config and metrics."""
     row = BY_ID.get(id)
     if row is None:
         raise NotFound(f"No resource with id '{id}'.", hint="Use inventory.search to find ids.")
-    return ResourceDetail(**row)
+    detail = ResourceDetail(**{k: v for k, v in row.items() if k != "metrics"})
+    # Metrics are a Detail field, so concise results never return them: skip the slow
+    # monitoring lookup unless the caller asked for them (spec RES-11).
+    if ctx.includes("metrics"):
+        detail.metrics = metrics_for(id)
+    return detail
 
 
 if __name__ == "__main__":

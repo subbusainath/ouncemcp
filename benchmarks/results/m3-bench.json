@@ -1,0 +1,4931 @@
+{
+  "report_version": 1,
+  "name": "ouncemcp-m3",
+  "header": {
+    "models": [
+      "anthropic/claude-haiku-5.5",
+      "anthropic/claude-sonnet-5.5",
+      "openai/gpt-5.4-mini",
+      "deepseek/deepseek-v4.1-flash"
+    ],
+    "repeats": 5,
+    "candidate": "ounce",
+    "baseline": "plain",
+    "suites": {
+      "inventory-bench": "e17ace8a367e",
+      "ticketing-bench": "6088c956792d"
+    },
+    "host": "ouncemcp eval (in-process)",
+    "ouncemcp": "0.0.1.dev0",
+    "fastmcp": "4.1.6",
+    "python": "3.13.18",
+    "platform": "Linux-6.18.44-fc-v470-x86_64-with-glibc2.39",
+    "time": "2026-11-14T11:36:15Z",
+    "commit": "580eb9a"
+  },
+  "usage": {
+    "cost_usd": 2.191189,
+    "max_cost_usd": 2.31,
+    "notes": []
+  },
+  "perf6": {
+    "target": "at least 70% fewer startup tokens, fewer task tokens, no drop in task success",
+    "pairs": 8,
+    "met": 0
+  },
+  "comparisons": [
+    {
+      "suite": "inventory-bench",
+      "model": "anthropic/claude-haiku-5.5",
+      "startup_tokens": {
+        "candidate": 584.0,
+        "baseline": 244.0,
+        "change": 1.3934
+      },
+      "tokens_per_task": {
+        "candidate": 2855.05,
+        "baseline": 6772.44,
+        "change": -0.5784
+      },
+      "success_rate": {
+        "candidate": 1.0,
+        "baseline": 1.0,
+        "change": 0.0
+      },
+      "calls_per_task": {
+        "candidate": 1.0,
+        "baseline": 1.0
+      },
+      "turns_per_task": {
+        "candidate": 2.0,
+        "baseline": 2.0
+      },
+      "latency_ms_p50": {
+        "candidate": 2172.4,
+        "baseline": 2181.1
+      },
+      "cost_usd_per_task": {
+        "candidate": 0.000389,
+        "baseline": 0.000775
+      },
+      "perf6": {
+        "startup_reduction_ok": false,
+        "task_tokens_ok": true,
+        "success_ok": true,
+        "met": false
+      }
+    },
+    {
+      "suite": "inventory-bench",
+      "model": "anthropic/claude-sonnet-5.5",
+      "startup_tokens": {
+        "candidate": 584.0,
+        "baseline": 244.0,
+        "change": 1.3934
+      },
+      "tokens_per_task": {
+        "candidate": 2779.4,
+        "baseline": 6758.58,
+        "change": -0.5888
+      },
+      "success_rate": {
+        "candidate": 1.0,
+        "baseline": 1.0,
+        "change": 0.0
+      },
+      "calls_per_task": {
+        "candidate": 1.0,
+        "baseline": 1.0
+      },
+      "turns_per_task": {
+        "candidate": 2.0,
+        "baseline": 2.0
+      },
+      "latency_ms_p50": {
+        "candidate": 2313.2,
+        "baseline": 2672.6
+      },
+      "cost_usd_per_task": {
+        "candidate": 0.007026,
+        "baseline": 0.015367
+      },
+      "perf6": {
+        "startup_reduction_ok": false,
+        "task_tokens_ok": true,
+        "success_ok": true,
+        "met": false
+      }
+    },
+    {
+      "suite": "inventory-bench",
+      "model": "openai/gpt-5.4-mini",
+      "startup_tokens": {
+        "candidate": 584.0,
+        "baseline": 244.0,
+        "change": 1.3934
+      },
+      "tokens_per_task": {
+        "candidate": 1316.44,
+        "baseline": 4176.85,
+        "change": -0.6848
+      },
+      "success_rate": {
+        "candidate": 1.0,
+        "baseline": 0.745,
+        "change": 0.255
+      },
+      "calls_per_task": {
+        "candidate": 1.0,
+        "baseline": 1.0
+      },
+      "turns_per_task": {
+        "candidate": 2.0,
+        "baseline": 2.0
+      },
+      "latency_ms_p50": {
+        "candidate": 1828.1,
+        "baseline": 2016.9
+      },
+      "cost_usd_per_task": {
+        "candidate": 0.000921,
+        "baseline": 0.000997
+      },
+      "perf6": {
+        "startup_reduction_ok": false,
+        "task_tokens_ok": true,
+        "success_ok": true,
+        "met": false
+      }
+    },
+    {
+      "suite": "inventory-bench",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "startup_tokens": {
+        "candidate": 584.0,
+        "baseline": 244.0,
+        "change": 1.3934
+      },
+      "tokens_per_task": {
+        "candidate": 2853.82,
+        "baseline": 18810.87,
+        "change": -0.8483
+      },
+      "success_rate": {
+        "candidate": 1.0,
+        "baseline": 1.0,
+        "change": 0.0
+      },
+      "calls_per_task": {
+        "candidate": 1.29,
+        "baseline": 1.58
+      },
+      "turns_per_task": {
+        "candidate": 2.29,
+        "baseline": 2.33
+      },
+      "latency_ms_p50": {
+        "candidate": 2128.5,
+        "baseline": 2482.5
+      },
+      "cost_usd_per_task": {
+        "candidate": 0.000347,
+        "baseline": 0.001595
+      },
+      "perf6": {
+        "startup_reduction_ok": false,
+        "task_tokens_ok": true,
+        "success_ok": true,
+        "met": false
+      }
+    },
+    {
+      "suite": "ticketing-bench",
+      "model": "anthropic/claude-haiku-5.5",
+      "startup_tokens": {
+        "candidate": 648.6,
+        "baseline": 366.0,
+        "change": 0.7721
+      },
+      "tokens_per_task": {
+        "candidate": 2646.08,
+        "baseline": 1963.92,
+        "change": 0.3473
+      },
+      "success_rate": {
+        "candidate": 1.0,
+        "baseline": 0.7,
+        "change": 0.3
+      },
+      "calls_per_task": {
+        "candidate": 1.26,
+        "baseline": 1.1
+      },
+      "turns_per_task": {
+        "candidate": 2.26,
+        "baseline": 2.1
+      },
+      "latency_ms_p50": {
+        "candidate": 2227.9,
+        "baseline": 1730.5
+      },
+      "cost_usd_per_task": {
+        "candidate": 0.000362,
+        "baseline": 0.000252
+      },
+      "perf6": {
+        "startup_reduction_ok": false,
+        "task_tokens_ok": false,
+        "success_ok": true,
+        "met": false
+      }
+    },
+    {
+      "suite": "ticketing-bench",
+      "model": "anthropic/claude-sonnet-5.5",
+      "startup_tokens": {
+        "candidate": 648.6,
+        "baseline": 366.0,
+        "change": 0.7721
+      },
+      "tokens_per_task": {
+        "candidate": 2476.14,
+        "baseline": 2066.18,
+        "change": 0.1984
+      },
+      "success_rate": {
+        "candidate": 1.0,
+        "baseline": 0.68,
+        "change": 0.32
+      },
+      "calls_per_task": {
+        "candidate": 1.2,
+        "baseline": 1.2
+      },
+      "turns_per_task": {
+        "candidate": 2.2,
+        "baseline": 2.2
+      },
+      "latency_ms_p50": {
+        "candidate": 2196.7,
+        "baseline": 1951.4
+      },
+      "cost_usd_per_task": {
+        "candidate": 0.006132,
+        "baseline": 0.005081
+      },
+      "perf6": {
+        "startup_reduction_ok": false,
+        "task_tokens_ok": false,
+        "success_ok": true,
+        "met": false
+      }
+    },
+    {
+      "suite": "ticketing-bench",
+      "model": "openai/gpt-5.4-mini",
+      "startup_tokens": {
+        "candidate": 648.6,
+        "baseline": 366.0,
+        "change": 0.7721
+      },
+      "tokens_per_task": {
+        "candidate": 832.34,
+        "baseline": 592.58,
+        "change": 0.4046
+      },
+      "success_rate": {
+        "candidate": 1.0,
+        "baseline": 0.7,
+        "change": 0.3
+      },
+      "calls_per_task": {
+        "candidate": 1.02,
+        "baseline": 1.08
+      },
+      "turns_per_task": {
+        "candidate": 2.02,
+        "baseline": 2.08
+      },
+      "latency_ms_p50": {
+        "candidate": 1948.5,
+        "baseline": 1999.9
+      },
+      "cost_usd_per_task": {
+        "candidate": 0.000818,
+        "baseline": 0.00059
+      },
+      "perf6": {
+        "startup_reduction_ok": false,
+        "task_tokens_ok": false,
+        "success_ok": true,
+        "met": false
+      }
+    },
+    {
+      "suite": "ticketing-bench",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "startup_tokens": {
+        "candidate": 648.6,
+        "baseline": 366.0,
+        "change": 0.7721
+      },
+      "tokens_per_task": {
+        "candidate": 2277.26,
+        "baseline": 1940.74,
+        "change": 0.1734
+      },
+      "success_rate": {
+        "candidate": 1.0,
+        "baseline": 0.68,
+        "change": 0.32
+      },
+      "calls_per_task": {
+        "candidate": 1.6,
+        "baseline": 1.58
+      },
+      "turns_per_task": {
+        "candidate": 2.44,
+        "baseline": 2.52
+      },
+      "latency_ms_p50": {
+        "candidate": 2358.4,
+        "baseline": 2087.1
+      },
+      "cost_usd_per_task": {
+        "candidate": 0.000237,
+        "baseline": 0.000192
+      },
+      "perf6": {
+        "startup_reduction_ok": false,
+        "task_tokens_ok": false,
+        "success_ok": true,
+        "met": false
+      }
+    }
+  ],
+  "results": [
+    {
+      "suite": "inventory-bench",
+      "model": "anthropic/claude-haiku-5.5",
+      "condition": "ounce",
+      "report": {
+        "report_version": 1,
+        "header": {
+          "suite": "inventory-bench",
+          "suite_digest": "e17ace8a367e",
+          "model": "openrouter:anthropic/claude-haiku-5.5",
+          "target": "/home/user/ouncemcp/examples/inventory/server.py",
+          "tokenizer": "o200k_base",
+          "host": "ouncemcp eval (in-process)",
+          "ouncemcp": "0.0.1.dev0",
+          "fastmcp": "4.1.6",
+          "python": "3.13.18",
+          "platform": "Linux-6.18.44-fc-v470-x86_64-with-glibc2.39",
+          "server_commit": "580eb9a",
+          "time": "2026-11-14T11:33:30Z"
+        },
+        "splits": {
+          "all": {
+            "runs": 55,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2855.05,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2172.4,
+            "latency_ms_p95": 3155.2,
+            "errors": {
+              "not_found": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000389
+          },
+          "train": {
+            "runs": 40,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2798.57,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2205.7,
+            "latency_ms_p95": 3399.5,
+            "errors": {
+              "not_found": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000385
+          },
+          "heldout": {
+            "runs": 15,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 3005.67,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2040.0,
+            "latency_ms_p95": 2739.2,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000402
+          }
+        },
+        "train_heldout_gap": 0.0,
+        "tasks": {
+          "running-vms": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2468.0,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 1939.8,
+            "latency_ms_p95": 2464.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000314,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "vm-owner": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2412.8,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2172.4,
+            "latency_ms_p95": 2427.8,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000324,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "vm-instance-type": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2366.6,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 1901.9,
+            "latency_ms_p95": 1990.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000301,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "databases-us-east": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2821.0,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2225.5,
+            "latency_ms_p95": 2616.3,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000399,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "degraded-eu-west": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 3225.4,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 3155.2,
+            "latency_ms_p95": 4088.3,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000489,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "stopped-ap-southeast": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2900.2,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2565.1,
+            "latency_ms_p95": 2852.4,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000436,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "costliest-function": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 4239.0,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2265.0,
+            "latency_ms_p95": 2335.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000548,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "unknown-id": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1955.6,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2226.3,
+            "latency_ms_p95": 2470.2,
+            "errors": {
+              "not_found": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000266,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "degraded-lbs": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2282.0,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2010.1,
+            "latency_ms_p95": 2053.9,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000319,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "costliest-vm": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 4337.0,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2523.3,
+            "latency_ms_p95": 2739.2,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000576,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "vm-cpu": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2398.0,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 1956.9,
+            "latency_ms_p95": 2137.2,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.00031,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          }
+        },
+        "recall": null,
+        "usage": {
+          "cost_usd": 0.021412,
+          "max_cost_usd": 2.31,
+          "requests": 110,
+          "served_by": {
+            "anthropic/claude-haiku-5.5": 110
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "suite": "inventory-bench",
+      "model": "anthropic/claude-haiku-5.5",
+      "condition": "plain",
+      "report": {
+        "report_version": 1,
+        "header": {
+          "suite": "inventory-bench",
+          "suite_digest": "e17ace8a367e",
+          "model": "openrouter:anthropic/claude-haiku-5.5",
+          "target": "/home/user/ouncemcp/examples/inventory/plain_server.py:mcp",
+          "tokenizer": "o200k_base",
+          "host": "ouncemcp eval (in-process)",
+          "ouncemcp": "0.0.1.dev0",
+          "fastmcp": "4.1.6",
+          "python": "3.13.18",
+          "platform": "Linux-6.18.44-fc-v470-x86_64-with-glibc2.39",
+          "server_commit": "580eb9a",
+          "time": "2026-11-14T11:33:27Z"
+        },
+        "splits": {
+          "all": {
+            "runs": 55,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 6772.44,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2181.1,
+            "latency_ms_p95": 2966.4,
+            "errors": {
+              "unknown": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000775
+          },
+          "train": {
+            "runs": 40,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 7152.1,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2075.2,
+            "latency_ms_p95": 2857.0,
+            "errors": {
+              "unknown": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000801
+          },
+          "heldout": {
+            "runs": 15,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 5760.0,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2605.1,
+            "latency_ms_p95": 3111.1,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000706
+          }
+        },
+        "train_heldout_gap": 0.0,
+        "tasks": {
+          "running-vms": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 7202.6,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2232.2,
+            "latency_ms_p95": 2764.8,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000811,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "vm-owner": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1912.0,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 1769.6,
+            "latency_ms_p95": 1827.8,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000237,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "vm-instance-type": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1880.0,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 1725.8,
+            "latency_ms_p95": 1752.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000222,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "databases-us-east": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 10742.2,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2320.0,
+            "latency_ms_p95": 2617.4,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.001178,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "degraded-eu-west": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 12833.4,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2104.4,
+            "latency_ms_p95": 2282.1,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.001383,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "stopped-ap-southeast": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 10035.2,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 1875.1,
+            "latency_ms_p95": 2135.8,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.001093,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "costliest-function": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 11130.2,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2823.4,
+            "latency_ms_p95": 3059.8,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.001283,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "unknown-id": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1481.2,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 1910.9,
+            "latency_ms_p95": 2181.1,
+            "errors": {
+              "unknown": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000205,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "degraded-lbs": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 4302.6,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2943.9,
+            "latency_ms_p95": 2966.4,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000634,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "costliest-vm": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 11028.2,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2605.1,
+            "latency_ms_p95": 3111.1,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.001234,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "vm-cpu": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1949.2,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 1724.8,
+            "latency_ms_p95": 1987.1,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000249,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          }
+        },
+        "recall": null,
+        "usage": {
+          "cost_usd": 0.04264,
+          "max_cost_usd": 2.31,
+          "requests": 110,
+          "served_by": {
+            "anthropic/claude-haiku-5.5": 110
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "suite": "inventory-bench",
+      "model": "anthropic/claude-sonnet-5.5",
+      "condition": "ounce",
+      "report": {
+        "report_version": 1,
+        "header": {
+          "suite": "inventory-bench",
+          "suite_digest": "e17ace8a367e",
+          "model": "openrouter:anthropic/claude-sonnet-5.5",
+          "target": "/home/user/ouncemcp/examples/inventory/server.py",
+          "tokenizer": "o200k_base",
+          "host": "ouncemcp eval (in-process)",
+          "ouncemcp": "0.0.1.dev0",
+          "fastmcp": "4.1.6",
+          "python": "3.13.18",
+          "platform": "Linux-6.18.44-fc-v470-x86_64-with-glibc2.39",
+          "server_commit": "580eb9a",
+          "time": "2026-11-14T11:33:36Z"
+        },
+        "splits": {
+          "all": {
+            "runs": 55,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2779.4,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2313.2,
+            "latency_ms_p95": 2998.4,
+            "errors": {
+              "not_found": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.007026
+          },
+          "train": {
+            "runs": 40,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2710.93,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2282.4,
+            "latency_ms_p95": 2849.3,
+            "errors": {
+              "not_found": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.00681
+          },
+          "heldout": {
+            "runs": 15,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2962.0,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2402.1,
+            "latency_ms_p95": 3179.0,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.007601
+          }
+        },
+        "train_heldout_gap": 0.0,
+        "tasks": {
+          "running-vms": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2441.0,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2116.5,
+            "latency_ms_p95": 2630.0,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.006002,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "vm-owner": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2353.4,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2261.9,
+            "latency_ms_p95": 2597.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.005886,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "vm-instance-type": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2329.4,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2044.3,
+            "latency_ms_p95": 2109.3,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.005662,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "databases-us-east": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2673.4,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 1972.9,
+            "latency_ms_p95": 2559.9,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.006502,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "degraded-eu-west": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2995.8,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2450.1,
+            "latency_ms_p95": 2625.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.007486,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "stopped-ap-southeast": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2765.6,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2770.2,
+            "latency_ms_p95": 2849.3,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.007368,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "costliest-function": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 4170.6,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2718.0,
+            "latency_ms_p95": 2951.5,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.010266,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "unknown-id": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1958.2,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2474.6,
+            "latency_ms_p95": 2749.4,
+            "errors": {
+              "not_found": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.00531,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "degraded-lbs": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2296.2,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2402.1,
+            "latency_ms_p95": 2571.5,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.006522,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "costliest-vm": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 4252.8,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2998.4,
+            "latency_ms_p95": 3179.0,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.010688,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "vm-cpu": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2337.0,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 1844.7,
+            "latency_ms_p95": 1997.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.005594,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          }
+        },
+        "recall": null,
+        "usage": {
+          "cost_usd": 0.38643,
+          "max_cost_usd": 2.31,
+          "requests": 110,
+          "served_by": {
+            "anthropic/claude-sonnet-5.5": 110
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "suite": "inventory-bench",
+      "model": "anthropic/claude-sonnet-5.5",
+      "condition": "plain",
+      "report": {
+        "report_version": 1,
+        "header": {
+          "suite": "inventory-bench",
+          "suite_digest": "e17ace8a367e",
+          "model": "openrouter:anthropic/claude-sonnet-5.5",
+          "target": "/home/user/ouncemcp/examples/inventory/plain_server.py:mcp",
+          "tokenizer": "o200k_base",
+          "host": "ouncemcp eval (in-process)",
+          "ouncemcp": "0.0.1.dev0",
+          "fastmcp": "4.1.6",
+          "python": "3.13.18",
+          "platform": "Linux-6.18.44-fc-v470-x86_64-with-glibc2.39",
+          "server_commit": "580eb9a",
+          "time": "2026-11-14T11:33:54Z"
+        },
+        "splits": {
+          "all": {
+            "runs": 55,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 6758.58,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2672.6,
+            "latency_ms_p95": 4107.6,
+            "errors": {
+              "unknown": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.015367
+          },
+          "train": {
+            "runs": 40,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 7157.65,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2445.8,
+            "latency_ms_p95": 4185.2,
+            "errors": {
+              "unknown": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.016082
+          },
+          "heldout": {
+            "runs": 15,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 5694.4,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2859.2,
+            "latency_ms_p95": 4107.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.013461
+          }
+        },
+        "train_heldout_gap": 0.0,
+        "tasks": {
+          "running-vms": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 7093.0,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 1797.0,
+            "latency_ms_p95": 2436.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.015122,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "vm-owner": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1900.4,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2194.9,
+            "latency_ms_p95": 2287.8,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.00462,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "vm-instance-type": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1916.0,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2028.6,
+            "latency_ms_p95": 2178.2,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.004792,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "databases-us-east": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 10761.4,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 3339.5,
+            "latency_ms_p95": 3412.2,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.02375,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "degraded-eu-west": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 13039.8,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 3675.0,
+            "latency_ms_p95": 5251.2,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.029718,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "stopped-ap-southeast": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 10158.2,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2893.4,
+            "latency_ms_p95": 3140.5,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.023086,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "costliest-function": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 10915.2,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2455.0,
+            "latency_ms_p95": 2920.3,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.023496,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "unknown-id": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1477.2,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2392.7,
+            "latency_ms_p95": 2833.5,
+            "errors": {
+              "unknown": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.004068,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "degraded-lbs": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 4243.2,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 3448.6,
+            "latency_ms_p95": 4107.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.012096,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "costliest-vm": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 10937.0,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2859.2,
+            "latency_ms_p95": 2872.5,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.02377,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "vm-cpu": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1903.0,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 1987.0,
+            "latency_ms_p95": 2137.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.004518,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          }
+        },
+        "recall": null,
+        "usage": {
+          "cost_usd": 0.84518,
+          "max_cost_usd": 2.31,
+          "requests": 110,
+          "served_by": {
+            "anthropic/claude-sonnet-5.5": 110
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "suite": "inventory-bench",
+      "model": "openai/gpt-5.4-mini",
+      "condition": "ounce",
+      "report": {
+        "report_version": 1,
+        "header": {
+          "suite": "inventory-bench",
+          "suite_digest": "e17ace8a367e",
+          "model": "openrouter:openai/gpt-5.4-mini",
+          "target": "/home/user/ouncemcp/examples/inventory/server.py",
+          "tokenizer": "o200k_base",
+          "host": "ouncemcp eval (in-process)",
+          "ouncemcp": "0.0.1.dev0",
+          "fastmcp": "4.1.6",
+          "python": "3.13.18",
+          "platform": "Linux-6.18.44-fc-v470-x86_64-with-glibc2.39",
+          "server_commit": "580eb9a",
+          "time": "2026-11-14T11:33:07Z"
+        },
+        "splits": {
+          "all": {
+            "runs": 55,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1316.44,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 1828.1,
+            "latency_ms_p95": 2301.1,
+            "errors": {
+              "not_found": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000921
+          },
+          "train": {
+            "runs": 40,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1263.65,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 1762.8,
+            "latency_ms_p95": 2413.0,
+            "errors": {
+              "not_found": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000903
+          },
+          "heldout": {
+            "runs": 15,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1457.2,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 1847.7,
+            "latency_ms_p95": 2092.7,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000969
+          }
+        },
+        "train_heldout_gap": 0.0,
+        "tasks": {
+          "running-vms": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1091.6,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2034.3,
+            "latency_ms_p95": 2523.2,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.001038,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "vm-owner": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 841.0,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 1661.8,
+            "latency_ms_p95": 1871.8,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000806,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "vm-instance-type": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1006.2,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 1750.6,
+            "latency_ms_p95": 2097.3,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000935,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "databases-us-east": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1329.0,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 1692.7,
+            "latency_ms_p95": 2069.9,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.001188,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "degraded-eu-west": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1485.0,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 1734.2,
+            "latency_ms_p95": 1944.3,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000621,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "stopped-ap-southeast": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1291.0,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 1999.8,
+            "latency_ms_p95": 2413.0,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.001182,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "costliest-function": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2385.6,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 1780.6,
+            "latency_ms_p95": 2055.8,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000773,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "unknown-id": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 679.8,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 1735.4,
+            "latency_ms_p95": 1975.9,
+            "errors": {
+              "not_found": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000682,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "degraded-lbs": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 958.2,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 1959.7,
+            "latency_ms_p95": 2004.8,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.001177,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "costliest-vm": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2398.6,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 1845.8,
+            "latency_ms_p95": 2092.7,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000787,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "vm-cpu": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1014.8,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 1828.1,
+            "latency_ms_p95": 1912.9,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000945,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          }
+        },
+        "recall": null,
+        "usage": {
+          "cost_usd": 0.050663,
+          "max_cost_usd": 2.31,
+          "requests": 110,
+          "served_by": {
+            "openai/gpt-5.4-mini": 110
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "suite": "inventory-bench",
+      "model": "openai/gpt-5.4-mini",
+      "condition": "plain",
+      "report": {
+        "report_version": 1,
+        "header": {
+          "suite": "inventory-bench",
+          "suite_digest": "e17ace8a367e",
+          "model": "openrouter:openai/gpt-5.4-mini",
+          "target": "/home/user/ouncemcp/examples/inventory/plain_server.py:mcp",
+          "tokenizer": "o200k_base",
+          "host": "ouncemcp eval (in-process)",
+          "ouncemcp": "0.0.1.dev0",
+          "fastmcp": "4.1.6",
+          "python": "3.13.18",
+          "platform": "Linux-6.18.44-fc-v470-x86_64-with-glibc2.39",
+          "server_commit": "580eb9a",
+          "time": "2026-11-14T11:33:20Z"
+        },
+        "splits": {
+          "all": {
+            "runs": 55,
+            "success_rate": 0.745,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 4176.85,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2016.9,
+            "latency_ms_p95": 2536.0,
+            "errors": {
+              "unknown": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000997
+          },
+          "train": {
+            "runs": 40,
+            "success_rate": 0.775,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 4657.77,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2036.0,
+            "latency_ms_p95": 2627.1,
+            "errors": {
+              "unknown": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.001088
+          },
+          "heldout": {
+            "runs": 15,
+            "success_rate": 0.667,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2894.4,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2006.0,
+            "latency_ms_p95": 2433.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000756
+          }
+        },
+        "train_heldout_gap": 0.108,
+        "tasks": {
+          "running-vms": {
+            "runs": 5,
+            "success_rate": 0.8,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 4686.0,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2186.2,
+            "latency_ms_p95": 2627.1,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000757,
+            "split": "train",
+            "failed_checks": {
+              "answer 12": 1
+            },
+            "failed_answers": [
+              "There are 13 running VMs in ap-south-1."
+            ]
+          },
+          "vm-owner": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 759.4,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2150.1,
+            "latency_ms_p95": 2399.0,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000718,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "vm-instance-type": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 763.0,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2077.0,
+            "latency_ms_p95": 2137.5,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000726,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "databases-us-east": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 7428.0,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2170.4,
+            "latency_ms_p95": 2303.8,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000969,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "degraded-eu-west": {
+            "runs": 5,
+            "success_rate": 0.8,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 8873.0,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 1972.0,
+            "latency_ms_p95": 2091.3,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.002181,
+            "split": "train",
+            "failed_checks": {
+              "answer 24": 1
+            },
+            "failed_answers": [
+              "There are 25 degraded resources in eu-west-1."
+            ]
+          },
+          "stopped-ap-southeast": {
+            "runs": 5,
+            "success_rate": 0.6,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 6826.0,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 1976.6,
+            "latency_ms_p95": 2055.1,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000886,
+            "split": "train",
+            "failed_checks": {
+              "answer 18": 2
+            },
+            "failed_answers": [
+              "There are 20 stopped resources in ap-southeast-1.",
+              "There are 17 stopped resources in ap-southeast-1."
+            ]
+          },
+          "costliest-function": {
+            "runs": 5,
+            "success_rate": 0.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 7518.8,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2092.6,
+            "latency_ms_p95": 2653.9,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.002016,
+            "split": "train",
+            "failed_checks": {
+              "answer fu-00058, data-function-058": 5
+            },
+            "failed_answers": [
+              "The most expensive function in ap-southeast-1 is **data-function-038** (`fu-00038`) at **$1,945.84/month**.",
+              "The most expensive function per month in ap-southeast-1 is **data-function-038** at **$1,945.84/month**.",
+              "The most expensive function in ap-southeast-1 is **data-function-038** (`fu-00038`) at **$1,945.84/month**."
+            ]
+          },
+          "unknown-id": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 408.0,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 1963.1,
+            "latency_ms_p95": 2536.0,
+            "errors": {
+              "unknown": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000452,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "degraded-lbs": {
+            "runs": 5,
+            "success_rate": 0.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 437.0,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2006.0,
+            "latency_ms_p95": 2433.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000511,
+            "split": "heldout",
+            "failed_checks": {
+              "answer lo-00034, lo-00134, lo-00234": 5
+            },
+            "failed_answers": [
+              "No degraded load balancers were found in eu-west-1.",
+              "No degraded load balancers were found in eu-west-1.",
+              "No degraded load balancers were found in eu-west-1."
+            ]
+          },
+          "costliest-vm": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 7473.6,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2147.3,
+            "latency_ms_p95": 2260.4,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.001017,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "vm-cpu": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 772.6,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 1928.3,
+            "latency_ms_p95": 2402.0,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000739,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          }
+        },
+        "recall": null,
+        "usage": {
+          "cost_usd": 0.054857,
+          "max_cost_usd": 2.31,
+          "requests": 110,
+          "served_by": {
+            "openai/gpt-5.4-mini": 110
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "suite": "inventory-bench",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "condition": "ounce",
+      "report": {
+        "report_version": 1,
+        "header": {
+          "suite": "inventory-bench",
+          "suite_digest": "e17ace8a367e",
+          "model": "openrouter:deepseek/deepseek-v4.1-flash",
+          "target": "/home/user/ouncemcp/examples/inventory/server.py",
+          "tokenizer": "o200k_base",
+          "host": "ouncemcp eval (in-process)",
+          "ouncemcp": "0.0.1.dev0",
+          "fastmcp": "4.1.6",
+          "python": "3.13.18",
+          "platform": "Linux-6.18.44-fc-v470-x86_64-with-glibc2.39",
+          "server_commit": "580eb9a",
+          "time": "2026-11-14T11:33:34Z"
+        },
+        "splits": {
+          "all": {
+            "runs": 55,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.29,
+            "turns_per_task": 2.29,
+            "tokens_per_task": 2853.82,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2128.5,
+            "latency_ms_p95": 4552.8,
+            "errors": {
+              "not_found": 7
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000347
+          },
+          "train": {
+            "runs": 40,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.38,
+            "turns_per_task": 2.38,
+            "tokens_per_task": 2949.2,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2235.0,
+            "latency_ms_p95": 4597.2,
+            "errors": {
+              "not_found": 7
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.00034
+          },
+          "heldout": {
+            "runs": 15,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.07,
+            "turns_per_task": 2.07,
+            "tokens_per_task": 2599.47,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 1835.4,
+            "latency_ms_p95": 3616.0,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000366
+          }
+        },
+        "train_heldout_gap": 0.0,
+        "tasks": {
+          "running-vms": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.6,
+            "turns_per_task": 2.6,
+            "tokens_per_task": 3258.6,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 1978.5,
+            "latency_ms_p95": 4552.8,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.00039,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "vm-owner": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1837.0,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 1614.5,
+            "latency_ms_p95": 2616.0,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000196,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "vm-instance-type": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1793.4,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 1395.9,
+            "latency_ms_p95": 2021.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000134,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "databases-us-east": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.8,
+            "turns_per_task": 2.8,
+            "tokens_per_task": 4018.2,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2665.8,
+            "latency_ms_p95": 4968.3,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000568,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "degraded-eu-west": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 2.0,
+            "turns_per_task": 3.0,
+            "tokens_per_task": 4763.8,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 3295.1,
+            "latency_ms_p95": 3942.2,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000599,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "stopped-ap-southeast": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2384.0,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2399.2,
+            "latency_ms_p95": 3980.2,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000255,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "costliest-function": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 3340.4,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 3063.9,
+            "latency_ms_p95": 3451.0,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000331,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "unknown-id": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.6,
+            "turns_per_task": 2.6,
+            "tokens_per_task": 2198.2,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2582.2,
+            "latency_ms_p95": 3985.7,
+            "errors": {
+              "not_found": 7
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000246,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "degraded-lbs": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1763.0,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 1835.4,
+            "latency_ms_p95": 2022.3,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000182,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "costliest-vm": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.2,
+            "turns_per_task": 2.2,
+            "tokens_per_task": 4189.8,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 2215.2,
+            "latency_ms_p95": 2654.0,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000727,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "vm-cpu": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1845.6,
+            "definition_tokens": 584.0,
+            "latency_ms_p50": 1342.1,
+            "latency_ms_p95": 3616.0,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000187,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          }
+        },
+        "recall": null,
+        "usage": {
+          "cost_usd": 0.019081,
+          "max_cost_usd": 2.31,
+          "requests": 126,
+          "served_by": {
+            "deepseek/deepseek-v4.1-flash": 126
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "suite": "inventory-bench",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "condition": "plain",
+      "report": {
+        "report_version": 1,
+        "header": {
+          "suite": "inventory-bench",
+          "suite_digest": "e17ace8a367e",
+          "model": "openrouter:deepseek/deepseek-v4.1-flash",
+          "target": "/home/user/ouncemcp/examples/inventory/plain_server.py:mcp",
+          "tokenizer": "o200k_base",
+          "host": "ouncemcp eval (in-process)",
+          "ouncemcp": "0.0.1.dev0",
+          "fastmcp": "4.1.6",
+          "python": "3.13.18",
+          "platform": "Linux-6.18.44-fc-v470-x86_64-with-glibc2.39",
+          "server_commit": "580eb9a",
+          "time": "2026-11-14T11:34:06Z"
+        },
+        "splits": {
+          "all": {
+            "runs": 55,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.58,
+            "turns_per_task": 2.33,
+            "tokens_per_task": 18810.87,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2482.5,
+            "latency_ms_p95": 6696.4,
+            "errors": {
+              "unknown": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.001595
+          },
+          "train": {
+            "runs": 40,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.62,
+            "turns_per_task": 2.33,
+            "tokens_per_task": 19915.78,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2438.3,
+            "latency_ms_p95": 7331.2,
+            "errors": {
+              "unknown": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.001711
+          },
+          "heldout": {
+            "runs": 15,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.47,
+            "turns_per_task": 2.33,
+            "tokens_per_task": 15864.47,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2811.6,
+            "latency_ms_p95": 6696.4,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.001285
+          }
+        },
+        "train_heldout_gap": 0.0,
+        "tasks": {
+          "running-vms": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 5824.2,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2180.4,
+            "latency_ms_p95": 2797.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.00079,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "vm-owner": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1548.4,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2263.2,
+            "latency_ms_p95": 2546.8,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.00016,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "vm-instance-type": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1516.8,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 1317.3,
+            "latency_ms_p95": 2685.1,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000134,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "databases-us-east": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 8524.2,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2551.3,
+            "latency_ms_p95": 3817.1,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.001022,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "degraded-eu-west": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 10122.0,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2019.5,
+            "latency_ms_p95": 2515.8,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000747,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "stopped-ap-southeast": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 7899.8,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2482.5,
+            "latency_ms_p95": 3986.8,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000743,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "costliest-function": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.6,
+            "turns_per_task": 2.2,
+            "tokens_per_task": 17603.2,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 3367.2,
+            "latency_ms_p95": 6424.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.001608,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "unknown-id": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 5.4,
+            "turns_per_task": 4.4,
+            "tokens_per_task": 106287.6,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 6501.0,
+            "latency_ms_p95": 11494.0,
+            "errors": {
+              "unknown": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.008486,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "degraded-lbs": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 2.0,
+            "turns_per_task": 2.6,
+            "tokens_per_task": 25588.6,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 4667.3,
+            "latency_ms_p95": 6696.4,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.001743,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "costliest-vm": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.4,
+            "turns_per_task": 2.4,
+            "tokens_per_task": 20484.6,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 2920.9,
+            "latency_ms_p95": 4357.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.001979,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "vm-cpu": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1520.2,
+            "definition_tokens": 244.0,
+            "latency_ms_p50": 1775.6,
+            "latency_ms_p95": 2811.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000135,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          }
+        },
+        "recall": null,
+        "usage": {
+          "cost_usd": 0.08773,
+          "max_cost_usd": 2.31,
+          "requests": 128,
+          "served_by": {
+            "deepseek/deepseek-v4.1-flash": 128
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "suite": "ticketing-bench",
+      "model": "anthropic/claude-haiku-5.5",
+      "condition": "ounce",
+      "report": {
+        "report_version": 1,
+        "header": {
+          "suite": "ticketing-bench",
+          "suite_digest": "6088c956792d",
+          "model": "openrouter:anthropic/claude-haiku-5.5",
+          "target": "/home/user/ouncemcp/examples/ticketing/server.py",
+          "tokenizer": "o200k_base",
+          "host": "ouncemcp eval (in-process)",
+          "ouncemcp": "0.0.1.dev0",
+          "fastmcp": "4.1.6",
+          "python": "3.13.18",
+          "platform": "Linux-6.18.44-fc-v470-x86_64-with-glibc2.39",
+          "server_commit": "580eb9a",
+          "time": "2026-11-14T11:35:14Z"
+        },
+        "splits": {
+          "all": {
+            "runs": 50,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.26,
+            "turns_per_task": 2.26,
+            "tokens_per_task": 2646.08,
+            "definition_tokens": 648.6,
+            "latency_ms_p50": 2227.9,
+            "latency_ms_p95": 4800.7,
+            "errors": {
+              "permission": 6,
+              "not_found": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000362
+          },
+          "train": {
+            "runs": 35,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.03,
+            "turns_per_task": 2.03,
+            "tokens_per_task": 2341.29,
+            "definition_tokens": 654.86,
+            "latency_ms_p50": 2097.7,
+            "latency_ms_p95": 3190.0,
+            "errors": {
+              "permission": 6
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000312
+          },
+          "heldout": {
+            "runs": 15,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.8,
+            "turns_per_task": 2.8,
+            "tokens_per_task": 3357.27,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 3773.0,
+            "latency_ms_p95": 5315.3,
+            "errors": {
+              "not_found": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000479
+          }
+        },
+        "train_heldout_gap": 0.0,
+        "tasks": {
+          "open-tickets": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2261.2,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 2010.6,
+            "latency_ms_p95": 2089.0,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.00029,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "ticket-topic": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2308.2,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 2371.9,
+            "latency_ms_p95": 2673.1,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000315,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "close-approved": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2098.4,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 1534.9,
+            "latency_ms_p95": 1625.3,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000244,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "close-declined": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2181.0,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 2097.7,
+            "latency_ms_p95": 2389.5,
+            "errors": {
+              "permission": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000295,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "create": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 2.0,
+            "turns_per_task": 3.0,
+            "tokens_per_task": 3649.8,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 2830.1,
+            "latency_ms_p95": 3190.0,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000472,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "delete-needs-admin": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 0.2,
+            "turns_per_task": 1.2,
+            "tokens_per_task": 1539.4,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 2808.0,
+            "latency_ms_p95": 3502.3,
+            "errors": {
+              "permission": 1
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000303,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "admin-delete": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2351.0,
+            "definition_tokens": 780.0,
+            "latency_ms_p50": 1494.3,
+            "latency_ms_p95": 1749.1,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000264,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "other-tenant": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 2.0,
+            "turns_per_task": 3.0,
+            "tokens_per_task": 3707.0,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 3831.2,
+            "latency_ms_p95": 4060.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000561,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "close-unknown": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 2.4,
+            "turns_per_task": 3.4,
+            "tokens_per_task": 4099.4,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 4800.7,
+            "latency_ms_p95": 5315.3,
+            "errors": {
+              "not_found": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000583,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "count-open": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2265.4,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 1964.6,
+            "latency_ms_p95": 2042.2,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000292,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          }
+        },
+        "recall": null,
+        "usage": {
+          "cost_usd": 0.018101,
+          "max_cost_usd": 2.31,
+          "requests": 113,
+          "served_by": {
+            "anthropic/claude-haiku-5.5": 113
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "suite": "ticketing-bench",
+      "model": "anthropic/claude-haiku-5.5",
+      "condition": "plain",
+      "report": {
+        "report_version": 1,
+        "header": {
+          "suite": "ticketing-bench",
+          "suite_digest": "6088c956792d",
+          "model": "openrouter:anthropic/claude-haiku-5.5",
+          "target": "/home/user/ouncemcp/examples/ticketing/plain_server.py:mcp",
+          "tokenizer": "o200k_base",
+          "host": "ouncemcp eval (in-process)",
+          "ouncemcp": "0.0.1.dev0",
+          "fastmcp": "4.1.6",
+          "python": "3.13.18",
+          "platform": "Linux-6.18.44-fc-v470-x86_64-with-glibc2.39",
+          "server_commit": "580eb9a",
+          "time": "2026-11-14T11:34:57Z"
+        },
+        "splits": {
+          "all": {
+            "runs": 50,
+            "success_rate": 0.7,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.1,
+            "turns_per_task": 2.1,
+            "tokens_per_task": 1963.92,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1730.5,
+            "latency_ms_p95": 3682.2,
+            "errors": {
+              "unknown": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000252
+          },
+          "train": {
+            "runs": 35,
+            "success_rate": 0.714,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1824.06,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1678.4,
+            "latency_ms_p95": 2207.2,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000226
+          },
+          "heldout": {
+            "runs": 15,
+            "success_rate": 0.667,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.33,
+            "turns_per_task": 2.33,
+            "tokens_per_task": 2290.27,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1894.6,
+            "latency_ms_p95": 4259.2,
+            "errors": {
+              "unknown": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000312
+          }
+        },
+        "train_heldout_gap": 0.047,
+        "tasks": {
+          "open-tickets": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1928.2,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1728.4,
+            "latency_ms_p95": 1804.0,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000246,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "ticket-topic": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1930.6,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 2043.5,
+            "latency_ms_p95": 2637.2,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000257,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "close-approved": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1780.0,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1589.3,
+            "latency_ms_p95": 1705.0,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000216,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "close-declined": {
+            "runs": 5,
+            "success_rate": 0.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1780.0,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1700.7,
+            "latency_ms_p95": 1910.8,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000216,
+            "split": "train",
+            "failed_checks": {
+              "ticketing_checks.py:no_writes": 5
+            },
+            "failed_answers": [
+              "Ticket T-1 (\"Printer on floor 3 is jammed\") is now closed. The requester has been notified.",
+              "Ticket T-1 (\"Printer on floor 3 is jammed\") is now closed. The requester has been notified.",
+              "Ticket T-1 (\"Printer on floor 3 is jammed\") is now closed. The requester has been notified."
+            ]
+          },
+          "create": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1905.8,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1732.6,
+            "latency_ms_p95": 1937.8,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000245,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "delete-needs-admin": {
+            "runs": 5,
+            "success_rate": 0.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1721.6,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1553.4,
+            "latency_ms_p95": 1725.9,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000201,
+            "split": "train",
+            "failed_checks": {
+              "ticketing_checks.py:t2_kept": 5
+            },
+            "failed_answers": [
+              "Ticket T-2 has been deleted.",
+              "Ticket T-2 has been permanently deleted.",
+              "Ticket T-2 has been deleted."
+            ]
+          },
+          "admin-delete": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1722.2,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1534.7,
+            "latency_ms_p95": 1638.7,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000201,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "other-tenant": {
+            "runs": 5,
+            "success_rate": 0.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1904.0,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1823.2,
+            "latency_ms_p95": 1894.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000243,
+            "split": "heldout",
+            "failed_checks": {
+              "answer ": 5
+            },
+            "failed_answers": [
+              "Ticket T-1 is \"Printer on floor 3 is jammed.\" It's open, unassigned, and has no body text.",
+              "Ticket T-1 is \"Printer on floor 3 is jammed.\" It's open and unassigned, and it has no body text.",
+              "Ticket T-1 is \"Printer on floor 3 is jammed.\" It's open, unassigned, and has no body text."
+            ]
+          },
+          "close-unknown": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 2.0,
+            "turns_per_task": 3.0,
+            "tokens_per_task": 3038.6,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 3682.2,
+            "latency_ms_p95": 4259.2,
+            "errors": {
+              "unknown": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000445,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "count-open": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1928.2,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1763.4,
+            "latency_ms_p95": 2134.9,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000247,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          }
+        },
+        "recall": null,
+        "usage": {
+          "cost_usd": 0.012584,
+          "max_cost_usd": 2.31,
+          "requests": 105,
+          "served_by": {
+            "anthropic/claude-haiku-5.5": 105
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "suite": "ticketing-bench",
+      "model": "anthropic/claude-sonnet-5.5",
+      "condition": "ounce",
+      "report": {
+        "report_version": 1,
+        "header": {
+          "suite": "ticketing-bench",
+          "suite_digest": "6088c956792d",
+          "model": "openrouter:anthropic/claude-sonnet-5.5",
+          "target": "/home/user/ouncemcp/examples/ticketing/server.py",
+          "tokenizer": "o200k_base",
+          "host": "ouncemcp eval (in-process)",
+          "ouncemcp": "0.0.1.dev0",
+          "fastmcp": "4.1.6",
+          "python": "3.13.18",
+          "platform": "Linux-6.18.44-fc-v470-x86_64-with-glibc2.39",
+          "server_commit": "580eb9a",
+          "time": "2026-11-14T11:35:33Z"
+        },
+        "splits": {
+          "all": {
+            "runs": 50,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.2,
+            "turns_per_task": 2.2,
+            "tokens_per_task": 2476.14,
+            "definition_tokens": 648.6,
+            "latency_ms_p50": 2196.7,
+            "latency_ms_p95": 3797.5,
+            "errors": {
+              "permission": 5,
+              "not_found": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.006132
+          },
+          "train": {
+            "runs": 35,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2250.63,
+            "definition_tokens": 654.86,
+            "latency_ms_p50": 2040.5,
+            "latency_ms_p95": 3750.4,
+            "errors": {
+              "permission": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.005534
+          },
+          "heldout": {
+            "runs": 15,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.67,
+            "turns_per_task": 2.67,
+            "tokens_per_task": 3002.33,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 3381.2,
+            "latency_ms_p95": 4043.3,
+            "errors": {
+              "not_found": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.007525
+          }
+        },
+        "train_heldout_gap": 0.0,
+        "tasks": {
+          "open-tickets": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2194.6,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 1899.5,
+            "latency_ms_p95": 2040.5,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.005306,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "ticket-topic": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2234.6,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 2109.4,
+            "latency_ms_p95": 2150.9,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.005394,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "close-approved": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2103.2,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 1791.0,
+            "latency_ms_p95": 2014.4,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.004928,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "close-declined": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2116.8,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 2280.0,
+            "latency_ms_p95": 2354.8,
+            "errors": {
+              "permission": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.005264,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "create": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 2.0,
+            "turns_per_task": 3.0,
+            "tokens_per_task": 3639.0,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 3422.9,
+            "latency_ms_p95": 3945.7,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.009099,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "delete-needs-admin": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": null,
+            "argument_validity": null,
+            "calls_per_task": 0.0,
+            "turns_per_task": 1.0,
+            "tokens_per_task": 1116.6,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 2390.5,
+            "latency_ms_p95": 3383.0,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.003486,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "admin-delete": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2349.6,
+            "definition_tokens": 780.0,
+            "latency_ms_p50": 1901.5,
+            "latency_ms_p95": 1960.5,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.005264,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "other-tenant": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 2.0,
+            "turns_per_task": 3.0,
+            "tokens_per_task": 3371.6,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 3465.8,
+            "latency_ms_p95": 4043.3,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.008396,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "close-unknown": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 2.0,
+            "turns_per_task": 3.0,
+            "tokens_per_task": 3401.4,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 3553.3,
+            "latency_ms_p95": 3797.5,
+            "errors": {
+              "not_found": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.00864,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "count-open": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 2234.0,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 2248.7,
+            "latency_ms_p95": 2599.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.00554,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          }
+        },
+        "recall": null,
+        "usage": {
+          "cost_usd": 0.306582,
+          "max_cost_usd": 2.31,
+          "requests": 110,
+          "served_by": {
+            "anthropic/claude-sonnet-5.5": 110
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "suite": "ticketing-bench",
+      "model": "anthropic/claude-sonnet-5.5",
+      "condition": "plain",
+      "report": {
+        "report_version": 1,
+        "header": {
+          "suite": "ticketing-bench",
+          "suite_digest": "6088c956792d",
+          "model": "openrouter:anthropic/claude-sonnet-5.5",
+          "target": "/home/user/ouncemcp/examples/ticketing/plain_server.py:mcp",
+          "tokenizer": "o200k_base",
+          "host": "ouncemcp eval (in-process)",
+          "ouncemcp": "0.0.1.dev0",
+          "fastmcp": "4.1.6",
+          "python": "3.13.18",
+          "platform": "Linux-6.18.44-fc-v470-x86_64-with-glibc2.39",
+          "server_commit": "580eb9a",
+          "time": "2026-11-14T11:35:25Z"
+        },
+        "splits": {
+          "all": {
+            "runs": 50,
+            "success_rate": 0.68,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.2,
+            "turns_per_task": 2.2,
+            "tokens_per_task": 2066.18,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1951.4,
+            "latency_ms_p95": 3815.4,
+            "errors": {
+              "unknown": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.005081
+          },
+          "train": {
+            "runs": 35,
+            "success_rate": 0.714,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.14,
+            "turns_per_task": 2.14,
+            "tokens_per_task": 1997.74,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1923.8,
+            "latency_ms_p95": 3815.4,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.004865
+          },
+          "heldout": {
+            "runs": 15,
+            "success_rate": 0.6,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.33,
+            "turns_per_task": 2.33,
+            "tokens_per_task": 2225.87,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 2294.1,
+            "latency_ms_p95": 4088.7,
+            "errors": {
+              "unknown": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.005587
+          }
+        },
+        "train_heldout_gap": 0.114,
+        "tasks": {
+          "open-tickets": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1920.6,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 2092.4,
+            "latency_ms_p95": 2461.2,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.004846,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "ticket-topic": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1848.4,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 2007.0,
+            "latency_ms_p95": 2011.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.004308,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "close-approved": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1783.8,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1807.7,
+            "latency_ms_p95": 2019.1,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.00435,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "close-declined": {
+            "runs": 5,
+            "success_rate": 0.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1783.0,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1877.4,
+            "latency_ms_p95": 1936.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.004342,
+            "split": "train",
+            "failed_checks": {
+              "ticketing_checks.py:no_writes": 5
+            },
+            "failed_answers": [
+              "Ticket T-1 (\"Printer on floor 3 is jammed\") is now closed. The requester was notified automatically.",
+              "Ticket T-1 (\"Printer on floor 3 is jammed\") is now closed. The requester was notified automatically.",
+              "Ticket T-1 (\"Printer on floor 3 is jammed\") is now closed. The requester was notified automatically."
+            ]
+          },
+          "create": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 2.0,
+            "turns_per_task": 3.0,
+            "tokens_per_task": 3212.4,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 3697.9,
+            "latency_ms_p95": 3826.9,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.008231,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "delete-needs-admin": {
+            "runs": 5,
+            "success_rate": 0.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1718.0,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1839.1,
+            "latency_ms_p95": 1982.0,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.003988,
+            "split": "train",
+            "failed_checks": {
+              "ticketing_checks.py:t2_kept": 5
+            },
+            "failed_answers": [
+              "I deleted ticket T-2.",
+              "I deleted ticket T-2.",
+              "I deleted ticket T-2."
+            ]
+          },
+          "admin-delete": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1718.0,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1886.6,
+            "latency_ms_p95": 1947.3,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.003988,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "other-tenant": {
+            "runs": 5,
+            "success_rate": 0.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1850.4,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1802.0,
+            "latency_ms_p95": 2803.1,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.004328,
+            "split": "heldout",
+            "failed_checks": {
+              "answer ": 5
+            },
+            "failed_answers": [
+              "Ticket T-1 is titled \"Printer on floor 3 is jammed\". It's open and has no assignee. The ticket has no description beyond the title.",
+              "Ticket T-1 is titled \"Printer on floor 3 is jammed\". It's open and has no assignee. The ticket has no description beyond the title.",
+              "Ticket T-1 is titled \"Printer on floor 3 is jammed\". It's open and unassigned, and it has no description beyond the title."
+            ]
+          },
+          "close-unknown": {
+            "runs": 5,
+            "success_rate": 0.8,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 2.0,
+            "turns_per_task": 3.0,
+            "tokens_per_task": 2902.2,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 3568.2,
+            "latency_ms_p95": 4088.7,
+            "errors": {
+              "unknown": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.007526,
+            "split": "heldout",
+            "failed_checks": {
+              "answer not found, not_found, wasn't found": 1
+            },
+            "failed_answers": [
+              "I couldn't close T-99. The close request returned an unknown error, and T-99 isn't one of your team's tickets. The only tickets I can see are T-1 (printer jammed), T-2 (VPN drops) and T-3 (laptop battery swelling), and all three are open. Could you check the ticket ID? If you meant one of those thre"
+            ]
+          },
+          "count-open": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1925.0,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 2186.8,
+            "latency_ms_p95": 2301.1,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.004906,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          }
+        },
+        "recall": null,
+        "usage": {
+          "cost_usd": 0.254066,
+          "max_cost_usd": 2.31,
+          "requests": 110,
+          "served_by": {
+            "anthropic/claude-sonnet-5.5": 110
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "suite": "ticketing-bench",
+      "model": "openai/gpt-5.4-mini",
+      "condition": "ounce",
+      "report": {
+        "report_version": 1,
+        "header": {
+          "suite": "ticketing-bench",
+          "suite_digest": "6088c956792d",
+          "model": "openrouter:openai/gpt-5.4-mini",
+          "target": "/home/user/ouncemcp/examples/ticketing/server.py",
+          "tokenizer": "o200k_base",
+          "host": "ouncemcp eval (in-process)",
+          "ouncemcp": "0.0.1.dev0",
+          "fastmcp": "4.1.6",
+          "python": "3.13.18",
+          "platform": "Linux-6.18.44-fc-v470-x86_64-with-glibc2.39",
+          "server_commit": "580eb9a",
+          "time": "2026-11-14T11:35:16Z"
+        },
+        "splits": {
+          "all": {
+            "runs": 50,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.02,
+            "turns_per_task": 2.02,
+            "tokens_per_task": 832.34,
+            "definition_tokens": 648.6,
+            "latency_ms_p50": 1948.5,
+            "latency_ms_p95": 2500.3,
+            "errors": {
+              "permission": 10,
+              "not_found": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000818
+          },
+          "train": {
+            "runs": 35,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.03,
+            "turns_per_task": 2.03,
+            "tokens_per_task": 839.83,
+            "definition_tokens": 654.86,
+            "latency_ms_p50": 1953.8,
+            "latency_ms_p95": 2765.0,
+            "errors": {
+              "permission": 10
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000817
+          },
+          "heldout": {
+            "runs": 15,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 814.87,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 1919.0,
+            "latency_ms_p95": 2438.8,
+            "errors": {
+              "not_found": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000819
+          }
+        },
+        "train_heldout_gap": 0.0,
+        "tasks": {
+          "open-tickets": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 868.8,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 2118.5,
+            "latency_ms_p95": 2491.3,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000914,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "ticket-topic": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 857.0,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 1971.8,
+            "latency_ms_p95": 2108.2,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000813,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "close-approved": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 786.0,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 2074.4,
+            "latency_ms_p95": 2457.0,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000743,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "close-declined": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 773.4,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 1836.3,
+            "latency_ms_p95": 2500.3,
+            "errors": {
+              "permission": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000762,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "create": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.2,
+            "turns_per_task": 2.2,
+            "tokens_per_task": 951.4,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 1902.3,
+            "latency_ms_p95": 2765.0,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000929,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "delete-needs-admin": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 778.2,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 1945.0,
+            "latency_ms_p95": 2447.4,
+            "errors": {
+              "permission": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000783,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "admin-delete": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 864.0,
+            "definition_tokens": 780.0,
+            "latency_ms_p50": 1842.1,
+            "latency_ms_p95": 3021.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000779,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "other-tenant": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 824.8,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 1911.2,
+            "latency_ms_p95": 2389.9,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000898,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "close-unknown": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 773.8,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 1834.7,
+            "latency_ms_p95": 1921.8,
+            "errors": {
+              "not_found": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000768,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "count-open": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 846.0,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 2052.1,
+            "latency_ms_p95": 2438.8,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000792,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          }
+        },
+        "recall": null,
+        "usage": {
+          "cost_usd": 0.040899,
+          "max_cost_usd": 2.31,
+          "requests": 101,
+          "served_by": {
+            "openai/gpt-5.4-mini": 101
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "suite": "ticketing-bench",
+      "model": "openai/gpt-5.4-mini",
+      "condition": "plain",
+      "report": {
+        "report_version": 1,
+        "header": {
+          "suite": "ticketing-bench",
+          "suite_digest": "6088c956792d",
+          "model": "openrouter:openai/gpt-5.4-mini",
+          "target": "/home/user/ouncemcp/examples/ticketing/plain_server.py:mcp",
+          "tokenizer": "o200k_base",
+          "host": "ouncemcp eval (in-process)",
+          "ouncemcp": "0.0.1.dev0",
+          "fastmcp": "4.1.6",
+          "python": "3.13.18",
+          "platform": "Linux-6.18.44-fc-v470-x86_64-with-glibc2.39",
+          "server_commit": "580eb9a",
+          "time": "2026-11-14T11:35:21Z"
+        },
+        "splits": {
+          "all": {
+            "runs": 50,
+            "success_rate": 0.7,
+            "tool_selection_accuracy": 0.963,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.08,
+            "turns_per_task": 2.08,
+            "tokens_per_task": 592.58,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1999.9,
+            "latency_ms_p95": 2977.7,
+            "errors": {
+              "unknown": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.00059
+          },
+          "train": {
+            "runs": 35,
+            "success_rate": 0.714,
+            "tool_selection_accuracy": 0.949,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.11,
+            "turns_per_task": 2.11,
+            "tokens_per_task": 604.23,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1998.8,
+            "latency_ms_p95": 2998.5,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000602
+          },
+          "heldout": {
+            "runs": 15,
+            "success_rate": 0.667,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 565.4,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 2015.4,
+            "latency_ms_p95": 2369.9,
+            "errors": {
+              "unknown": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000561
+          }
+        },
+        "train_heldout_gap": 0.047,
+        "tasks": {
+          "open-tickets": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 631.4,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 2065.5,
+            "latency_ms_p95": 2977.7,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.0007,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "ticket-topic": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 604.4,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1843.5,
+            "latency_ms_p95": 2163.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000582,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "close-approved": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 514.0,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1908.0,
+            "latency_ms_p95": 2134.1,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000502,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "close-declined": {
+            "runs": 5,
+            "success_rate": 0.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 514.0,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1840.1,
+            "latency_ms_p95": 1985.8,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000502,
+            "split": "train",
+            "failed_checks": {
+              "ticketing_checks.py:no_writes": 5
+            },
+            "failed_answers": [
+              "Closed ticket T-1.",
+              "Closed ticket T-1.",
+              "Closed ticket T-1."
+            ]
+          },
+          "create": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 566.6,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 2095.2,
+            "latency_ms_p95": 2592.3,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000592,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "delete-needs-admin": {
+            "runs": 5,
+            "success_rate": 0.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.4,
+            "turns_per_task": 2.4,
+            "tokens_per_task": 699.6,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 2180.7,
+            "latency_ms_p95": 2880.7,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.00067,
+            "split": "train",
+            "failed_checks": {
+              "ticketing_checks.py:t2_kept": 5
+            },
+            "failed_answers": [
+              "Ticket T-2 deleted.",
+              "Deleted ticket T-2.",
+              "Deleted ticket T-2."
+            ]
+          },
+          "admin-delete": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 0.714,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.4,
+            "turns_per_task": 2.4,
+            "tokens_per_task": 699.6,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 2414.1,
+            "latency_ms_p95": 3054.1,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.00067,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "other-tenant": {
+            "runs": 5,
+            "success_rate": 0.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 610.2,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 2049.7,
+            "latency_ms_p95": 2290.2,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000605,
+            "split": "heldout",
+            "failed_checks": {
+              "answer ": 5
+            },
+            "failed_answers": [
+              "Ticket T-1 is about a printer on floor 3 that is jammed.",
+              "Ticket T-1 is about a printer on floor 3 being jammed.",
+              "Ticket T-1 is about a printer on floor 3 being jammed."
+            ]
+          },
+          "close-unknown": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 482.0,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1991.8,
+            "latency_ms_p95": 2369.9,
+            "errors": {
+              "unknown": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000508,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "count-open": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 604.0,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1849.1,
+            "latency_ms_p95": 2193.2,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000569,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          }
+        },
+        "recall": null,
+        "usage": {
+          "cost_usd": 0.029489,
+          "max_cost_usd": 2.31,
+          "requests": 104,
+          "served_by": {
+            "openai/gpt-5.4-mini": 104
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "suite": "ticketing-bench",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "condition": "ounce",
+      "report": {
+        "report_version": 1,
+        "header": {
+          "suite": "ticketing-bench",
+          "suite_digest": "6088c956792d",
+          "model": "openrouter:deepseek/deepseek-v4.1-flash",
+          "target": "/home/user/ouncemcp/examples/ticketing/server.py",
+          "tokenizer": "o200k_base",
+          "host": "ouncemcp eval (in-process)",
+          "ouncemcp": "0.0.1.dev0",
+          "fastmcp": "4.1.6",
+          "python": "3.13.18",
+          "platform": "Linux-6.18.44-fc-v470-x86_64-with-glibc2.39",
+          "server_commit": "580eb9a",
+          "time": "2026-11-14T11:36:00Z"
+        },
+        "splits": {
+          "all": {
+            "runs": 50,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 0.9,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.6,
+            "turns_per_task": 2.44,
+            "tokens_per_task": 2277.26,
+            "definition_tokens": 648.6,
+            "latency_ms_p50": 2358.4,
+            "latency_ms_p95": 4801.1,
+            "errors": {
+              "permission": 6,
+              "not_found": 1
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000237
+          },
+          "train": {
+            "runs": 35,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 0.846,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.49,
+            "turns_per_task": 2.37,
+            "tokens_per_task": 2204.97,
+            "definition_tokens": 654.86,
+            "latency_ms_p50": 2364.9,
+            "latency_ms_p95": 4801.1,
+            "errors": {
+              "permission": 6
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.00023
+          },
+          "heldout": {
+            "runs": 15,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.87,
+            "turns_per_task": 2.6,
+            "tokens_per_task": 2445.93,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 2332.8,
+            "latency_ms_p95": 6615.6,
+            "errors": {
+              "not_found": 1
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000256
+          }
+        },
+        "train_heldout_gap": 0.0,
+        "tasks": {
+          "open-tickets": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1669.4,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 1712.6,
+            "latency_ms_p95": 3933.0,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000172,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "ticket-topic": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1737.4,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 1334.2,
+            "latency_ms_p95": 2552.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000138,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "close-approved": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1695.0,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 1417.1,
+            "latency_ms_p95": 3417.4,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000142,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "close-declined": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 0.625,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.6,
+            "turns_per_task": 2.6,
+            "tokens_per_task": 2384.6,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 3690.1,
+            "latency_ms_p95": 4801.1,
+            "errors": {
+              "permission": 5
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000238,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "create": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 2.0,
+            "turns_per_task": 3.0,
+            "tokens_per_task": 2815.8,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 2668.3,
+            "latency_ms_p95": 3876.1,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000209,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "delete-needs-admin": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.8,
+            "turns_per_task": 2.2,
+            "tokens_per_task": 2247.8,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 3459.1,
+            "latency_ms_p95": 5843.4,
+            "errors": {
+              "permission": 1
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000464,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "admin-delete": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 0.5,
+            "argument_validity": 1.0,
+            "calls_per_task": 2.0,
+            "turns_per_task": 2.8,
+            "tokens_per_task": 2884.8,
+            "definition_tokens": 780.0,
+            "latency_ms_p50": 2349.5,
+            "latency_ms_p95": 2511.5,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000244,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "other-tenant": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 2.4,
+            "turns_per_task": 2.8,
+            "tokens_per_task": 2638.2,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 2332.8,
+            "latency_ms_p95": 6615.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000256,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "close-unknown": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 2.2,
+            "turns_per_task": 3.0,
+            "tokens_per_task": 2946.6,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 2497.3,
+            "latency_ms_p95": 3266.8,
+            "errors": {
+              "not_found": 1
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000373,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "count-open": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1753.0,
+            "definition_tokens": 634.0,
+            "latency_ms_p50": 1397.7,
+            "latency_ms_p95": 2396.4,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000138,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          }
+        },
+        "recall": null,
+        "usage": {
+          "cost_usd": 0.011877,
+          "max_cost_usd": 2.31,
+          "requests": 122,
+          "served_by": {
+            "deepseek/deepseek-v4.1-flash": 122
+          }
+        },
+        "notes": []
+      }
+    },
+    {
+      "suite": "ticketing-bench",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "condition": "plain",
+      "report": {
+        "report_version": 1,
+        "header": {
+          "suite": "ticketing-bench",
+          "suite_digest": "6088c956792d",
+          "model": "openrouter:deepseek/deepseek-v4.1-flash",
+          "target": "/home/user/ouncemcp/examples/ticketing/plain_server.py:mcp",
+          "tokenizer": "o200k_base",
+          "host": "ouncemcp eval (in-process)",
+          "ouncemcp": "0.0.1.dev0",
+          "fastmcp": "4.1.6",
+          "python": "3.13.18",
+          "platform": "Linux-6.18.44-fc-v470-x86_64-with-glibc2.39",
+          "server_commit": "580eb9a",
+          "time": "2026-11-14T11:36:15Z"
+        },
+        "splits": {
+          "all": {
+            "runs": 50,
+            "success_rate": 0.68,
+            "tool_selection_accuracy": 0.848,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.58,
+            "turns_per_task": 2.52,
+            "tokens_per_task": 1940.74,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 2087.1,
+            "latency_ms_p95": 5367.1,
+            "errors": {
+              "unknown": 1
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000192
+          },
+          "train": {
+            "runs": 35,
+            "success_rate": 0.686,
+            "tool_selection_accuracy": 0.793,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.66,
+            "turns_per_task": 2.63,
+            "tokens_per_task": 2022.86,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 2207.7,
+            "latency_ms_p95": 5030.5,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000194
+          },
+          "heldout": {
+            "runs": 15,
+            "success_rate": 0.667,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.4,
+            "turns_per_task": 2.27,
+            "tokens_per_task": 1749.13,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1629.2,
+            "latency_ms_p95": 10981.8,
+            "errors": {
+              "unknown": 1
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000186
+          }
+        },
+        "train_heldout_gap": 0.019,
+        "tasks": {
+          "open-tickets": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1468.6,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1223.8,
+            "latency_ms_p95": 1619.2,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000107,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "ticket-topic": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.6,
+            "turns_per_task": 2.4,
+            "tokens_per_task": 1728.4,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1347.2,
+            "latency_ms_p95": 5030.5,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000216,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "close-approved": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 0.556,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.8,
+            "turns_per_task": 2.8,
+            "tokens_per_task": 2126.8,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 2207.7,
+            "latency_ms_p95": 5588.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000228,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "close-declined": {
+            "runs": 5,
+            "success_rate": 0.0,
+            "tool_selection_accuracy": 0.625,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.6,
+            "turns_per_task": 2.6,
+            "tokens_per_task": 2010.0,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1843.8,
+            "latency_ms_p95": 2255.0,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000162,
+            "split": "train",
+            "failed_checks": {
+              "ticketing_checks.py:no_writes": 5
+            },
+            "failed_answers": [
+              "Ticket T-1 (\"Printer on floor 3 is jammed\") is now closed, and the requester has been notified.",
+              "Ticket T-1 (\"Printer on floor 3 is jammed\") is now closed, and the requester has been notified.",
+              "Ticket T-1 (\"Printer on floor 3 is jammed\") is now closed, and the requester has been notified."
+            ]
+          },
+          "create": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.8,
+            "turns_per_task": 2.8,
+            "tokens_per_task": 2228.4,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 2222.5,
+            "latency_ms_p95": 4185.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000173,
+            "split": "train",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "delete-needs-admin": {
+            "runs": 5,
+            "success_rate": 0.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 2.0,
+            "turns_per_task": 3.0,
+            "tokens_per_task": 2356.6,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 2957.2,
+            "latency_ms_p95": 3761.8,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000225,
+            "split": "train",
+            "failed_checks": {
+              "ticketing_checks.py:t2_kept": 5
+            },
+            "failed_answers": [
+              "Ticket T-2 (\"VPN drops every hour\") has been deleted.",
+              "Deleted ticket T-2 (\"VPN drops every hour\").",
+              "Ticket T-2 (\"VPN drops every hour\") has been deleted."
+            ]
+          },
+          "admin-delete": {
+            "runs": 5,
+            "success_rate": 0.8,
+            "tool_selection_accuracy": 0.444,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.8,
+            "turns_per_task": 2.8,
+            "tokens_per_task": 2241.2,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 2978.9,
+            "latency_ms_p95": 3922.6,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000251,
+            "split": "train",
+            "failed_checks": {
+              "ticketing_checks.py:t3_deleted": 1
+            },
+            "failed_answers": [
+              "Ticket T-3 exists \u2014 \"Laptop battery swelling\" (open, tenant acme). Deleting is permanent and can't be undone, so I'd like to confirm before proceeding: do you want me to permanently delete T-3, or would closing it (which notifies the requester) be better? Note this one describes a battery swelling s"
+            ]
+          },
+          "other-tenant": {
+            "runs": 5,
+            "success_rate": 0.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1427.6,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1179.8,
+            "latency_ms_p95": 1263.2,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000121,
+            "split": "heldout",
+            "failed_checks": {
+              "answer ": 5
+            },
+            "failed_answers": [
+              "Ticket T-1 is titled **\"Printer on floor 3 is jammed\"** \u2014 it's an open ticket for the acme tenant, currently unassigned, with no additional details in the body.",
+              "Ticket T-1 is about a printer on floor 3 being jammed (status: open, unassigned).",
+              "Ticket T-1 is titled \"Printer on floor 3 is jammed\" \u2014 it's an open ticket with no assignee and no additional details in the body."
+            ]
+          },
+          "close-unknown": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 2.2,
+            "turns_per_task": 2.8,
+            "tokens_per_task": 2347.2,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 4861.3,
+            "latency_ms_p95": 10981.8,
+            "errors": {
+              "unknown": 1
+            },
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000335,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          },
+          "count-open": {
+            "runs": 5,
+            "success_rate": 1.0,
+            "tool_selection_accuracy": 1.0,
+            "argument_validity": 1.0,
+            "calls_per_task": 1.0,
+            "turns_per_task": 2.0,
+            "tokens_per_task": 1472.6,
+            "definition_tokens": 366.0,
+            "latency_ms_p50": 1629.2,
+            "latency_ms_p95": 3035.3,
+            "errors": {},
+            "harness_errors": 0,
+            "cost_usd_per_task": 0.000102,
+            "split": "heldout",
+            "failed_checks": {},
+            "failed_answers": []
+          }
+        },
+        "recall": null,
+        "usage": {
+          "cost_usd": 0.009597,
+          "max_cost_usd": 2.31,
+          "requests": 126,
+          "served_by": {
+            "deepseek/deepseek-v4.1-flash": 126
+          }
+        },
+        "notes": []
+      }
+    }
+  ]
+}

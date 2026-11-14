@@ -150,9 +150,9 @@ async def test_inventory_example_reports_its_output_schema_share():
     from server import server
 
     report = await server.cost_report()
-    assert report.total == 488
+    assert report.total == 504
     assert report.output_schema_tokens == 241
-    assert report.output_schema_share == pytest.approx(241 / 488, abs=1e-4)
+    assert report.output_schema_share == pytest.approx(241 / 504, abs=1e-4)
 
 
 @pytest.mark.anyio
@@ -166,10 +166,10 @@ async def test_share_is_zero_when_schemas_are_off_and_for_an_empty_server():
 def test_check_json_reports_the_share(capsys):
     assert main(["check", str(EXAMPLE / "server.py"), "--json"]) == 0
     data = json.loads(capsys.readouterr().out)
-    assert data["startup_tokens"] == 488
+    assert data["startup_tokens"] == 504
     assert data["output_schema_tokens"] == 241
-    assert data["output_schema_share"] == pytest.approx(0.4939, abs=1e-4)
-    assert data["output_schema_share"] == round(241 / 488, 4)
+    assert data["output_schema_share"] == pytest.approx(0.4782, abs=1e-4)
+    assert data["output_schema_share"] == round(241 / 504, 4)
     modes = {
         t["name"]: (t["output_schema_mode"], t["output_schema_advertised"]) for t in data["tools"]
     }
@@ -179,7 +179,7 @@ def test_check_json_reports_the_share(capsys):
 def test_check_text_reports_the_share(capsys):
     assert main(["check", str(EXAMPLE / "server.py")]) == 0
     out = capsys.readouterr().out
-    assert "Output schemas   241 of 488 tokens (49%)" in out
+    assert "Output schemas   241 of 504 tokens (48%)" in out
 
 
 def test_check_text_shows_zero_when_off(tmp_path, capsys):

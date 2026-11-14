@@ -33,6 +33,7 @@ Checks are judged on what happened on the server, not on what the model says:
 | ``result: tool`` + ``path`` + ``equals``/``contains``/``exists`` | the tool's last successful structured result matches |
 | ``error: tool`` + ``category`` (+ ``hidden: true``) | the tool's last call failed in that category; the tool must be listed for the caller, or, with ``hidden: true``, must be hidden from them |
 | ``state: module:function`` | ``function(server, run)`` returns true; the module path is relative to the suite |
+| ``answer: [..]`` / ``any_of`` / ``not_contains`` | the final answer contains every listed text, at least one ``any_of`` text, and none of ``not_contains`` (case-insensitive); for read tasks whose outcome is a fact the server holds |
 
 A task may also set ``caller`` (fields for ``ouncemcp.testing.make_token``, in-process
 servers only), ``approve`` (the answer to an approval request; default true) and
@@ -52,7 +53,7 @@ from typing import Any, Literal
 import yaml
 
 Split = Literal["train", "heldout"]
-CHECK_KINDS = ("called", "not_called", "result", "error", "state")
+CHECK_KINDS = ("called", "not_called", "result", "error", "state", "answer")
 
 
 class SuiteError(ValueError):
@@ -72,6 +73,8 @@ class Check:
     hidden: bool = False
     function: Callable[..., Any] | None = None
     label: str = ""
+    any_of: tuple[str, ...] = ()
+    not_contains: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -140,6 +143,20 @@ def _check(raw: Mapping[str, Any], base: Path, where: str) -> Check:
     kind = kinds[0]
     if kind == "state":
         return Check(kind, function=_function(str(raw["state"]), base), label=str(raw["state"]))
+    if kind == "answer":
+        texts = raw["answer"] or []
+        texts = [texts] if isinstance(texts, str) else list(texts)
+        any_of = tuple(str(t) for t in raw.get("any_of") or ())
+        not_contains = tuple(str(t) for t in raw.get("not_contains") or ())
+        if not (texts or any_of or not_contains):
+            raise SuiteError(f"{where}: an answer check needs texts, any_of or not_contains")
+        return Check(
+            kind,
+            contains=tuple(str(t) for t in texts),
+            any_of=any_of,
+            not_contains=not_contains,
+            label="answer " + ", ".join([*map(str, texts), *any_of][:3]),
+        )
     tool = str(raw[kind])
     if kind == "result" and not any(k in raw for k in ("equals", "contains", "exists")):
         raise SuiteError(f"{where}: a result check needs equals, contains or exists")

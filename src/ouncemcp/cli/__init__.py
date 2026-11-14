@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -27,7 +28,7 @@ COMMANDS: dict[str, tuple[str, str]] = {
     "trace": ("Open the trace and context viewer", "M3"),
     "audit": ("Optional: measure any MCP server and recommend fixes", "M2"),
 }
-IMPLEMENTED = {"init", "dev", "check", "context", "audit", "trace", "eval"}
+IMPLEMENTED = {"init", "dev", "check", "context", "audit", "trace", "eval", "bench"}
 
 
 def _add_tokenizer_option(cmd: argparse.ArgumentParser) -> None:
@@ -82,9 +83,28 @@ def build_parser() -> argparse.ArgumentParser:
             cmd.add_argument("--json", action="store_true", help="print a JSON report")
             cmd.add_argument("--markdown", action="store_true", help="print a Markdown report")
             cmd.add_argument("--output", metavar="PATH", help="also write the JSON report here")
+            cmd.add_argument("--html", metavar="PATH", help="also write an HTML report here")
             _add_tokenizer_option(cmd)
             cmd.add_argument("--header", action="append", default=[], metavar="'Name: value'")
             cmd.add_argument("--bearer", metavar="TOKEN", help="bearer token for HTTP servers")
+            cmd.add_argument(
+                "--oauth",
+                action="store_true",
+                help="sign in with OAuth in the browser (HTTP servers). Registration order: "
+                "--client-id, then --client-metadata-url, then dynamic registration",
+            )
+            cmd.add_argument("--client-id", metavar="ID", help="pre-registered OAuth client id")
+            cmd.add_argument(
+                "--client-metadata-url",
+                metavar="URL",
+                help="https URL of this client's Client ID Metadata Document",
+            )
+            cmd.add_argument(
+                "--no-dynamic-registration",
+                action="store_true",
+                help="refuse dynamic client registration",
+            )
+            cmd.add_argument("--scope", action="append", default=[], help="OAuth scope to request")
             cmd.add_argument("--env", action="append", default=[], metavar="KEY=VALUE")
             cmd.add_argument(
                 "--inherit-env", action="store_true", help="pass this environment to stdio servers"
@@ -104,7 +124,15 @@ def build_parser() -> argparse.ArgumentParser:
             cmd.add_argument("--fail-on-regression", action="store_true")
         elif name == "context":
             cmd.add_argument("server", help="path/to/server.py[:name] or module[:name]")
-            cmd.add_argument("tool", help="tool name")
+            cmd.add_argument(
+                "tool", nargs="?", help="tool name (optional with --html: the page shows all)"
+            )
+            cmd.add_argument(
+                "--html",
+                metavar="PATH",
+                help="write a page with every definition as clients receive it, its token "
+                "breakdown and, with --call, the result",
+            )
             cmd.add_argument(
                 "--call",
                 metavar="JSON",
@@ -117,8 +145,22 @@ def build_parser() -> argparse.ArgumentParser:
             cmd.add_argument(
                 "--model",
                 default="replay",
-                choices=["replay"],
-                help="replay plays each task's script (no API key, deterministic)",
+                help="replay (each task's script; no key, deterministic) or openrouter:MODEL_ID "
+                "(a real model through OpenRouter; needs OPENROUTER_API_KEY)",
+            )
+            cmd.add_argument(
+                "--max-cost",
+                type=float,
+                default=1.0,
+                metavar="USD",
+                help="stop starting runs once a real model has cost this much (default 1.00)",
+            )
+            cmd.add_argument(
+                "--fallback-model",
+                action="append",
+                default=[],
+                metavar="MODEL_ID",
+                help="OpenRouter model to use when the first is unavailable (repeatable)",
             )
             cmd.add_argument("--repeats", type=int, help="runs per task (default: the suite's)")
             cmd.add_argument("--split", choices=["all", "train", "heldout"], default="all")
@@ -132,6 +174,27 @@ def build_parser() -> argparse.ArgumentParser:
             cmd.add_argument(
                 "--allow-failures", action="store_true", help="exit 0 even if a task fails"
             )
+        elif name == "bench":
+            cmd.add_argument(
+                "config", nargs="?", help="a benchmark file, e.g. benchmarks/bench.yaml"
+            )
+            cmd.add_argument(
+                "--from",
+                dest="from_results",
+                metavar="RESULTS.json",
+                help="render an earlier run's results (with --html) instead of running",
+            )
+            cmd.add_argument(
+                "--models", help="comma-separated OpenRouter ids instead of the file's, or replay"
+            )
+            cmd.add_argument("--repeats", type=int, help="runs per task (default: the file's)")
+            cmd.add_argument(
+                "--max-cost", type=float, metavar="USD", help="total budget (default: the file's)"
+            )
+            cmd.add_argument("--concurrency", type=int, default=6)
+            cmd.add_argument("--json", action="store_true", help="print the report as JSON")
+            cmd.add_argument("--output", metavar="PATH", help="also write the JSON report here")
+            cmd.add_argument("--html", metavar="PATH", help="also write an HTML report here")
         elif name == "trace":
             cmd.add_argument("file", help="a JSONL trace file written by JsonlSink")
             cmd.add_argument(
@@ -188,7 +251,8 @@ def _check(ns: argparse.Namespace) -> int:
         if isinstance(server, OunceServer)
         else None
     )
-    report = measure_tools(tools, budget, counter, output_schema_modes=modes)
+    overrides = server.budget_overrides() if isinstance(server, OunceServer) else None
+    report = measure_tools(tools, budget, counter, output_schema_modes=modes, overrides=overrides)
     decision = _discovery(server)
     findings = lint_server(server)
     lint_failed = any(f.severity == "error" for f in findings)
@@ -217,6 +281,7 @@ def _context(ns: argparse.Namespace) -> int:
         definition_payload,
         measure_tool,
     )
+    from ouncemcp.core.server import OunceServer
 
     try:
         server = load_server(ns.server)
@@ -229,56 +294,79 @@ def _context(ns: argparse.Namespace) -> int:
     except ValueError as exc:
         print(f"ouncemcp context: {exc}", file=sys.stderr)
         return 2
+    names = ", ".join(sorted(t.name for t in tools))
+    if ns.tool is None and not ns.html:
+        print(f"ouncemcp context: name a tool, or pass --html. Tools: {names}", file=sys.stderr)
+        return 2
     match = next((t for t in tools if t.name == ns.tool), None)
-    if match is None:
-        names = ", ".join(sorted(t.name for t in tools))
+    if ns.tool is not None and match is None:
         print(f"ouncemcp context: no tool named '{ns.tool}'. Tools: {names}", file=sys.stderr)
         return 2
-    cost = measure_tool(match, budget, counter)
-    print(json.dumps(definition_payload(match), indent=2, ensure_ascii=False))
-    print(
-        f"\n{cost.total} tokens (description {cost.description}, input schema "
-        f"{cost.input_schema}, output schema {cost.output_schema}, other "
-        f"{cost.name_tokens + cost.structure}) [{cost.status.upper()}] "
-        f"counted with {counter.name}\n"
-        f"Counted: {', '.join(COUNTED_FIELDS)}; not counted: {', '.join(UNCOUNTED_FIELDS)}",
-        file=sys.stderr,
-    )
-    if ns.call is not None:
-        return _context_call(server, ns.tool, ns.call, counter)
-    return 0
-
-
-def _context_call(server: Any, tool: str, raw: str, counter: TokenCounter) -> int:
-    """Call ``tool`` in-process and show the result as the model receives it (DX-4)."""
-    from fastmcp import Client
-
-    try:
-        arguments = json.loads(raw or "{}")
-    except json.JSONDecodeError as exc:
-        print(f"ouncemcp context: --call is not valid JSON ({exc})", file=sys.stderr)
+    if ns.call is not None and match is None:
+        print("ouncemcp context: --call needs a tool name", file=sys.stderr)
         return 2
+    arguments: dict[str, Any] | None = None
+    if ns.call is not None:
+        try:
+            arguments = json.loads(ns.call or "{}")
+        except json.JSONDecodeError as exc:
+            print(f"ouncemcp context: --call is not valid JSON ({exc})", file=sys.stderr)
+            return 2
+    ounce = server if isinstance(server, OunceServer) else None
+    overrides = ounce.budget_overrides() if ounce else None
+    if match is not None:
+        cost = measure_tool(match, budget, counter, override=(overrides or {}).get(match.name))
+        print(json.dumps(definition_payload(match), indent=2, ensure_ascii=False))
+        print(
+            f"\n{cost.total} tokens (description {cost.description}, input schema "
+            f"{cost.input_schema}, output schema {cost.output_schema}, other "
+            f"{cost.name_tokens + cost.structure}) [{cost.status.upper()}] "
+            f"counted with {counter.name}\n"
+            f"Counted: {', '.join(COUNTED_FIELDS)}; not counted: {', '.join(UNCOUNTED_FIELDS)}",
+            file=sys.stderr,
+        )
+    result = None
+    if arguments is not None and match is not None:
+        from ouncemcp.ui.views import call_result
 
-    async def run() -> Any:
-        async with Client(getattr(server, "fastmcp", server)) as client:
-            return await client.call_tool_mcp(tool, arguments)
+        result = asyncio.run(call_result(server, match.name, arguments, counter))
+        _print_result(result, counter)
+    if ns.html:
+        from ouncemcp.ui import render_report
+        from ouncemcp.ui.views import context_data
 
-    result = asyncio.run(run())
-    text = "".join(getattr(c, "text", "") for c in result.content or [])
+        decision = _discovery(server)
+        modes = {name: spec.output_schema for name, spec in ounce.tools.items()} if ounce else None
+        data = context_data(
+            tools,
+            budget,
+            counter,
+            title=f"Context: {ns.server}",
+            overrides=overrides,
+            output_schema_modes=modes,
+            discovery=decision.to_dict() if decision is not None else None,
+            results=[result] if result else [],
+            focus=ns.tool,
+        )
+        Path(ns.html).write_text(render_report(data), encoding="utf-8")
+        print(f"HTML context view: {ns.html}", file=sys.stderr)
+    return 1 if result is not None and not result["ok"] else 0
+
+
+def _print_result(result: dict[str, Any], counter: TokenCounter) -> None:
+    """Show a tool result as the model receives it (DX-4)."""
     print("\n--- result content (what the model reads) ---")
-    print(text)
-    if result.structured_content is not None:
+    print(result["content"])
+    if result["structured"] is not None:
         print("--- structuredContent ---")
-        print(json.dumps(result.structured_content, indent=2, ensure_ascii=False))
-    meta = (result.meta or {}).get("ouncemcp")
-    tokens = counter.count(text)
-    status = "error" if result.is_error else "ok"
+        print(json.dumps(result["structured"], indent=2, ensure_ascii=False))
+    meta = result["meta"]
     print(
-        f"\nresult: {status}, {tokens} tokens of content counted with {counter.name}"
+        f"\nresult: {'ok' if result['ok'] else 'error'}, {result['content_tokens']} tokens of "
+        f"content counted with {counter.name}"
         + (f"; _meta.ouncemcp = {json.dumps(meta)}" if meta else ""),
         file=sys.stderr,
     )
-    return 1 if result.is_error else 0
 
 
 def _audit(ns: argparse.Namespace) -> int:
@@ -299,6 +387,24 @@ def _audit(ns: argparse.Namespace) -> int:
         print(f"ouncemcp audit: bad option ({exc})", file=sys.stderr)
         return 2
     budget = Budget(tool_definition_fail=ns.fail_tool) if ns.fail_tool else Budget()
+    auth = None
+    if ns.oauth or ns.client_id or ns.client_metadata_url:
+        from ouncemcp.client.oauth import OunceOAuth
+
+        try:
+            auth = OunceOAuth(
+                client_id=ns.client_id,
+                # Secrets never go on the command line, where they end up in shell history.
+                client_secret=os.environ.get("OUNCEMCP_OAUTH_CLIENT_SECRET"),
+                client_metadata_url=ns.client_metadata_url,
+                allow_dynamic=not ns.no_dynamic_registration,
+                scopes=ns.scope or None,
+                client_name="ouncemcp audit",
+            )
+        except ValueError as exc:
+            print(f"ouncemcp audit: {exc}", file=sys.stderr)
+            return 2
+        print(f"ouncemcp audit: OAuth with {auth.registration} client", file=sys.stderr)
     try:
         report = asyncio.run(
             audit(
@@ -311,6 +417,7 @@ def _audit(ns: argparse.Namespace) -> int:
                 bearer=ns.bearer,
                 env=env,
                 inherit_env=ns.inherit_env,
+                auth=auth,
             )
         )
     except Exception as exc:  # noqa: BLE001 - report connection problems plainly
@@ -324,6 +431,12 @@ def _audit(ns: argparse.Namespace) -> int:
     data["regressions"] = regressions
     if ns.output:
         Path(ns.output).write_text(json.dumps(data, indent=2))
+    if ns.html:
+        from ouncemcp.ui import render_report
+        from ouncemcp.ui.views import audit_data
+
+        page = render_report(audit_data(data, title=f"Audit: {target}"))
+        Path(ns.html).write_text(page, encoding="utf-8")
     if ns.json:
         print(json.dumps(data, indent=2))
     elif ns.markdown:
@@ -354,9 +467,30 @@ def _eval(ns: argparse.Namespace) -> int:
     except SuiteError as exc:
         print(f"ouncemcp eval: {exc}", file=sys.stderr)
         return 2
+    model: Any = None
+    if ns.model.startswith("openrouter:"):
+        from ouncemcp.eval.agent.openrouter import OpenRouterModel
+
+        try:
+            model = OpenRouterModel(
+                ns.model.partition(":")[2],
+                max_cost_usd=ns.max_cost,
+                fallbacks=ns.fallback_model,
+            )
+        except ValueError as exc:
+            print(f"ouncemcp eval: {exc}", file=sys.stderr)
+            return 2
+    elif ns.model != "replay":
+        print("ouncemcp eval: --model is replay or openrouter:MODEL_ID", file=sys.stderr)
+        return 2
     report = asyncio.run(
         run_suite(
-            suite, repeats=ns.repeats, split=ns.split, server=ns.server, tokenizer=ns.tokenizer
+            suite,
+            model,
+            repeats=ns.repeats,
+            split=ns.split,
+            server=ns.server,
+            tokenizer=ns.tokenizer,
         )
     )
     data = report.to_dict()
@@ -376,6 +510,57 @@ def _eval(ns: argparse.Namespace) -> int:
         ns.fail_on_regression and bool(regressions)
     )
     return 1 if failed else 0
+
+
+def _bench(ns: argparse.Namespace) -> int:
+    import secrets
+
+    from ouncemcp.eval.agent import SuiteError
+    from ouncemcp.eval.bench import load_bench, load_bench_report, run_bench
+
+    if ns.from_results:
+        from ouncemcp.ui import render_report
+
+        data = load_bench_report(ns.from_results)
+        if ns.html:
+            page = render_report({"kind": "bench", "title": f"Benchmark: {data['name']}", **data})
+            Path(ns.html).write_text(page, encoding="utf-8")
+        met = data["perf6"]
+        print(f"Benchmark {data['name']}: PERF-6 met for {met['met']} of {met['pairs']} pairs")
+        return 0
+    if not ns.config:
+        print("ouncemcp bench: give a benchmark file or --from RESULTS.json", file=sys.stderr)
+        return 2
+    try:
+        config = load_bench(ns.config)
+    except (SuiteError, KeyError) as exc:
+        print(f"ouncemcp bench: {exc}", file=sys.stderr)
+        return 2
+    models = [m.strip() for m in ns.models.split(",")] if ns.models else None
+    if any(m != "replay" for m in (models or config.models)) and not os.environ.get(
+        "OPENROUTER_API_KEY"
+    ):
+        print("ouncemcp bench: set OPENROUTER_API_KEY to run real models", file=sys.stderr)
+        return 2
+    # Servers are loaded once per run; one key for the whole benchmark keeps cursors
+    # valid within each run without a warning per load.
+    os.environ.setdefault("OUNCEMCP_CURSOR_KEYS", secrets.token_hex(32))
+    report = asyncio.run(
+        run_bench(
+            config,
+            models=models,
+            repeats=ns.repeats,
+            max_cost_usd=ns.max_cost,
+            concurrency=ns.concurrency,
+        )
+    )
+    data = report.to_dict()
+    if ns.output:
+        Path(ns.output).write_text(json.dumps(data, indent=2, default=str))
+    if ns.html:
+        Path(ns.html).write_text(report.render_html(), encoding="utf-8")
+    print(json.dumps(data, indent=2, default=str) if ns.json else report.render_text())
+    return 0
 
 
 def _trace(ns: argparse.Namespace) -> int:
@@ -434,6 +619,8 @@ def main(argv: list[str] | None = None) -> int:
         return _trace(ns)
     if ns.command == "eval":
         return _eval(ns)
+    if ns.command == "bench":
+        return _bench(ns)
     if ns.command == "dev":
         from ouncemcp.cli import dev
 

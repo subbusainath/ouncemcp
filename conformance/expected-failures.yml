@@ -1,10 +1,11 @@
 # Scenarios OunceMCP does not support in M1, for MCP 2026-07-28 and
 # @modelcontextprotocol/conformance 0.2.0-alpha.12 (spec EVAL-1).
 #
-# This first baseline was written from the scenario descriptions, not from a run.
-# After the first run of .github/workflows/conformance.yml, remove entries the run
-# reports as stale and add or fix anything it reports as unexpected, then make the
-# job required (remove continue-on-error).
+# Confirmed by CI on 13 November 2026 (PR #16): 36 checks passed and the 5 failures
+# were exactly completion-complete and the four tools-call content scenarios. The
+# job now fails on anything else. input-required-result-non-tool-request and
+# json-schema-2020-12 are not run by this suite version's default scenario set; they
+# stay listed so a suite upgrade that adds them does not fail for known gaps.
 server:
   # Completions are not supported. Resources and prompts have fixtures since M2
   # (CAP-2); the prompt-level input_required flow does not.

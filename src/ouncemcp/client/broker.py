@@ -174,6 +174,7 @@ class Broker:
         cooldown_s: float = 30.0,
         search_results: int = 5,
         connect_timeout_s: float = 15.0,
+        auth: Mapping[str, Any] | None = None,
     ) -> None:
         for sid in servers:
             if not SERVER_ID.match(sid):
@@ -182,6 +183,10 @@ class Broker:
                     "starting with a letter"
                 )
         self._servers = {sid: _Server(sid, target) for sid, target in servers.items()}
+        unknown = set(auth or {}) - set(servers)
+        if unknown:
+            raise ValueError(f"auth names unknown servers: {', '.join(sorted(unknown))}")
+        self._auth = dict(auth or {})
         self.budget = budget or Budget()
         self.counter = get_counter(tokenizer) if tokenizer is not None else get_counter()
         self.deadline_s = deadline_s
@@ -229,7 +234,7 @@ class Broker:
             import shlex
 
             target = shlex.join(target)
-        return connect_target(str(target), **kwargs)
+        return connect_target(str(target), auth=self._auth.get(server.id), **kwargs)
 
     async def _connect(self, server: _Server) -> None:
         try:

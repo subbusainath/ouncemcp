@@ -37,6 +37,11 @@ nav:
       - input-after-effect: rules/input-after-effect.md
       - elicit-in-write: rules/elicit-in-write.md
       - destructive-without-policy: rules/destructive-without-policy.md
+      - budget-override-without-reason: rules/budget-override-without-reason.md
+      - undocumented-parameter: rules/undocumented-parameter.md
+      - free-form-input: rules/free-form-input.md
+      - unpaginated-list: rules/unpaginated-list.md
+      - inconsistent-tool-names: rules/inconsistent-tool-names.md
       - stdio-skips-policy: rules/stdio-skips-policy.md
       - description-too-short: rules/description-too-short.md
       - write-without-side-effects: rules/write-without-side-effects.md
@@ -68,3 +73,10 @@ nav:
           - 0018 Trace viewer: proposals/0018-trace-viewer.md
           - 0019 Eval kit: proposals/0019-eval-kit.md
           - 0020 Report UI: proposals/0020-report-ui.md
+          - 0021 Budget overrides: proposals/0021-budget-overrides.md
+          - 0022 Parallel-safe tools: proposals/0022-parallel-safe-tools.md
+          - 0023 Safe fetch: proposals/0023-safe-fetch.md
+          - 0024 Context and audit pages: proposals/0024-context-and-audit-pages.md
+          - 0025 OAuth: proposals/0025-oauth.md
+          - 0026 Real-model evals: proposals/0026-real-model-evals.md
+          - 0027 Benchmark: proposals/0027-benchmark.md

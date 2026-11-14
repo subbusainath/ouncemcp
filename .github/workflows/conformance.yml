@@ -2,8 +2,8 @@ name: Conformance
 
 # Runs the official MCP conformance suite against the OunceMCP conformance target
 # (src/ouncemcp/eval/conformance.py) for MCP 2026-07-28 (spec EVAL-1).
-# Not required yet: see conformance/expected-failures.yml for how to settle the
-# baseline and then make this job required.
+# Release gate 1: the job fails on any failure that is not in
+# conformance/expected-failures.yml, and on baseline entries the suite reports as stale.
 
 on:
   push:
@@ -13,7 +13,6 @@ on:
 jobs:
   server:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6

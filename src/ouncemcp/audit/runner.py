@@ -161,14 +161,20 @@ def connect_target(
     bearer: str | None = None,
     env: Mapping[str, str] | None = None,
     inherit_env: bool = False,
+    auth: Any = None,
     **client_kwargs: Any,
 ) -> tuple[Client, str]:
     """A client for ``target``: an http(s) URL, a ``.py`` file or ``module:attr`` with a
-    server object (in-process), or a command line that starts a stdio server."""
+    server object (in-process), or a command line that starts a stdio server.
+
+    For HTTP, ``auth`` is an ``OunceOAuth`` (SEC-10) or any httpx auth; it takes
+    precedence over ``bearer``."""
     if re.match(r"^https?://", target):
         from fastmcp.client.transports import StreamableHttpTransport
 
-        transport = StreamableHttpTransport(target, headers=dict(headers or {}), auth=bearer)
+        transport = StreamableHttpTransport(
+            target, headers=dict(headers or {}), auth=auth if auth is not None else bearer
+        )
         return Client(transport, **client_kwargs), "http"
     ref = target.partition(":")[0]
     if ref.endswith(".py") and " " not in target and Path(ref).exists():
@@ -283,12 +289,14 @@ async def audit(
     bearer: str | None = None,
     env: Mapping[str, str] | None = None,
     inherit_env: bool = False,
+    auth: Any = None,
 ) -> AuditReport:
-    """Measure ``target``. Tools are only called when named in ``samples``."""
+    """Measure ``target``. Tools are only called when named in ``samples``. ``auth`` is an
+    ``OunceOAuth`` for OAuth-protected HTTP servers (SEC-10)."""
     budget = budget or Budget()
     counter = get_counter(tokenizer) if tokenizer is not None else get_counter()
     client, transport = connect_target(
-        target, headers=headers, bearer=bearer, env=env, inherit_env=inherit_env
+        target, headers=headers, bearer=bearer, env=env, inherit_env=inherit_env, auth=auth
     )
     started = time.perf_counter()
     async with client:

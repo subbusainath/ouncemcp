@@ -21,6 +21,7 @@ from functools import cache
 from importlib import resources
 from typing import Any
 
+KINDS = ("trace", "eval", "context", "audit", "bench")
 _PLACEHOLDER = '<script type="application/json" id="report-data">{}</script>'
 _SCRIPT = re.compile(r"<script(?![^>]*application/json)[^>]*>(.*?)</script>", re.DOTALL)
 
@@ -57,9 +58,9 @@ def _csp() -> str:
 
 
 def render_report(data: Mapping[str, Any]) -> str:
-    """The report page with ``data``: ``{"kind": "trace" | "eval", "title": ..., ...}``."""
-    if data.get("kind") not in ("trace", "eval"):
-        raise ValueError("report data needs kind 'trace' or 'eval'")
+    """The report page with ``data``: ``{"kind": ..., "title": ..., ...}``."""
+    if data.get("kind") not in KINDS:
+        raise ValueError(f"report data needs kind {', '.join(repr(k) for k in KINDS)}")
     page = _template().replace(
         _PLACEHOLDER,
         f'<script type="application/json" id="report-data">{_json(dict(data))}</script>',

@@ -69,8 +69,8 @@ async def search(args: SearchInput, ctx: ToolContext) -> SearchResult:
 
 
 class AddInput(BaseModel):
-    title: str = Field(min_length=1, max_length=120)
-    body: str = Field("", max_length=4000)
+    title: str = Field(min_length=1, max_length=120, description="Short title, unique")
+    body: str = Field("", max_length=4000, description="Note text")
 
 
 class Added(BaseModel):

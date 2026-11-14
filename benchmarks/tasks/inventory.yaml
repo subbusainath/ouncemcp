@@ -1,0 +1,123 @@
+# Benchmark tasks for the inventory pilot (spec section 13). Every check is about the
+# outcome, so the same tasks run against the OunceMCP server and the plain FastMCP
+# equivalent; benchmarks/bench.yaml maps the tool names. Facts come from
+# examples/inventory/data.py (seeded, so they never change).
+name: inventory-bench
+server: ../../examples/inventory/server.py
+repeats: 5
+tasks:
+  - id: running-vms
+    prompt: How many VMs are running in ap-south-1?
+    expect_tools: [inventory.search]
+    checks:
+      - answer: ["12"]
+    script:
+      - call: inventory.search
+        args: {region: ap-south-1, kind: vm, status: running}
+      - say: There are 12 running VMs.
+
+  - id: vm-owner
+    prompt: Who owns resource vm-00040?
+    expect_tools: [inventory.get, inventory.search]
+    checks:
+      - answer: [identity-oncall@example.com]
+    script:
+      - call: inventory.get
+        args: {id: vm-00040}
+      - say: identity-oncall@example.com owns it.
+
+  - id: vm-instance-type
+    prompt: What instance type is vm-00040?
+    expect_tools: [inventory.get, inventory.search]
+    checks:
+      - answer: [r7.2xlarge]
+    script:
+      - call: inventory.get
+        args: {id: vm-00040, response_format: detailed}
+      - say: It is an r7.2xlarge.
+
+  - id: databases-us-east
+    prompt: How many databases are there in us-east-1?
+    expect_tools: [inventory.search]
+    checks:
+      - answer: ["20"]
+    script:
+      - call: inventory.search
+        args: {region: us-east-1, kind: database}
+      - say: There are 20 databases.
+
+  - id: degraded-eu-west
+    prompt: How many resources in eu-west-1 are degraded?
+    expect_tools: [inventory.search]
+    checks:
+      - answer: ["24"]
+    script:
+      - call: inventory.search
+        args: {region: eu-west-1, status: degraded}
+      - say: 24 resources are degraded.
+
+  - id: stopped-ap-southeast
+    prompt: How many resources are stopped in ap-southeast-1?
+    expect_tools: [inventory.search]
+    checks:
+      - answer: ["18"]
+    script:
+      - call: inventory.search
+        args: {region: ap-southeast-1, status: stopped}
+      - say: 18 resources are stopped.
+
+  - id: costliest-function
+    prompt: Which function in ap-southeast-1 costs the most per month?
+    expect_tools: [inventory.search, inventory.get]
+    checks:
+      - answer: []
+        any_of: [fu-00058, data-function-058]   # its id or its name
+    script:
+      - call: inventory.search
+        args: {region: ap-southeast-1, kind: function, limit: 50, response_format: detailed}
+      - say: fu-00058 costs the most.
+
+  - id: unknown-id
+    prompt: Show me resource vm-99999.
+    expect_tools: [inventory.get, inventory.search]
+    checks:
+      - answer: []
+        any_of: [not found, not_found, wasn't found, no resource, not exist, n't exist, can't find, couldn't find, could not find, no such, isn't, unable to find, doesn't appear, not recognized]
+    script:
+      - call: inventory.get
+        args: {id: vm-99999}
+      - say: No resource with id vm-99999 was found.
+
+  - id: degraded-lbs
+    split: heldout
+    prompt: List the degraded load balancers in eu-west-1.
+    expect_tools: [inventory.search]
+    checks:
+      - answer: [lo-00034, lo-00134, lo-00234, lo-00294, lo-00374]
+    script:
+      - call: inventory.search
+        args: {region: eu-west-1, kind: load_balancer, status: degraded}
+      - say: lo-00034, lo-00134, lo-00234, lo-00294 and lo-00374.
+
+  - id: costliest-vm
+    split: heldout
+    prompt: Which VM in eu-west-1 has the highest monthly cost?
+    expect_tools: [inventory.search, inventory.get]
+    checks:
+      - answer: []
+        any_of: [vm-00290, platform-vm-290]   # its id or its name
+    script:
+      - call: inventory.search
+        args: {region: eu-west-1, kind: vm, limit: 50, response_format: detailed}
+      - say: vm-00290.
+
+  - id: vm-cpu
+    split: heldout
+    prompt: What is the p95 CPU utilisation of vm-00040?
+    expect_tools: [inventory.get, inventory.search]
+    checks:
+      - answer: ["29.7"]
+    script:
+      - call: inventory.get
+        args: {id: vm-00040, response_format: detailed}
+      - say: 29.7%.

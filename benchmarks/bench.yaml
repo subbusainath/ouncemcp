@@ -1,0 +1,31 @@
+# The OunceMCP benchmark (spec section 13): each pilot's tasks against the OunceMCP
+# server and its plain FastMCP equivalent, with several models.
+# Run: ouncemcp bench benchmarks/bench.yaml --output benchmarks/results/m3-bench.json
+name: ouncemcp-m3
+repeats: 5
+max_cost_usd: 5.00          # one budget for the whole run, across all models
+compare: {candidate: ounce, baseline: plain}
+models:
+  - anthropic/claude-haiku-5.5
+  - anthropic/claude-sonnet-5.5
+  - openai/gpt-5.4-mini
+  - deepseek/deepseek-v4.1-flash
+suites:
+  - suite: tasks/inventory.yaml
+    conditions:
+      ounce:
+        server: ../examples/inventory/server.py
+      plain:
+        server: ../examples/inventory/plain_server.py:mcp
+        tool_map: {inventory.search: search_resources, inventory.get: get_resource}
+  - suite: tasks/ticketing.yaml
+    conditions:
+      ounce:
+        server: ../examples/ticketing/server.py
+      plain:
+        server: ../examples/ticketing/plain_server.py:mcp
+        tool_map:
+          tickets.search: search_tickets
+          tickets.create: create_ticket
+          tickets.close: close_ticket
+          tickets.delete: delete_ticket

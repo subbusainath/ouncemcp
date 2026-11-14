@@ -13,6 +13,7 @@ import logging
 import re
 import sys
 import typing
+import warnings
 from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from typing import Any, Literal, TypeVar, cast
@@ -26,14 +27,14 @@ from fastmcp.server.dependencies import get_access_token
 from fastmcp.tools import FunctionTool, Tool, ToolResult
 from fastmcp.tools.base import InputRequiredToolResult
 from mcp_types import InputRequiredResult, TextContent, ToolAnnotations
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pydantic import ValidationError as PydanticValidationError
 
-from ouncemcp.core.budget import Budget
+from ouncemcp.core.budget import Budget, BudgetOverride, BudgetOverrideWarning
 from ouncemcp.core.costs import ServerCost, definition_payload, measure_tools
 from ouncemcp.core.cursor import BoundCursors, CursorSigner, InvalidCursor
 from ouncemcp.core.docs import error_doc
-from ouncemcp.core.effects import Effect
+from ouncemcp.core.effects import PARALLEL_SAFE_META, Effect
 from ouncemcp.core.errors import Failure, classify, format_validation
 from ouncemcp.core.pagination import PageFields, PageWindow, find_page_fields, window
 from ouncemcp.core.schema import compact_schema
@@ -41,7 +42,9 @@ from ouncemcp.core.shaping import (
     PageSpec,
     ResponseFormat,
     ResultTooLarge,
+    is_detail_field,
     model_has_detail_fields,
+    nested_models,
     shape_result,
     validate_detail_fields,
 )
@@ -186,8 +189,10 @@ class ToolContext:
     Attributes:
         tool: The tool name.
         response_format: ``"concise"`` or ``"detailed"``. Handlers can skip expensive
-            lookups for fields that will not be returned.
-        result_budget: Token budget for this call's result.
+            lookups for fields that will not be returned; see ``includes`` (RES-11).
+        result_budget: Token budget for this call's result: the tool's concise budget,
+            or ``Budget.result_ceiling`` for detailed results. Handlers can use it to
+            choose how much to fetch (RES-11).
         fastmcp: The underlying FastMCP context, when running inside a server.
     """
 
@@ -215,6 +220,40 @@ class ToolContext:
     _effects_applied: bool = field(default=False, repr=False)
     _approved: bool = field(default=False, repr=False)
     _jobs: JobRunner | None = field(default=None, repr=False)
+    _output_model: type[BaseModel] | None = field(default=None, repr=False)
+
+    @property
+    def detailed(self) -> bool:
+        """True when the caller asked for ``response_format="detailed"``."""
+        return self.response_format == "detailed"
+
+    def includes(self, path: str) -> bool:
+        """Whether output field ``path`` is returned in this call (RES-11).
+
+        ``path`` names a field of the tool's output model, dotted for nested models
+        (``"owner.history"``). Fields marked ``Detail`` are only returned in detailed
+        results, so a handler can skip the lookup that fills them::
+
+            if ctx.includes("metrics"):
+                detail.metrics = await fetch_metrics(id)
+
+        Unknown fields raise ``ValueError``, so a renamed field cannot silently turn a
+        lookup off.
+        """
+        model = self._output_model
+        if model is None:
+            raise RuntimeError("includes() needs a tool context created by OunceServer")
+        for part in path.split("."):
+            if model is None:
+                raise ValueError(f"'{path}': cannot look inside a field that is not a model")
+            info = model.model_fields.get(part)
+            if info is None:
+                raise ValueError(f"'{path}': {model.__name__} has no field '{part}'")
+            if is_detail_field(info) and not self.detailed:
+                return False
+            nested = nested_models(info.annotation)
+            model = nested[0] if nested else None
+        return True
 
     @property
     def identity(self) -> Identity:
@@ -533,6 +572,8 @@ class ToolSpec:
     idempotency: Idempotency | None = None
     approval: ApprovalRule | None = None
     preview: Preview | None = field(default=None, compare=False, repr=False)
+    budget_override: BudgetOverride | None = None
+    parallel_safe: bool = False
 
 
 OutputSchemaMode = Literal["on", "off", "auto"]
@@ -927,8 +968,21 @@ class OunceServer:
         idempotency: bool | Idempotency | None = None,
         approval: ApprovalRule = "never",
         preview: Preview | None = None,
+        definition_tokens: int | None = None,
+        budget_reason: str | None = None,
+        parallel_safe: bool | None = None,
     ) -> Any:
         """Register a tool. ``effect`` is required.
+
+        ``parallel_safe`` marks the tool as safe for clients to call in parallel with
+        other calls, in ``_meta["ouncemcp/parallelSafe"]`` (EXE-5). Read tools are
+        parallel-safe unless they depend on call order (a shared queue, a cursor kept on
+        the server); set ``parallel_safe=False`` for those. Writes are never marked.
+
+        ``result_tokens`` and ``definition_tokens`` give this tool its own budget (BUD-4):
+        the concise result budget, and the definition size above which ``ouncemcp check``
+        fails. Raising either above the server's budget needs ``budget_reason``, which
+        ``check`` reports next to the tool; without one, registration warns.
 
         ``policy`` decides who may see and call the tool, in addition to the server's
         ``policy`` (all must allow). It gets the declared effect and the verified caller,
@@ -968,6 +1022,9 @@ class OunceServer:
                 idempotency=idempotency,
                 approval=approval,
                 preview=preview,
+                definition_tokens=definition_tokens,
+                budget_reason=budget_reason,
+                parallel_safe=parallel_safe,
             )
             return handler
 
@@ -1042,6 +1099,55 @@ class OunceServer:
     async def _discovery_mode(self) -> DiscoveryMode:
         return (await self.discovery()).mode
 
+    def _budget_override(
+        self,
+        tool_name: str,
+        result_tokens: int | None,
+        definition_tokens: int | None,
+        reason: str | None,
+    ) -> BudgetOverride | None:
+        """BUD-4: a tool's own budget, which needs a reason when it raises the server's."""
+        if definition_tokens is not None and (
+            not isinstance(definition_tokens, int)
+            or isinstance(definition_tokens, bool)
+            or definition_tokens < 1
+        ):
+            raise ValueError(f"Tool '{tool_name}': definition_tokens must be a positive integer")
+        if reason is not None and not (isinstance(reason, str) and reason.strip()):
+            raise ValueError(f"Tool '{tool_name}': budget_reason must be a non-empty string")
+        if result_tokens is None and definition_tokens is None:
+            return None
+        override = BudgetOverride(
+            result_tokens=result_tokens,
+            definition_tokens=definition_tokens,
+            reason=reason.strip() if reason else None,
+        )
+        if override.raises(self.budget) and override.reason is None:
+            raised = [
+                f"{label} {value:,}"
+                for label, value in (
+                    ("result_tokens", result_tokens),
+                    ("definition_tokens", definition_tokens),
+                )
+                if value is not None
+            ]
+            warnings.warn(
+                BudgetOverrideWarning(
+                    f"Tool '{tool_name}' raises its budget ({', '.join(raised)}) without "
+                    "budget_reason; say why so reviewers and `ouncemcp check` can see it"
+                ),
+                stacklevel=4,
+            )
+        return override
+
+    def budget_overrides(self) -> dict[str, BudgetOverride]:
+        """Each tool's own budget and its reason (BUD-4)."""
+        return {
+            name: spec.budget_override
+            for name, spec in self._specs.items()
+            if spec.budget_override is not None
+        }
+
     def _register(
         self,
         handler: Callable[..., Any],
@@ -1061,6 +1167,9 @@ class OunceServer:
         idempotency: bool | Idempotency | None = None,
         approval: ApprovalRule = "never",
         preview: Preview | None = None,
+        definition_tokens: int | None = None,
+        budget_reason: str | None = None,
+        parallel_safe: bool | None = None,
     ) -> None:
         tool_name = name or handler.__name__
         schema_mode = _tool_mode(output_schema, tool_name) or self.output_schemas
@@ -1090,6 +1199,15 @@ class OunceServer:
                 f"Tool '{tool_name}': result_tokens must be between 1 and the server's "
                 f"result_ceiling ({self.budget.result_ceiling})"
             )
+        if parallel_safe is not None and not isinstance(parallel_safe, bool):
+            raise TypeError(f"Tool '{tool_name}': parallel_safe must be True, False or None")
+        if parallel_safe and effect is not Effect.READ:
+            raise ValueError(
+                f"Tool '{tool_name}': only read tools can be parallel_safe; clients must "
+                "order writes (EXE-5)"
+            )
+        concurrent = effect is Effect.READ and parallel_safe is not False
+        override = self._budget_override(tool_name, result_tokens, definition_tokens, budget_reason)
         if not isinstance(min_items, int) or min_items < 1:
             raise ValueError(
                 f"Tool '{tool_name}': min_items must be an integer >= 1; lists are never "
@@ -1188,6 +1306,8 @@ class OunceServer:
             idempotency=as_idempotency(idempotency),
             approval=check_rule(approval, tool_name),
             preview=preview,
+            budget_override=override,
+            parallel_safe=concurrent,
         )
         if spec.idempotency is not None and effect is Effect.READ:
             raise ValueError(
@@ -1244,6 +1364,7 @@ class OunceServer:
                 tool=tool_name,
                 response_format=response_format,
                 result_budget=limit,
+                _output_model=output_model,
                 fastmcp=fastmcp_ctx,
                 _signer=signer,
                 _arguments=lambda: (
@@ -1378,6 +1499,7 @@ class OunceServer:
             annotations=ToolAnnotations.model_validate(effect.annotations()),
             tags=tags,
             auth=checks or None,
+            meta={PARALLEL_SAFE_META: concurrent},
         )
         # Advertise compact schemas. Validation still runs on the Pydantic models.
         registered.parameters = compact_schema(registered.parameters)
@@ -1406,17 +1528,22 @@ class OunceServer:
     def _register_handle_tools(self) -> None:
         @self.tool(name="handles.read", effect=Effect.READ)
         async def read_handle(
-            handle: str, ctx: ToolContext, cursor: str | None = None, limit: int = 50
+            ctx: ToolContext,
+            handle: str = Field(description="handle from a tool result"),
+            cursor: str | None = Field(None, description="next_cursor from the previous page"),
+            limit: int = Field(50, ge=1, le=200),
         ) -> HandlePage:
             """Page through a large result. Use it when a tool returns a handle; pass next_cursor to continue."""
             tenant = ctx.identity.tenant
             ref = ctx.verify_state(handle, HANDLE_KIND, request=binding(tenant))["id"]
             items = await get_items(ctx.store, str(ref))
-            page = ctx.page(items, cursor=cursor, limit=max(1, min(limit, 200)))
+            page = ctx.page(items, cursor=cursor, limit=limit)
             return HandlePage(items=page.items, total=len(items), next_cursor=page.next_cursor)
 
         @self.tool(name="jobs.get", effect=Effect.READ)
-        async def get_job(job: str, ctx: ToolContext) -> JobStatus:
+        async def get_job(
+            ctx: ToolContext, job: str = Field(description="job from the tool that started it")
+        ) -> JobStatus:
             """Check a background job. When done, read large results with handles.read."""
             ref = ctx.verify_state(job, JOB_KIND, request=binding(ctx.identity.tenant))["id"]
             record = await self.jobs.status(str(ref))
@@ -1620,7 +1747,9 @@ class OunceServer:
     async def cost_report(self) -> ServerCost:
         """Measure the token cost of this server's tool definitions."""
         modes = {name: spec.output_schema for name, spec in self._specs.items()}
-        return measure_tools(await self.list_tools(), self.budget, self.counter, modes)
+        return measure_tools(
+            await self.list_tools(), self.budget, self.counter, modes, self.budget_overrides()
+        )
 
     async def call_tool(self, name: str, arguments: dict[str, Any] | None = None) -> ToolResult:
         """Call a tool in-process (useful for tests)."""
