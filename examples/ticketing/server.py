@@ -67,9 +67,12 @@ def out(ticket: object) -> TicketOut:
     return TicketOut.model_validate(ticket, from_attributes=True)
 
 
+TICKET_ID = Field(description="Ticket id from tickets.search, e.g. T-1")
+
+
 class CreateInput(BaseModel):
-    title: str = Field(min_length=3, max_length=120)
-    body: str = Field("", max_length=4000)
+    title: str = Field(min_length=3, max_length=120, description="One-line summary")
+    body: str = Field("", max_length=4000, description="Details for the support team")
 
 
 async def _ticket(ctx: ToolContext, ticket_id: str) -> object:
@@ -128,7 +131,7 @@ def build(api: TicketAPI | None = None, *, write_deadline_ms: int = 10_000) -> O
         idempotency=True,
         deadline_ms=write_deadline_ms,
     )
-    async def close(ticket_id: str, ctx: ToolContext) -> TicketOut:
+    async def close(ctx: ToolContext, ticket_id: str = TICKET_ID) -> TicketOut:
         """Close a ticket after the user confirms. Side effect: notifies the requester."""
         return out(await ctx.deps.close(await _ticket(ctx, ticket_id)))
 
@@ -141,7 +144,7 @@ def build(api: TicketAPI | None = None, *, write_deadline_ms: int = 10_000) -> O
         deadline_ms=write_deadline_ms,
         policy=require_scopes("tickets:admin"),
     )
-    async def delete(ticket_id: str, ctx: ToolContext) -> Deleted:
+    async def delete(ctx: ToolContext, ticket_id: str = TICKET_ID) -> Deleted:
         """Delete a ticket permanently after the user confirms. Admins only."""
         await ctx.deps.delete(await _ticket(ctx, ticket_id))
         return Deleted(id=ticket_id)

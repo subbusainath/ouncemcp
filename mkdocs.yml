@@ -38,6 +38,10 @@ nav:
       - elicit-in-write: rules/elicit-in-write.md
       - destructive-without-policy: rules/destructive-without-policy.md
       - budget-override-without-reason: rules/budget-override-without-reason.md
+      - undocumented-parameter: rules/undocumented-parameter.md
+      - free-form-input: rules/free-form-input.md
+      - unpaginated-list: rules/unpaginated-list.md
+      - inconsistent-tool-names: rules/inconsistent-tool-names.md
       - stdio-skips-policy: rules/stdio-skips-policy.md
       - description-too-short: rules/description-too-short.md
       - write-without-side-effects: rules/write-without-side-effects.md

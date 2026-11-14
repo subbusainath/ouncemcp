@@ -27,7 +27,7 @@ from fastmcp.server.dependencies import get_access_token
 from fastmcp.tools import FunctionTool, Tool, ToolResult
 from fastmcp.tools.base import InputRequiredToolResult
 from mcp_types import InputRequiredResult, TextContent, ToolAnnotations
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pydantic import ValidationError as PydanticValidationError
 
 from ouncemcp.core.budget import Budget, BudgetOverride, BudgetOverrideWarning
@@ -1528,17 +1528,22 @@ class OunceServer:
     def _register_handle_tools(self) -> None:
         @self.tool(name="handles.read", effect=Effect.READ)
         async def read_handle(
-            handle: str, ctx: ToolContext, cursor: str | None = None, limit: int = 50
+            ctx: ToolContext,
+            handle: str = Field(description="handle from a tool result"),
+            cursor: str | None = Field(None, description="next_cursor from the previous page"),
+            limit: int = Field(50, ge=1, le=200),
         ) -> HandlePage:
             """Page through a large result. Use it when a tool returns a handle; pass next_cursor to continue."""
             tenant = ctx.identity.tenant
             ref = ctx.verify_state(handle, HANDLE_KIND, request=binding(tenant))["id"]
             items = await get_items(ctx.store, str(ref))
-            page = ctx.page(items, cursor=cursor, limit=max(1, min(limit, 200)))
+            page = ctx.page(items, cursor=cursor, limit=limit)
             return HandlePage(items=page.items, total=len(items), next_cursor=page.next_cursor)
 
         @self.tool(name="jobs.get", effect=Effect.READ)
-        async def get_job(job: str, ctx: ToolContext) -> JobStatus:
+        async def get_job(
+            ctx: ToolContext, job: str = Field(description="job from the tool that started it")
+        ) -> JobStatus:
             """Check a background job. When done, read large results with handles.read."""
             ref = ctx.verify_state(job, JOB_KIND, request=binding(ctx.identity.tenant))["id"]
             record = await self.jobs.status(str(ref))

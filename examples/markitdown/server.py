@@ -69,7 +69,9 @@ def build(converter: Any = None) -> OunceServer:
     server = OunceServer("markitdown", handles=True, deps=converter or LazyConverter())
 
     @server.tool(name="convert_to_markdown", effect=Effect.READ, deadline_ms=60_000)
-    async def convert_to_markdown(uri: str, ctx: ToolContext) -> Converted:
+    async def convert_to_markdown(
+        ctx: ToolContext, uri: str = Field(description="http:, https:, file: or data: URI")
+    ) -> Converted:
         """Convert a resource described by an http:, https:, file: or data: URI to markdown.
         Returns a preview and a handle; use handles.read for the rest."""
         scheme = urlsplit(uri).scheme.lower()
