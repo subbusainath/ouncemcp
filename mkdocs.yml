@@ -71,3 +71,4 @@ nav:
           - 0020 Report UI: proposals/0020-report-ui.md
           - 0021 Budget overrides: proposals/0021-budget-overrides.md
           - 0022 Parallel-safe tools: proposals/0022-parallel-safe-tools.md
+          - 0023 Safe fetch: proposals/0023-safe-fetch.md

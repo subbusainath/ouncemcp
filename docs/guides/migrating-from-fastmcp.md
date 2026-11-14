@@ -42,7 +42,7 @@ Keep the tool name, so hosts and prompts keep working. Give it a Pydantic output
 
 ## Step 4: make it safe
 
-- URLs from the model: `check_url(uri)` refuses loopback, private, link-local and metadata addresses.
+- URLs from the model: `check_url(uri)` refuses loopback, private, link-local and metadata addresses; fetch them with `safe_client()`, which connects only to the checked address and checks every redirect ([proposal 0023](../proposals/0023-safe-fetch.md)).
 - Upstream HTTP: `deps=...` with `guarded_client(...)`, so the caller's token is never forwarded.
 - Writes: `idempotency=True`, and `approval="required"` with a `preview` for anything a person should confirm ([safe writes](safe-writes.md)).
 - Who may call what: `policy=` ([securing tools](securing-tools.md)).

@@ -14,6 +14,7 @@
 """
 
 from ouncemcp.security.cache import CacheView, PartitionedCache, partition_key
+from ouncemcp.security.fetch import PinnedTransport, safe_client
 from ouncemcp.security.http import resolve_http_options
 from ouncemcp.security.identity import (
     ANONYMOUS_IDENTITY,
@@ -41,7 +42,7 @@ from ouncemcp.security.policy import (
 )
 from ouncemcp.security.replay import UnsafeInputRequest
 from ouncemcp.security.state import InvalidState, StateSigner
-from ouncemcp.security.urls import URLNotAllowed, check_url
+from ouncemcp.security.urls import URLNotAllowed, check_url, checked_addresses
 
 __all__ = [
     "ANONYMOUS_IDENTITY",
@@ -49,6 +50,7 @@ __all__ = [
     "Identity",
     "InvalidState",
     "PartitionedCache",
+    "PinnedTransport",
     "Policy",
     "PolicyRequest",
     "StateSigner",
@@ -62,6 +64,7 @@ __all__ = [
     "authenticated",
     "check_outbound",
     "check_url",
+    "checked_addresses",
     "current_identity",
     "guarded_client",
     "identity_from_token",
@@ -70,5 +73,6 @@ __all__ = [
     "require_scopes",
     "require_tenant",
     "resolve_http_options",
+    "safe_client",
     "writes_require",
 ]

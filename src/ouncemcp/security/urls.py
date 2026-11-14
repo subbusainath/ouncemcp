@@ -10,10 +10,10 @@ anything is fetched:
   (which includes ``169.254.169.254``), shared, reserved and multicast ranges are
   refused unless ``allow_private=True``; known metadata hostnames are always refused.
 
-Limits: the check resolves the name once, so a DNS answer that changes between the
-check and the fetch (DNS rebinding) is not caught. Fetch through a client that connects
-to the checked address, or keep an allowlist, when that matters. Redirects must be
-checked again: pass each redirect target through ``check_url``.
+Limits: ``check_url`` resolves the name once, so a DNS answer that changes between the
+check and the fetch (DNS rebinding) is not caught, and redirects are not followed. Fetch
+with ``safe_client`` (``ouncemcp.security.fetch``), which connects to the checked
+address and checks every redirect again.
 """
 
 from __future__ import annotations
@@ -21,7 +21,6 @@ from __future__ import annotations
 import ipaddress
 import socket
 from collections.abc import Callable, Iterable, Sequence
-from typing import Any
 from urllib.parse import urlsplit
 
 from ouncemcp.core.errors import ErrorCategory, OunceError
@@ -65,15 +64,20 @@ def _host_allowed(host: str, allow_hosts: Sequence[str]) -> bool:
     return False
 
 
-def check_url(
+def checked_addresses(
     url: str,
     *,
     schemes: Sequence[str] = ("https", "http"),
     allow_hosts: Sequence[str] | None = None,
     allow_private: bool = False,
     resolve: Resolver | None = None,
-) -> str:
-    """Return ``url`` if it may be fetched; raise ``URLNotAllowed`` otherwise."""
+) -> tuple[str, list[str]]:
+    """Check ``url`` and return its host and the addresses it may be fetched from.
+
+    Raises ``URLNotAllowed`` like ``check_url``. Unlike ``check_url``, it always resolves
+    the host (also with ``allow_private=True``), so a client can connect to exactly the
+    addresses that were checked (``safe_client``). ``data:`` URLs return no addresses.
+    """
 
     def refuse(reason: str) -> URLNotAllowed:
         return URLNotAllowed(reason, hint="Use a public http or https address.")
@@ -90,7 +94,7 @@ def check_url(
             hint=f"Allowed schemes: {allowed}.",
         )
     if scheme == "data":
-        return url  # inline content, nothing is fetched
+        return "", []  # inline content, nothing is fetched
     host = (parts.hostname or "").rstrip(".").lower()
     if not host:
         raise refuse("The URL has no host.")
@@ -101,10 +105,8 @@ def check_url(
             "That host is not on this server's allowlist.",
             hint="Ask the server owner which sites can be fetched.",
         )
-    if allow_private:
-        return url
     try:
-        addresses: Sequence[Any] = [str(ipaddress.ip_address(host))]
+        addresses: list[str] = [str(ipaddress.ip_address(host))]
     except ValueError:
         try:
             addresses = list((resolve or _system_resolver)(host))
@@ -112,6 +114,34 @@ def check_url(
             raise refuse("The host name could not be resolved.") from exc
     if not addresses:
         raise refuse("The host name could not be resolved.")
-    if not all(_public(a) for a in addresses):
+    if not allow_private and not all(_public(a) for a in addresses):
         raise refuse("Private, loopback and link-local addresses cannot be fetched.")
+    return host, addresses
+
+
+def check_url(
+    url: str,
+    *,
+    schemes: Sequence[str] = ("https", "http"),
+    allow_hosts: Sequence[str] | None = None,
+    allow_private: bool = False,
+    resolve: Resolver | None = None,
+) -> str:
+    """Return ``url`` if it may be fetched; raise ``URLNotAllowed`` otherwise.
+
+    To fetch, prefer ``safe_client``: it connects to the checked address and checks
+    every redirect again, which closes the DNS-rebinding gap described above.
+    """
+    if allow_private:
+        # Names are not resolved when private targets are allowed; only the scheme,
+        # metadata hosts and the allowlist apply.
+        checked_addresses(
+            url,
+            schemes=schemes,
+            allow_hosts=allow_hosts,
+            allow_private=True,
+            resolve=lambda host: ["0.0.0.0"],
+        )
+        return url
+    checked_addresses(url, schemes=schemes, allow_hosts=allow_hosts, resolve=resolve)
     return url
