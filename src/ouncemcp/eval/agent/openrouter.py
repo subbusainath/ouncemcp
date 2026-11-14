@@ -43,6 +43,18 @@ SYSTEM_PROMPT = (
 _SAFE = re.compile(r"[^A-Za-z0-9_-]")
 
 
+class CostPool:
+    """One spending limit shared by several models (a benchmark's total budget)."""
+
+    def __init__(self, limit_usd: float) -> None:
+        self.limit_usd = limit_usd
+        self.spent_usd = 0.0
+
+    @property
+    def exhausted(self) -> bool:
+        return self.spent_usd >= self.limit_usd
+
+
 class SpendingLimitReached(RuntimeError):
     """The model has spent its ``max_cost_usd``; no more requests are sent."""
 
@@ -86,6 +98,7 @@ class OpenRouterModel:
         retries: int = 5,
         timeout_s: float = 120.0,
         transport: httpx2.AsyncBaseTransport | None = None,
+        pool: CostPool | None = None,
     ) -> None:
         if max_cost_usd < 0:
             raise ValueError("max_cost_usd must be >= 0")
@@ -101,6 +114,7 @@ class OpenRouterModel:
         self.spent_usd = 0.0
         self.requests = 0
         self.quota_reason: str | None = None
+        self.pool = pool
         self.served_by: dict[str, int] = {}  # model ids that actually answered
         key = api_key or os.environ.get("OPENROUTER_API_KEY")
         if not key:
@@ -113,7 +127,11 @@ class OpenRouterModel:
 
     @property
     def exhausted(self) -> bool:
-        return self.quota_reason is not None or self.spent_usd >= self.max_cost_usd
+        return (
+            self.quota_reason is not None
+            or self.spent_usd >= self.max_cost_usd
+            or (self.pool is not None and self.pool.exhausted)
+        )
 
     def _messages(
         self, conversation: Sequence[Mapping[str, Any]], to_safe: Mapping[str, str]
@@ -198,6 +216,8 @@ class OpenRouterModel:
         if self.quota_reason is not None:
             raise QuotaExhausted(f"{self.model}: {self.quota_reason}")
         if self.exhausted:
+            if self.pool is not None and self.pool.exhausted:
+                raise SpendingLimitReached(f"the shared ${self.pool.limit_usd:.2f} limit is spent")
             raise SpendingLimitReached(
                 f"spent ${self.spent_usd:.4f} of the ${self.max_cost_usd:.2f} limit"
             )
@@ -226,7 +246,10 @@ class OpenRouterModel:
         data = await self._post(body)
         self.requests += 1
         usage = data.get("usage") or {}
-        self.spent_usd += float(usage.get("cost") or 0.0)
+        cost = float(usage.get("cost") or 0.0)
+        self.spent_usd += cost
+        if self.pool is not None:
+            self.pool.spent_usd += cost
         served = str(data.get("model") or self.model)
         self.served_by[served] = self.served_by.get(served, 0) + 1
         message = (data.get("choices") or [{}])[0].get("message") or {}

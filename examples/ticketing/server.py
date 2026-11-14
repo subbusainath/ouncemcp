@@ -132,7 +132,8 @@ def build(api: TicketAPI | None = None, *, write_deadline_ms: int = 10_000) -> O
         deadline_ms=write_deadline_ms,
     )
     async def close(ctx: ToolContext, ticket_id: str = TICKET_ID) -> TicketOut:
-        """Close a ticket after the user confirms. Side effect: notifies the requester."""
+        """Close a ticket. Call it directly: the server asks the user to confirm before
+        closing. Side effect: notifies the requester."""
         return out(await ctx.deps.close(await _ticket(ctx, ticket_id)))
 
     @server.tool(
@@ -145,7 +146,8 @@ def build(api: TicketAPI | None = None, *, write_deadline_ms: int = 10_000) -> O
         policy=require_scopes("tickets:admin"),
     )
     async def delete(ctx: ToolContext, ticket_id: str = TICKET_ID) -> Deleted:
-        """Delete a ticket permanently after the user confirms. Admins only."""
+        """Delete a ticket permanently. Admins only. The server asks the user to confirm,
+        so call it directly."""
         await ctx.deps.delete(await _ticket(ctx, ticket_id))
         return Deleted(id=ticket_id)
 

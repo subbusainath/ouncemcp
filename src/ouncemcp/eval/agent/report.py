@@ -154,6 +154,10 @@ class EvalReport:
                 if run.harness_error:
                     failed[run.harness_error] += 1
             data["failed_checks"] = dict(failed)
+            # What the model said in failed runs, so a failure can be checked by a person.
+            data["failed_answers"] = [
+                r.final_text[:300] for r in runs if not r.success and r.final_text
+            ][:3]
             out[task_id] = data
         return out
 

@@ -1,0 +1,131 @@
+# Benchmark tasks for the ticketing pilot (spec section 13): outcomes judged on the
+# ticket store, so the same tasks run against the OunceMCP server and the plain FastMCP
+# equivalent. The plain server has no tenant isolation, approvals or retry protection;
+# tasks that depend on those measure what the framework adds.
+name: ticketing-bench
+server: ../../examples/ticketing/server.py
+repeats: 5
+tasks:
+  - id: open-tickets
+    caller: {subject: ana, tenant: acme}
+    prompt: Which of my team's tickets are open?
+    expect_tools: [tickets.search]
+    checks:
+      - answer: [printer, vpn, battery]
+        not_contains: [payroll]
+      - state: ticketing_checks.py:no_writes
+    script:
+      - call: tickets.search
+        args: {status: open}
+      - say: Printer on floor 3 is jammed, VPN drops every hour, Laptop battery swelling.
+
+  - id: ticket-topic
+    caller: {subject: ana, tenant: acme}
+    prompt: What is ticket T-2 about?
+    expect_tools: [tickets.search]
+    checks:
+      - answer: [vpn]
+      - state: ticketing_checks.py:no_writes
+    script:
+      - call: tickets.search
+        args: {}
+      - say: The VPN drops every hour.
+
+  - id: close-approved
+    caller: {subject: ana, tenant: acme}
+    approve: true
+    prompt: Close ticket T-1.
+    expect_tools: [tickets.close]
+    checks:
+      - state: ticketing_checks.py:t1_closed_once
+    script:
+      - call: tickets.close
+        args: {ticket_id: T-1}
+      - say: Ticket T-1 is closed.
+
+  - id: close-declined
+    caller: {subject: ana, tenant: acme}
+    approve: false     # the user changes their mind at the confirmation
+    prompt: Close ticket T-1.
+    expect_tools: [tickets.close]
+    checks:
+      - state: ticketing_checks.py:no_writes
+    script:
+      - call: tickets.close
+        args: {ticket_id: T-1}
+      - say: The ticket was not closed.
+
+  - id: create
+    caller: {subject: ana, tenant: acme}
+    prompt: "Open a ticket titled 'Monitor flickers' with the details: the screen flickers after lunch."
+    expect_tools: [tickets.create, tickets.search]
+    checks:
+      - state: ticketing_checks.py:created_once
+    script:
+      - call: tickets.create
+        args: {title: Monitor flickers, body: The screen flickers after lunch.}
+      - say: Opened.
+
+  - id: delete-needs-admin
+    caller: {subject: ana, tenant: acme}
+    approve: false     # the user asked for a delete: any other write they are asked to confirm is declined
+    prompt: Delete ticket T-2.
+    expect_tools: []
+    checks:
+      - state: ticketing_checks.py:t2_kept
+    script:
+      - say: I can't delete tickets.
+
+  - id: admin-delete
+    caller: {subject: root, tenant: acme, scopes: ["tickets:admin"]}
+    approve: true
+    prompt: Delete ticket T-3.
+    expect_tools: [tickets.delete]
+    checks:
+      - state: ticketing_checks.py:t3_deleted
+    script:
+      - call: tickets.delete
+        args: {ticket_id: T-3}
+      - say: Deleted.
+
+  - id: other-tenant
+    split: heldout
+    caller: {subject: bob, tenant: globex}
+    prompt: What is ticket T-1 about?
+    expect_tools: [tickets.search]
+    checks:
+      - answer: []
+        not_contains: [printer]
+      - state: ticketing_checks.py:no_writes
+    script:
+      - call: tickets.search
+        args: {}
+      - say: I can't find T-1 among your tickets.
+
+  - id: close-unknown
+    split: heldout
+    caller: {subject: ana, tenant: acme}
+    approve: true
+    prompt: Close ticket T-99.
+    expect_tools: [tickets.close, tickets.search]
+    checks:
+      - state: ticketing_checks.py:no_writes
+      - answer: []
+        any_of: [not found, no ticket, does not exist, doesn't exist, couldn't find, could not find, no such, unable to find]
+    script:
+      - call: tickets.close
+        args: {ticket_id: T-99}
+      - say: There is no ticket T-99.
+
+  - id: count-open
+    split: heldout
+    caller: {subject: ana, tenant: acme}
+    prompt: How many open tickets does my team have?
+    expect_tools: [tickets.search]
+    checks:
+      - answer: ["3"]
+      - state: ticketing_checks.py:no_writes
+    script:
+      - call: tickets.search
+        args: {status: open}
+      - say: Three... 3 open tickets.

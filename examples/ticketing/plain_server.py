@@ -12,6 +12,7 @@ from upstream import TicketAPI
 
 api = TicketAPI().seed()
 mcp = FastMCP("ticketing-plain")
+mcp.deps = api  # type: ignore[attr-defined]  # lets the benchmark's state checks read the store
 
 
 @mcp.tool(annotations={"readOnlyHint": True})

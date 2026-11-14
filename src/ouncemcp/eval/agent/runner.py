@@ -117,6 +117,16 @@ def _open(target: str, task: Task) -> tuple[Client, Any]:
     return Client(getattr(server, "fastmcp", server), **kwargs), server
 
 
+_TYPOGRAPHIC = str.maketrans(
+    {"\u2019": "'", "\u2018": "'", "\u201c": '"', "\u201d": '"', "\u2011": "-", "\u2013": "-"}
+)
+
+
+def _plain(text: str) -> str:
+    """Lower case with typographic quotes and dashes made plain, for answer checks."""
+    return text.translate(_TYPOGRAPHIC).lower()
+
+
 def _evaluate(check: Check, run: RunRecord, server: Any) -> bool:
     calls = [c for c in run.calls if c.tool == check.tool]
     if check.kind == "called":
@@ -147,6 +157,13 @@ def _evaluate(check: Check, run: RunRecord, server: Any) -> bool:
         if isinstance(value, (list, str)):
             return check.contains in value
         return False
+    if check.kind == "answer":
+        text = _plain(run.final_text)
+        return (
+            all(_plain(t) in text for t in check.contains or ())
+            and (not check.any_of or any(_plain(t) in text for t in check.any_of))
+            and not any(_plain(t) in text for t in check.not_contains)
+        )
     if check.kind == "state":
         assert check.function is not None
         try:
@@ -258,15 +275,23 @@ async def run_suite(
     split: str = "all",
     server: str | None = None,
     tokenizer: str | TokenCounter | None = None,
+    tool_map: Mapping[str, str] | None = None,
 ) -> Any:
-    """Run ``suite`` and return an ``EvalReport``. ``server`` overrides the suite's."""
+    """Run ``suite`` and return an ``EvalReport``. ``server`` overrides the suite's.
+
+    ``tool_map`` renames the suite's tools for a server that names them differently
+    (``{"inventory.search": "search_resources"}``), so one suite can compare servers."""
     from ouncemcp.eval.agent.report import EvalReport, environment
 
     target = server or suite.server
     model = model or ReplayModel(suite.scripts())
     counter = get_counter(tokenizer) if tokenizer is not None else _server_counter(target)
     runs: list[RunRecord] = []
-    tasks = suite.select(split)
+    tasks = (
+        tuple(map_tools(t, tool_map) for t in suite.select(split))
+        if tool_map
+        else suite.select(split)
+    )
     notes: list[str] = []
     for task in tasks:
         for repeat in range(repeats or suite.repeats):
@@ -299,6 +324,20 @@ async def run_suite(
         recall=recall,
         notes=notes,
         usage=_usage(model),
+    )
+
+
+def map_tools(task: Task, tool_map: Mapping[str, str]) -> Task:
+    """``task`` with its tool names renamed for another server."""
+    from dataclasses import replace
+
+    def rename(name: str | None) -> str | None:
+        return tool_map.get(name, name) if name else name
+
+    return replace(
+        task,
+        expect_tools=tuple(tool_map.get(t, t) for t in task.expect_tools),
+        checks=tuple(replace(c, tool=rename(c.tool)) for c in task.checks),
     )
 
 

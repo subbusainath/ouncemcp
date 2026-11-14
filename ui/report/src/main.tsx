@@ -8,7 +8,7 @@ import type { ReportData } from "@/types"
 function read(): ReportData | null {
   try {
     const data = JSON.parse(document.getElementById("report-data")?.textContent ?? "null")
-    return data && ["trace", "eval", "context", "audit"].includes(data.kind) ? data : null
+    return data && ["trace", "eval", "context", "audit", "bench"].includes(data.kind) ? data : null
   } catch {
     return null
   }

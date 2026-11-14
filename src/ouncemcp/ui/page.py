@@ -21,7 +21,7 @@ from functools import cache
 from importlib import resources
 from typing import Any
 
-KINDS = ("trace", "eval", "context", "audit")
+KINDS = ("trace", "eval", "context", "audit", "bench")
 _PLACEHOLDER = '<script type="application/json" id="report-data">{}</script>'
 _SCRIPT = re.compile(r"<script(?![^>]*application/json)[^>]*>(.*?)</script>", re.DOTALL)
 

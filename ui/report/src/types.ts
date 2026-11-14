@@ -137,4 +137,30 @@ export type AuditData = {
   regressions?: string[]
 }
 
-export type ReportData = TraceData | EvalData | ContextData | AuditData
+type Pair<T> = { candidate: T; baseline: T; change?: number | null }
+
+export type BenchComparison = {
+  suite: string
+  model: string
+  startup_tokens: Pair<number>
+  tokens_per_task: Pair<number>
+  success_rate: Pair<number>
+  calls_per_task: Pair<number>
+  turns_per_task: Pair<number>
+  latency_ms_p50: Pair<number>
+  cost_usd_per_task: Pair<number | null>
+  perf6: { startup_reduction_ok: boolean; task_tokens_ok: boolean; success_ok: boolean; met: boolean }
+}
+
+export type BenchData = {
+  kind: "bench"
+  title: string
+  name: string
+  header: Record<string, unknown> & { models: string[]; repeats: number; candidate: string; baseline: string }
+  usage: { cost_usd: number; max_cost_usd: number; notes: string[] }
+  perf6: { target: string; pairs: number; met: number }
+  comparisons: BenchComparison[]
+  results: { suite: string; model: string; condition: string; report: Omit<EvalData, "kind" | "title"> }[]
+}
+
+export type ReportData = TraceData | EvalData | ContextData | AuditData | BenchData

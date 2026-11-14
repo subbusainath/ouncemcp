@@ -62,7 +62,8 @@ class ResourceDetail(BaseModel):
 @server.tool(name="inventory.search", effect=Effect.READ, deadline_ms=5_000)
 async def search(args: SearchInput, ctx: ToolContext) -> SearchResult:
     """Find cloud resources in a region, optionally filtered by kind and status.
-    Use inventory.get for full details of one resource."""
+    Use response_format=detailed for monthly cost and tags of every result, and
+    inventory.get for config and metrics of one resource."""
     rows = [
         r
         for r in RESOURCES

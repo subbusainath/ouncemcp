@@ -3,6 +3,7 @@ import { FileQuestion } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { AuditReport } from "@/reports/audit-report"
+import { BenchReport } from "@/reports/bench-report"
 import { ContextReport } from "@/reports/context-report"
 import { EvalReport } from "@/reports/eval-report"
 import { TraceReport } from "@/reports/trace-report"
@@ -11,6 +12,7 @@ import type { ReportData } from "@/types"
 export function App({ data }: { data: ReportData | null }) {
   const subtitles: Record<string, string> = {
     trace: "Tool calls recorded by the OunceMCP tracer",
+    bench: "OunceMCP servers against plain equivalents, with real models",
     context: "Every tool definition exactly as MCP clients receive it, and what it costs",
     audit: "How much context this MCP server costs an agent before the first message",
     eval:
@@ -38,6 +40,7 @@ export function App({ data }: { data: ReportData | null }) {
         {data?.kind === "eval" && <EvalReport data={data} />}
         {data?.kind === "context" && <ContextReport data={data} />}
         {data?.kind === "audit" && <AuditReport data={data} />}
+        {data?.kind === "bench" && <BenchReport data={data} />}
         {!data && (
           <div className="flex flex-col items-center gap-2 py-24 text-muted-foreground">
             <FileQuestion className="size-8" />

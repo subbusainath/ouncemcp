@@ -28,7 +28,7 @@ COMMANDS: dict[str, tuple[str, str]] = {
     "trace": ("Open the trace and context viewer", "M3"),
     "audit": ("Optional: measure any MCP server and recommend fixes", "M2"),
 }
-IMPLEMENTED = {"init", "dev", "check", "context", "audit", "trace", "eval"}
+IMPLEMENTED = {"init", "dev", "check", "context", "audit", "trace", "eval", "bench"}
 
 
 def _add_tokenizer_option(cmd: argparse.ArgumentParser) -> None:
@@ -174,6 +174,19 @@ def build_parser() -> argparse.ArgumentParser:
             cmd.add_argument(
                 "--allow-failures", action="store_true", help="exit 0 even if a task fails"
             )
+        elif name == "bench":
+            cmd.add_argument("config", help="a benchmark file, e.g. benchmarks/bench.yaml")
+            cmd.add_argument(
+                "--models", help="comma-separated OpenRouter ids instead of the file's, or replay"
+            )
+            cmd.add_argument("--repeats", type=int, help="runs per task (default: the file's)")
+            cmd.add_argument(
+                "--max-cost", type=float, metavar="USD", help="total budget (default: the file's)"
+            )
+            cmd.add_argument("--concurrency", type=int, default=6)
+            cmd.add_argument("--json", action="store_true", help="print the report as JSON")
+            cmd.add_argument("--output", metavar="PATH", help="also write the JSON report here")
+            cmd.add_argument("--html", metavar="PATH", help="also write an HTML report here")
         elif name == "trace":
             cmd.add_argument("file", help="a JSONL trace file written by JsonlSink")
             cmd.add_argument(
@@ -491,6 +504,44 @@ def _eval(ns: argparse.Namespace) -> int:
     return 1 if failed else 0
 
 
+def _bench(ns: argparse.Namespace) -> int:
+    import secrets
+
+    from ouncemcp.eval.agent import SuiteError
+    from ouncemcp.eval.bench import load_bench, run_bench
+
+    try:
+        config = load_bench(ns.config)
+    except (SuiteError, KeyError) as exc:
+        print(f"ouncemcp bench: {exc}", file=sys.stderr)
+        return 2
+    models = [m.strip() for m in ns.models.split(",")] if ns.models else None
+    if any(m != "replay" for m in (models or config.models)) and not os.environ.get(
+        "OPENROUTER_API_KEY"
+    ):
+        print("ouncemcp bench: set OPENROUTER_API_KEY to run real models", file=sys.stderr)
+        return 2
+    # Servers are loaded once per run; one key for the whole benchmark keeps cursors
+    # valid within each run without a warning per load.
+    os.environ.setdefault("OUNCEMCP_CURSOR_KEYS", secrets.token_hex(32))
+    report = asyncio.run(
+        run_bench(
+            config,
+            models=models,
+            repeats=ns.repeats,
+            max_cost_usd=ns.max_cost,
+            concurrency=ns.concurrency,
+        )
+    )
+    data = report.to_dict()
+    if ns.output:
+        Path(ns.output).write_text(json.dumps(data, indent=2, default=str))
+    if ns.html:
+        Path(ns.html).write_text(report.render_html(), encoding="utf-8")
+    print(json.dumps(data, indent=2, default=str) if ns.json else report.render_text())
+    return 0
+
+
 def _trace(ns: argparse.Namespace) -> int:
     from ouncemcp.trace.report import load_traces, render_html, render_text, summarize
 
@@ -547,6 +598,8 @@ def main(argv: list[str] | None = None) -> int:
         return _trace(ns)
     if ns.command == "eval":
         return _eval(ns)
+    if ns.command == "bench":
+        return _bench(ns)
     if ns.command == "dev":
         from ouncemcp.cli import dev
 
