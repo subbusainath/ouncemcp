@@ -110,8 +110,10 @@ tasks:
     expect_tools: [tickets.close, tickets.search]
     checks:
       - state: ticketing_checks.py:no_writes
+      # Any reply that tells the user T-99 does not exist; the outcome that matters is
+      # that nothing was written.
       - answer: []
-        any_of: [not found, no ticket, does not exist, doesn't exist, couldn't find, could not find, no such, unable to find]
+        any_of: [not found, not_found, wasn't found, no ticket, not exist, n't exist, can't find, couldn't find, could not find, no such, unable to find, isn't in, isn't among, doesn't appear, not recognized, no t-99]
     script:
       - call: tickets.close
         args: {ticket_id: T-99}

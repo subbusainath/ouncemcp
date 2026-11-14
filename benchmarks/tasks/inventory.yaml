@@ -70,7 +70,8 @@ tasks:
     prompt: Which function in ap-southeast-1 costs the most per month?
     expect_tools: [inventory.search, inventory.get]
     checks:
-      - answer: [fu-00058]
+      - answer: []
+        any_of: [fu-00058, data-function-058]   # its id or its name
     script:
       - call: inventory.search
         args: {region: ap-southeast-1, kind: function, limit: 50, response_format: detailed}
@@ -81,7 +82,7 @@ tasks:
     expect_tools: [inventory.get, inventory.search]
     checks:
       - answer: []
-        any_of: [not found, no resource, does not exist, doesn't exist, couldn't find, could not find, no such, isn't, unable to find]
+        any_of: [not found, not_found, wasn't found, no resource, not exist, n't exist, can't find, couldn't find, could not find, no such, isn't, unable to find, doesn't appear, not recognized]
     script:
       - call: inventory.get
         args: {id: vm-99999}
@@ -103,7 +104,8 @@ tasks:
     prompt: Which VM in eu-west-1 has the highest monthly cost?
     expect_tools: [inventory.search, inventory.get]
     checks:
-      - answer: [vm-00290]
+      - answer: []
+        any_of: [vm-00290, platform-vm-290]   # its id or its name
     script:
       - call: inventory.search
         args: {region: eu-west-1, kind: vm, limit: 50, response_format: detailed}
