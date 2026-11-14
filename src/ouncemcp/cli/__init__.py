@@ -175,7 +175,15 @@ def build_parser() -> argparse.ArgumentParser:
                 "--allow-failures", action="store_true", help="exit 0 even if a task fails"
             )
         elif name == "bench":
-            cmd.add_argument("config", help="a benchmark file, e.g. benchmarks/bench.yaml")
+            cmd.add_argument(
+                "config", nargs="?", help="a benchmark file, e.g. benchmarks/bench.yaml"
+            )
+            cmd.add_argument(
+                "--from",
+                dest="from_results",
+                metavar="RESULTS.json",
+                help="render an earlier run's results (with --html) instead of running",
+            )
             cmd.add_argument(
                 "--models", help="comma-separated OpenRouter ids instead of the file's, or replay"
             )
@@ -508,8 +516,21 @@ def _bench(ns: argparse.Namespace) -> int:
     import secrets
 
     from ouncemcp.eval.agent import SuiteError
-    from ouncemcp.eval.bench import load_bench, run_bench
+    from ouncemcp.eval.bench import load_bench, load_bench_report, run_bench
 
+    if ns.from_results:
+        from ouncemcp.ui import render_report
+
+        data = load_bench_report(ns.from_results)
+        if ns.html:
+            page = render_report({"kind": "bench", "title": f"Benchmark: {data['name']}", **data})
+            Path(ns.html).write_text(page, encoding="utf-8")
+        met = data["perf6"]
+        print(f"Benchmark {data['name']}: PERF-6 met for {met['met']} of {met['pairs']} pairs")
+        return 0
+    if not ns.config:
+        print("ouncemcp bench: give a benchmark file or --from RESULTS.json", file=sys.stderr)
+        return 2
     try:
         config = load_bench(ns.config)
     except (SuiteError, KeyError) as exc:

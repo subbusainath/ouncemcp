@@ -142,3 +142,13 @@ def test_bench_cli_with_replay(tmp_path: Path, capsys):
     data = json.loads(out.read_text())
     assert data["perf6"]["pairs"] == 2 and data["header"]["candidate"] == "ounce"
     assert "PERF-6 met for" in capsys.readouterr().out
+
+
+def test_published_results_render(tmp_path: Path, capsys):
+    page = tmp_path / "bench.html"
+    results = ROOT / "benchmarks" / "results" / "m3-bench.json"
+    assert main(["bench", "--from", str(results), "--html", str(page)]) == 0
+    assert "PERF-6 met for" in capsys.readouterr().out
+    assert '"kind":"bench"' in page.read_text()
+    data = json.loads(results.read_text())
+    assert data["perf6"]["pairs"] == 8 and data["usage"]["cost_usd"] <= 5

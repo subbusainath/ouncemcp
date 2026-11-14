@@ -98,7 +98,19 @@ ouncemcp dev examples/inventory/server.py      # hot reload, live per-call token
 
 Counts use `o200k_base` by default. Choose another tiktoken encoding with `OunceServer(tokenizer="cl100k_base")` or `ouncemcp check --tokenizer cl100k_base`, or pass your own counting function with `tokenizer=fn, tokenizer_name="my-tokenizer-v1"`. Every report names the tokenizer it used ([proposal 0004](docs/proposals/0004-pluggable-tokenizer.md)).
 
-`ouncemcp audit` is the optional command for measuring any server. `ouncemcp eval` and `ouncemcp trace` read task suites and traces. `bench` is planned for M3.
+`ouncemcp audit` is the optional command for measuring any server. `ouncemcp eval` runs task suites, with the replay model or real models through OpenRouter, `ouncemcp bench` compares servers across models, and `ouncemcp trace` reads traces.
+
+## Benchmark (M3)
+
+Two pilot servers against their plain FastMCP equivalents: four models (Claude Haiku 5.5, Claude Sonnet 5.5, GPT-5.4 mini, DeepSeek V4.1 Flash), 21 tasks, 5 runs each, success judged on outcomes. See the [full results and caveats](benchmarks/results/m3-bench.md).
+
+| | Inventory (large results) | Ticketing (writes, small results) |
+| --- | --- | --- |
+| Tokens per task, OunceMCP vs plain | 58–85% fewer | 17–40% more |
+| Task success, OunceMCP vs plain | 100% vs 75–100% | 100% vs 68–70% |
+| Tool definitions, OunceMCP vs plain | 584 vs 244 tokens | 649 vs 366 tokens |
+
+On these small servers the definitions are larger, mostly from output schemas, so PERF-6's startup target is not met ([proposal 0027](docs/proposals/0027-benchmark.md)). On the plain ticketing server every model skipped the approval, deleted without permission and read another team's ticket.
 
 ## M0 results
 
@@ -112,7 +124,7 @@ Measured on the inventory example with the `o200k_base` tokenizer. Full method a
 
 In M1, results that are trimmed must still match the output schema. Truncated calls now add 0.70 / 0.80 ms (p50 / p95) and other calls 0.14 to 0.31 ms. Shaping a 36,000-token result down to a 2,000-token budget takes 7.3 ms. See [proposal 0002](docs/proposals/0002-schema-safe-shaping-and-pagination.md) and `benchmarks/scripts/m1_truncation.py`.
 
-Typed output schemas make definitions larger. Results are where the savings come from. Output schemas can be set to `"on"` (default), `"off"` or `"auto"` for a server (`output_schemas=`) or one tool (`output_schema=`). `"off"` gives 247 tokens for this example, and `"auto"` drops a schema only where it would put a definition over the per-tool target (378 tokens here). `ouncemcp check` reports the output-schema share of definition tokens (241 of 488 here) and states which fields it counts: `name`, `description`, `inputSchema` and `outputSchema`, not `title`, `annotations` or `_meta` ([proposal 0005](docs/proposals/0005-counting-scope-and-output-schema-modes.md)).
+Typed output schemas make definitions larger. Results are where the savings come from. Output schemas can be set to `"on"` (default), `"off"` or `"auto"` for a server (`output_schemas=`) or one tool (`output_schema=`). In M1, `"off"` gave 247 tokens for this example, and `"auto"`, which drops a schema only where it would put a definition over the per-tool target, gave 378. `ouncemcp check` reports the output-schema share of definition tokens (241 of 504 in the current example) and states which fields it counts: `name`, `description`, `inputSchema` and `outputSchema`, not `title`, `annotations` or `_meta` ([proposal 0005](docs/proposals/0005-counting-scope-and-output-schema-modes.md)).
 
 ## Repository layout
 

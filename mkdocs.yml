@@ -79,3 +79,4 @@ nav:
           - 0024 Context and audit pages: proposals/0024-context-and-audit-pages.md
           - 0025 OAuth: proposals/0025-oauth.md
           - 0026 Real-model evals: proposals/0026-real-model-evals.md
+          - 0027 Benchmark: proposals/0027-benchmark.md

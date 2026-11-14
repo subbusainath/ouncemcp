@@ -403,7 +403,7 @@ Protocol overhead is small, so performance targets focus on tokens and turns fir
 | PERF-3 | Token counting at startup for 500 tools | Under 2 seconds |
 | PERF-4 | Optional audit of a 100-tool server, discovery only | Under 10 seconds on a normal network |
 | PERF-5 | Startup context in `search` mode | Under 400 tokens |
-| PERF-6 | Benchmark target versus naive equivalent | At least 70% fewer startup tokens and fewer total task tokens with no drop in task success |
+| PERF-6 | Benchmark target versus naive equivalent | At least 70% fewer startup tokens and fewer total task tokens with no drop in task success. **First benchmark (M3, [results](https://github.com/subbusainath/ouncemcp/blob/main/benchmarks/results/m3-bench.md)): met for 0 of 8 pairs. Success never dropped (100% against 68–100%) and inventory task tokens fell 58–85%, but on 2–4 tool servers definitions are 77–139% larger and ticketing tasks cost 17–40% more. A revision is proposed in [proposal 0027](proposals/0027-benchmark.md), for the owner to decide** |
 | PERF-7 | Added overhead when a 50-item result is truncated | p50 under 1 ms (M0 measured 1.44 ms). **Met in M1: 0.70 ms p50, 0.80 ms p95** |
 
 M0 measured PERF-1 at +0.14 to +0.44 ms p50 for untruncated results and +1.44 ms p50 when truncating, on Python 3.12, x86_64, 2 vCPUs ([M0 report](m0-report.md)).
@@ -851,7 +851,7 @@ Status as of 12 November 2026. M1 ([PR #13](https://github.com/subbusainath/ounc
 | **M0: Core spike** | **Complete**; host verification done in M1 (Claude Desktop, Cursor) | Core, budgets, shaping, token counting, `check` and `context`, inventory example, overhead measured |
 | **M1: Framework 0.1** | **Merged; host verification passed** | Open: DX-8 user testing and the inventory pilot with real data |
 | **M2: Framework 0.2** | **Complete** ([PR #14](https://github.com/subbusainath/ouncemcp/pull/14)); exit criteria and gates 1 to 5 met | Store and idempotency, safe writes, handles and jobs, resources and prompts, migration adapter and guide, `audit`, client broker, `ouncemcp.toml`, health and metrics, description lints; ticketing, report and markitdown-mcp pilots |
-| **M3: Eval and benchmark 0.5** | **In progress**: trace viewer, OpenTelemetry, task suites with the replay model and the report UI merged ([PR #16](https://github.com/subbusainath/ouncemcp/pull/16)) | Open: real-model adapters (need API keys and a spending limit), `bench`, the published benchmark, public launch |
+| **M3: Eval and benchmark 0.5** | **In progress**: trace viewer, OpenTelemetry, task suites and report UI merged ([PR #16](https://github.com/subbusainath/ouncemcp/pull/16)); real models through OpenRouter, `ouncemcp bench` and the first benchmark (four models, 840 runs) on branch `claude/loving-shannon-gm4zxr` (proposals 0026, 0027) | Open: decide the PERF-6 revision; open-source servers in the benchmark; desktop hosts; public launch |
 | **M4: 1.0** | **In progress**: P1 work that needs no people or keys built on branch `claude/loving-shannon-gm4zxr` (proposals 0021 to 0025) | Open: external security review, host matrix, accuracy gate (needs real-model runs), API freeze |
 | **Post-1.0** | Not started | TypeScript port, `code` discovery mode, more idempotency backends, `npx` audit wrapper |
 
@@ -901,7 +901,7 @@ Status as of 12 November 2026. M1 ([PR #13](https://github.com/subbusainath/ounc
 | Group | Requirements |
 | --- | --- |
 | Eval | Release gate 6 with paid models (OpenRouter account needs credits; free models are limited to about 50 requests a day) |
-| Benchmark | `bench`, the published benchmark, PERF-6 (M3) |
+| Benchmark | Open-source servers (10–20), desktop hosts, larger catalogs; the PERF-6 decision (proposal 0027) |
 | Tokenizers | BUD-6 provider counting adapters (need API keys) |
 | Discovery | DISC-8 (`code` mode, post-1.0) |
 

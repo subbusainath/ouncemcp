@@ -56,16 +56,13 @@ function PerfBadge({ c }: { c: BenchComparison }) {
       >
         {c.perf6.met ? <CircleCheck /> : <CircleX />} {c.perf6.met ? "met" : "not met"}
       </Badge>
-      <span className="text-xs whitespace-nowrap text-muted-foreground">
-        {parts.map(([label, ok], i) => (
-          <span key={label}>
-            {i > 0 && " · "}
-            <span className={ok ? "text-success" : "text-destructive"}>
-              {ok ? "✓" : "✗"} {label}
-            </span>
-          </span>
+      <ul className="text-xs leading-tight whitespace-nowrap">
+        {parts.map(([label, ok]) => (
+          <li key={label} className={ok ? "text-success" : "text-destructive"}>
+            {ok ? "✓" : "✗"} {label}
+          </li>
         ))}
-      </span>
+      </ul>
     </div>
   )
 }
