@@ -7,6 +7,7 @@ validated in the benchmark phase before being presented as recommendations.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -51,3 +52,37 @@ class Budget:
             )
         if self.result_tokens > self.result_ceiling:
             raise ValueError("Budget.result_tokens must not exceed Budget.result_ceiling")
+
+
+class BudgetOverrideWarning(UserWarning):
+    """A tool raises its budget without saying why (spec BUD-4)."""
+
+
+@dataclass(frozen=True)
+class BudgetOverride:
+    """A tool's own budget and the reason for it (spec BUD-4).
+
+    Attributes:
+        result_tokens: The tool's concise result budget, if it differs from the server's.
+        definition_tokens: The size above which this tool's definition fails
+            ``ouncemcp check``, replacing ``Budget.tool_definition_fail`` (and the warn
+            threshold) for this tool.
+        reason: Why the tool needs it. ``ouncemcp check`` reports it next to the tool.
+    """
+
+    result_tokens: int | None = None
+    definition_tokens: int | None = None
+    reason: str | None = None
+
+    def raises(self, budget: Budget) -> bool:
+        """True if this override allows more than the server's budget."""
+        return self.definition_tokens is not None or (
+            self.result_tokens is not None and self.result_tokens > budget.result_tokens
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "definition_tokens": self.definition_tokens,
+            "result_tokens": self.result_tokens,
+            "reason": self.reason,
+        }

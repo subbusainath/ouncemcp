@@ -188,7 +188,8 @@ def _check(ns: argparse.Namespace) -> int:
         if isinstance(server, OunceServer)
         else None
     )
-    report = measure_tools(tools, budget, counter, output_schema_modes=modes)
+    overrides = server.budget_overrides() if isinstance(server, OunceServer) else None
+    report = measure_tools(tools, budget, counter, output_schema_modes=modes, overrides=overrides)
     decision = _discovery(server)
     findings = lint_server(server)
     lint_failed = any(f.severity == "error" for f in findings)

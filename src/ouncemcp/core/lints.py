@@ -19,6 +19,8 @@ Rules:
   does not say what it changes (CAP-5).
 - ``missing-usage-guidance`` (warning): in a server with several tools, the description
   never says when to use it or what to use instead (CAP-5).
+- ``budget-override-without-reason`` (warning): a tool raises its result or definition
+  budget above the server's without ``budget_reason`` (BUD-4).
 - ``stdio-skips-policy`` (warning): tools have policies but the server uses
   ``stdio_policy="trust"``, so over stdio they are visible and callable by anyone who
   can start the server. Ignore it for servers served only over HTTP.
@@ -47,6 +49,7 @@ RULES: dict[str, Severity] = {
     "description-too-short": "warning",
     "write-without-side-effects": "warning",
     "missing-usage-guidance": "warning",
+    "budget-override-without-reason": "warning",
 }
 
 SIDE_EFFECT = re.compile(
@@ -196,7 +199,22 @@ def lint_server(server: Any) -> list[Finding]:
     descriptions = {
         t.name: t.description or "" for t in getattr(server, "_registered", {}).values()
     }
+    budget = getattr(server, "budget", None)
     for name, spec in sorted(specs.items()):
+        override = getattr(spec, "budget_override", None)
+        if (
+            override is not None
+            and budget is not None
+            and override.raises(budget)
+            and override.reason is None
+        ):
+            findings.append(
+                Finding(
+                    "budget-override-without-reason",
+                    name,
+                    "raises its budget without budget_reason; say why the tool needs it",
+                )
+            )
         findings.extend(
             lint_description(
                 name,

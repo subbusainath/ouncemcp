@@ -11,7 +11,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
 
-from ouncemcp.core.budget import Budget
+from ouncemcp.core.budget import Budget, BudgetOverride
 from ouncemcp.core.tokens import TokenCounter, get_counter
 
 Status = Literal["ok", "warn", "fail"]
@@ -74,6 +74,7 @@ class ToolCost:
     output_schema_advertised: bool = False
     output_schema_mode: str | None = None
     output_schema_cost: int = 0
+    override: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -148,6 +149,18 @@ class ServerCost:
                 f"{t.name_tokens + t.structure:>5}  {t.status.upper()}"
             )
         lines.append("")
+        overridden = [t for t in rows if t.override]
+        if overridden:
+            lines.append("Budget overrides (BUD-4):")
+            for t in overridden:
+                o = t.override or {}
+                limits = ", ".join(
+                    f"{k.replace('_', ' ')} {o[k]:,}"
+                    for k in ("definition_tokens", "result_tokens")
+                    if o.get(k) is not None
+                )
+                lines.append(f"  {t.name}: {limits}. {o.get('reason') or 'NO REASON GIVEN'}")
+            lines.append("")
         lines.append(
             f"Per-tool budget: target {self.budget.tool_definition_target}, "
             f"warn {self.budget.tool_definition_warn}, fail {self.budget.tool_definition_fail}"
@@ -155,7 +168,9 @@ class ServerCost:
         return "\n".join(lines)
 
 
-def _status(total: int, budget: Budget) -> Status:
+def _status(total: int, budget: Budget, limit: int | None = None) -> Status:
+    if limit is not None:  # BUD-4: the tool's own, justified definition budget
+        return "fail" if total > limit else "ok"
     if total > budget.tool_definition_fail:
         return "fail"
     if total > budget.tool_definition_warn:
@@ -168,8 +183,11 @@ def measure_tool(
     budget: Budget,
     counter: TokenCounter | None = None,
     output_schema_mode: str | None = None,
+    override: BudgetOverride | None = None,
 ) -> ToolCost:
-    """Measure one tool definition. ``output_schema_mode`` is recorded in the result."""
+    """Measure one tool definition. ``output_schema_mode`` is recorded in the result.
+    ``override`` is the tool's own budget (BUD-4); its ``definition_tokens`` replaces the
+    warn and fail thresholds for this tool."""
     counter = counter or get_counter()
     payload = definition_payload(tool)
     total = counter.count_json(payload)
@@ -188,10 +206,11 @@ def measure_tool(
         input_schema=input_schema,
         output_schema=output_schema,
         structure=structure,
-        status=_status(total, budget),
+        status=_status(total, budget, override.definition_tokens if override else None),
         output_schema_advertised="outputSchema" in payload,
         output_schema_mode=output_schema_mode,
         output_schema_cost=output_schema_cost,
+        override=override.to_dict() if override else None,
     )
 
 
@@ -200,6 +219,7 @@ def measure_tools(
     budget: Budget,
     counter: TokenCounter | None = None,
     output_schema_modes: Mapping[str, str] | None = None,
+    overrides: Mapping[str, BudgetOverride] | None = None,
 ) -> ServerCost:
     """Measure a set of tool definitions.
 
@@ -211,5 +231,7 @@ def measure_tools(
     costs = []
     for tool in tools:
         name = definition_payload(tool).get("name", "")
-        costs.append(measure_tool(tool, budget, counter, modes.get(name)))
+        costs.append(
+            measure_tool(tool, budget, counter, modes.get(name), (overrides or {}).get(name))
+        )
     return ServerCost(tokenizer=counter.name, budget=budget, tools=costs)

@@ -13,6 +13,7 @@ import logging
 import re
 import sys
 import typing
+import warnings
 from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from typing import Any, Literal, TypeVar, cast
@@ -29,7 +30,7 @@ from mcp_types import InputRequiredResult, TextContent, ToolAnnotations
 from pydantic import BaseModel
 from pydantic import ValidationError as PydanticValidationError
 
-from ouncemcp.core.budget import Budget
+from ouncemcp.core.budget import Budget, BudgetOverride, BudgetOverrideWarning
 from ouncemcp.core.costs import ServerCost, definition_payload, measure_tools
 from ouncemcp.core.cursor import BoundCursors, CursorSigner, InvalidCursor
 from ouncemcp.core.docs import error_doc
@@ -533,6 +534,7 @@ class ToolSpec:
     idempotency: Idempotency | None = None
     approval: ApprovalRule | None = None
     preview: Preview | None = field(default=None, compare=False, repr=False)
+    budget_override: BudgetOverride | None = None
 
 
 OutputSchemaMode = Literal["on", "off", "auto"]
@@ -927,8 +929,15 @@ class OunceServer:
         idempotency: bool | Idempotency | None = None,
         approval: ApprovalRule = "never",
         preview: Preview | None = None,
+        definition_tokens: int | None = None,
+        budget_reason: str | None = None,
     ) -> Any:
         """Register a tool. ``effect`` is required.
+
+        ``result_tokens`` and ``definition_tokens`` give this tool its own budget (BUD-4):
+        the concise result budget, and the definition size above which ``ouncemcp check``
+        fails. Raising either above the server's budget needs ``budget_reason``, which
+        ``check`` reports next to the tool; without one, registration warns.
 
         ``policy`` decides who may see and call the tool, in addition to the server's
         ``policy`` (all must allow). It gets the declared effect and the verified caller,
@@ -968,6 +977,8 @@ class OunceServer:
                 idempotency=idempotency,
                 approval=approval,
                 preview=preview,
+                definition_tokens=definition_tokens,
+                budget_reason=budget_reason,
             )
             return handler
 
@@ -1042,6 +1053,55 @@ class OunceServer:
     async def _discovery_mode(self) -> DiscoveryMode:
         return (await self.discovery()).mode
 
+    def _budget_override(
+        self,
+        tool_name: str,
+        result_tokens: int | None,
+        definition_tokens: int | None,
+        reason: str | None,
+    ) -> BudgetOverride | None:
+        """BUD-4: a tool's own budget, which needs a reason when it raises the server's."""
+        if definition_tokens is not None and (
+            not isinstance(definition_tokens, int)
+            or isinstance(definition_tokens, bool)
+            or definition_tokens < 1
+        ):
+            raise ValueError(f"Tool '{tool_name}': definition_tokens must be a positive integer")
+        if reason is not None and not (isinstance(reason, str) and reason.strip()):
+            raise ValueError(f"Tool '{tool_name}': budget_reason must be a non-empty string")
+        if result_tokens is None and definition_tokens is None:
+            return None
+        override = BudgetOverride(
+            result_tokens=result_tokens,
+            definition_tokens=definition_tokens,
+            reason=reason.strip() if reason else None,
+        )
+        if override.raises(self.budget) and override.reason is None:
+            raised = [
+                f"{label} {value:,}"
+                for label, value in (
+                    ("result_tokens", result_tokens),
+                    ("definition_tokens", definition_tokens),
+                )
+                if value is not None
+            ]
+            warnings.warn(
+                BudgetOverrideWarning(
+                    f"Tool '{tool_name}' raises its budget ({', '.join(raised)}) without "
+                    "budget_reason; say why so reviewers and `ouncemcp check` can see it"
+                ),
+                stacklevel=4,
+            )
+        return override
+
+    def budget_overrides(self) -> dict[str, BudgetOverride]:
+        """Each tool's own budget and its reason (BUD-4)."""
+        return {
+            name: spec.budget_override
+            for name, spec in self._specs.items()
+            if spec.budget_override is not None
+        }
+
     def _register(
         self,
         handler: Callable[..., Any],
@@ -1061,6 +1121,8 @@ class OunceServer:
         idempotency: bool | Idempotency | None = None,
         approval: ApprovalRule = "never",
         preview: Preview | None = None,
+        definition_tokens: int | None = None,
+        budget_reason: str | None = None,
     ) -> None:
         tool_name = name or handler.__name__
         schema_mode = _tool_mode(output_schema, tool_name) or self.output_schemas
@@ -1090,6 +1152,7 @@ class OunceServer:
                 f"Tool '{tool_name}': result_tokens must be between 1 and the server's "
                 f"result_ceiling ({self.budget.result_ceiling})"
             )
+        override = self._budget_override(tool_name, result_tokens, definition_tokens, budget_reason)
         if not isinstance(min_items, int) or min_items < 1:
             raise ValueError(
                 f"Tool '{tool_name}': min_items must be an integer >= 1; lists are never "
@@ -1188,6 +1251,7 @@ class OunceServer:
             idempotency=as_idempotency(idempotency),
             approval=check_rule(approval, tool_name),
             preview=preview,
+            budget_override=override,
         )
         if spec.idempotency is not None and effect is Effect.READ:
             raise ValueError(
@@ -1620,7 +1684,9 @@ class OunceServer:
     async def cost_report(self) -> ServerCost:
         """Measure the token cost of this server's tool definitions."""
         modes = {name: spec.output_schema for name, spec in self._specs.items()}
-        return measure_tools(await self.list_tools(), self.budget, self.counter, modes)
+        return measure_tools(
+            await self.list_tools(), self.budget, self.counter, modes, self.budget_overrides()
+        )
 
     async def call_tool(self, name: str, arguments: dict[str, Any] | None = None) -> ToolResult:
         """Call a tool in-process (useful for tests)."""

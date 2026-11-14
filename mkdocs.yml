@@ -37,6 +37,7 @@ nav:
       - input-after-effect: rules/input-after-effect.md
       - elicit-in-write: rules/elicit-in-write.md
       - destructive-without-policy: rules/destructive-without-policy.md
+      - budget-override-without-reason: rules/budget-override-without-reason.md
       - stdio-skips-policy: rules/stdio-skips-policy.md
       - description-too-short: rules/description-too-short.md
       - write-without-side-effects: rules/write-without-side-effects.md
@@ -68,3 +69,4 @@ nav:
           - 0018 Trace viewer: proposals/0018-trace-viewer.md
           - 0019 Eval kit: proposals/0019-eval-kit.md
           - 0020 Report UI: proposals/0020-report-ui.md
+          - 0021 Budget overrides: proposals/0021-budget-overrides.md
