@@ -61,14 +61,14 @@ def is_detail_field(field_info: Any) -> bool:
     return any(item is Detail for item in getattr(field_info, "metadata", ()))
 
 
-def _nested_models(annotation: Any) -> list[type[BaseModel]]:
+def nested_models(annotation: Any) -> list[type[BaseModel]]:
     found: list[type[BaseModel]] = []
     if isinstance(annotation, type) and issubclass(annotation, BaseModel):
         return [annotation]
     origin = typing.get_origin(annotation)
     if origin is not None or isinstance(annotation, types.UnionType):
         for arg in typing.get_args(annotation):
-            found.extend(_nested_models(arg))
+            found.extend(nested_models(arg))
     return found
 
 
@@ -81,7 +81,7 @@ def model_has_detail_fields(model: type[BaseModel], _seen: set[type] | None = No
     for field_info in model.model_fields.values():
         if is_detail_field(field_info):
             return True
-        for nested in _nested_models(field_info.annotation):
+        for nested in nested_models(field_info.annotation):
             if model_has_detail_fields(nested, seen):
                 return True
     return False
@@ -99,7 +99,7 @@ def validate_detail_fields(model: type[BaseModel], _seen: set[type] | None = Non
                 f"{model.__name__}.{name} is marked Detail but is required; "
                 "give it a default (for example None) so concise results stay valid"
             )
-        for nested in _nested_models(field_info.annotation):
+        for nested in nested_models(field_info.annotation):
             validate_detail_fields(nested, seen)
 
 

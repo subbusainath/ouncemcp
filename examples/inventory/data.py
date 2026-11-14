@@ -60,3 +60,13 @@ def load_resources(count: int = 400, seed: int = 7) -> list[dict]:
 
 RESOURCES = load_resources()
 BY_ID = {r["id"]: r for r in RESOURCES}
+
+# Metrics come from a separate, slower monitoring API in a real inventory. The counter
+# lets tests check that concise calls never fetch them (spec RES-11).
+METRICS_LOOKUPS = 0
+
+
+def metrics_for(resource_id: str) -> dict:
+    global METRICS_LOOKUPS
+    METRICS_LOOKUPS += 1
+    return dict(BY_ID[resource_id]["metrics"])

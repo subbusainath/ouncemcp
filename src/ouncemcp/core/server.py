@@ -42,7 +42,9 @@ from ouncemcp.core.shaping import (
     PageSpec,
     ResponseFormat,
     ResultTooLarge,
+    is_detail_field,
     model_has_detail_fields,
+    nested_models,
     shape_result,
     validate_detail_fields,
 )
@@ -187,8 +189,10 @@ class ToolContext:
     Attributes:
         tool: The tool name.
         response_format: ``"concise"`` or ``"detailed"``. Handlers can skip expensive
-            lookups for fields that will not be returned.
-        result_budget: Token budget for this call's result.
+            lookups for fields that will not be returned; see ``includes`` (RES-11).
+        result_budget: Token budget for this call's result: the tool's concise budget,
+            or ``Budget.result_ceiling`` for detailed results. Handlers can use it to
+            choose how much to fetch (RES-11).
         fastmcp: The underlying FastMCP context, when running inside a server.
     """
 
@@ -216,6 +220,40 @@ class ToolContext:
     _effects_applied: bool = field(default=False, repr=False)
     _approved: bool = field(default=False, repr=False)
     _jobs: JobRunner | None = field(default=None, repr=False)
+    _output_model: type[BaseModel] | None = field(default=None, repr=False)
+
+    @property
+    def detailed(self) -> bool:
+        """True when the caller asked for ``response_format="detailed"``."""
+        return self.response_format == "detailed"
+
+    def includes(self, path: str) -> bool:
+        """Whether output field ``path`` is returned in this call (RES-11).
+
+        ``path`` names a field of the tool's output model, dotted for nested models
+        (``"owner.history"``). Fields marked ``Detail`` are only returned in detailed
+        results, so a handler can skip the lookup that fills them::
+
+            if ctx.includes("metrics"):
+                detail.metrics = await fetch_metrics(id)
+
+        Unknown fields raise ``ValueError``, so a renamed field cannot silently turn a
+        lookup off.
+        """
+        model = self._output_model
+        if model is None:
+            raise RuntimeError("includes() needs a tool context created by OunceServer")
+        for part in path.split("."):
+            if model is None:
+                raise ValueError(f"'{path}': cannot look inside a field that is not a model")
+            info = model.model_fields.get(part)
+            if info is None:
+                raise ValueError(f"'{path}': {model.__name__} has no field '{part}'")
+            if is_detail_field(info) and not self.detailed:
+                return False
+            nested = nested_models(info.annotation)
+            model = nested[0] if nested else None
+        return True
 
     @property
     def identity(self) -> Identity:
@@ -1308,6 +1346,7 @@ class OunceServer:
                 tool=tool_name,
                 response_format=response_format,
                 result_budget=limit,
+                _output_model=output_model,
                 fastmcp=fastmcp_ctx,
                 _signer=signer,
                 _arguments=lambda: (
