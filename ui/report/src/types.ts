@@ -75,4 +75,66 @@ export type EvalData = {
   regressions?: string[]
 }
 
-export type ReportData = TraceData | EvalData
+export type ToolCost = {
+  name: string
+  total: number
+  description: number
+  input_schema: number
+  output_schema: number
+  other: number
+  status: "ok" | "warn" | "fail"
+}
+
+export type ContextTool = ToolCost & {
+  output_schema_mode: string | null
+  override: { definition_tokens: number | null; result_tokens: number | null; reason: string | null } | null
+  counted: Record<string, unknown>
+  counted_json: string
+  not_counted: Record<string, unknown>
+  parallel_safe: boolean
+}
+
+export type CallResult = {
+  tool: string
+  arguments: Record<string, unknown>
+  ok: boolean
+  content: string
+  content_tokens: number
+  structured: unknown
+  meta: Record<string, unknown> | null
+}
+
+export type ContextData = {
+  kind: "context"
+  title: string
+  tokenizer: string
+  budget: Record<string, number>
+  counting_scope: { counted: string[]; not_counted: string[]; measured_on: string; note?: string }
+  startup_tokens: number
+  discovery: { mode: string; setting: string; reason: string; direct_tokens: number; search_tokens: number } | null
+  tools: ContextTool[]
+  results: CallResult[]
+  focus?: string | null
+}
+
+export type AuditData = {
+  kind: "audit"
+  title: string
+  target: string
+  transport: string
+  protocol_version: string | null
+  server_name: string | null
+  tokenizer: string
+  tool_tokens: number
+  startup_tokens: number
+  tools: ToolCost[]
+  resources: Record<string, number>
+  prompts: Record<string, number>
+  findings: { rule: string; tool: string; detail: string }[]
+  latency_ms: { connect: number; list_p50: number; list_p95: number }
+  recommendation: { mode?: string; reason?: string; startup_tokens_if_followed?: number }
+  samples: Record<string, { median: number; p95: number; runs: number; [k: string]: unknown }>
+  regressions?: string[]
+}
+
+export type ReportData = TraceData | EvalData | ContextData | AuditData

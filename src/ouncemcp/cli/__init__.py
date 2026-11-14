@@ -82,6 +82,7 @@ def build_parser() -> argparse.ArgumentParser:
             cmd.add_argument("--json", action="store_true", help="print a JSON report")
             cmd.add_argument("--markdown", action="store_true", help="print a Markdown report")
             cmd.add_argument("--output", metavar="PATH", help="also write the JSON report here")
+            cmd.add_argument("--html", metavar="PATH", help="also write an HTML report here")
             _add_tokenizer_option(cmd)
             cmd.add_argument("--header", action="append", default=[], metavar="'Name: value'")
             cmd.add_argument("--bearer", metavar="TOKEN", help="bearer token for HTTP servers")
@@ -104,7 +105,15 @@ def build_parser() -> argparse.ArgumentParser:
             cmd.add_argument("--fail-on-regression", action="store_true")
         elif name == "context":
             cmd.add_argument("server", help="path/to/server.py[:name] or module[:name]")
-            cmd.add_argument("tool", help="tool name")
+            cmd.add_argument(
+                "tool", nargs="?", help="tool name (optional with --html: the page shows all)"
+            )
+            cmd.add_argument(
+                "--html",
+                metavar="PATH",
+                help="write a page with every definition as clients receive it, its token "
+                "breakdown and, with --call, the result",
+            )
             cmd.add_argument(
                 "--call",
                 metavar="JSON",
@@ -218,6 +227,7 @@ def _context(ns: argparse.Namespace) -> int:
         definition_payload,
         measure_tool,
     )
+    from ouncemcp.core.server import OunceServer
 
     try:
         server = load_server(ns.server)
@@ -230,56 +240,79 @@ def _context(ns: argparse.Namespace) -> int:
     except ValueError as exc:
         print(f"ouncemcp context: {exc}", file=sys.stderr)
         return 2
+    names = ", ".join(sorted(t.name for t in tools))
+    if ns.tool is None and not ns.html:
+        print(f"ouncemcp context: name a tool, or pass --html. Tools: {names}", file=sys.stderr)
+        return 2
     match = next((t for t in tools if t.name == ns.tool), None)
-    if match is None:
-        names = ", ".join(sorted(t.name for t in tools))
+    if ns.tool is not None and match is None:
         print(f"ouncemcp context: no tool named '{ns.tool}'. Tools: {names}", file=sys.stderr)
         return 2
-    cost = measure_tool(match, budget, counter)
-    print(json.dumps(definition_payload(match), indent=2, ensure_ascii=False))
-    print(
-        f"\n{cost.total} tokens (description {cost.description}, input schema "
-        f"{cost.input_schema}, output schema {cost.output_schema}, other "
-        f"{cost.name_tokens + cost.structure}) [{cost.status.upper()}] "
-        f"counted with {counter.name}\n"
-        f"Counted: {', '.join(COUNTED_FIELDS)}; not counted: {', '.join(UNCOUNTED_FIELDS)}",
-        file=sys.stderr,
-    )
-    if ns.call is not None:
-        return _context_call(server, ns.tool, ns.call, counter)
-    return 0
-
-
-def _context_call(server: Any, tool: str, raw: str, counter: TokenCounter) -> int:
-    """Call ``tool`` in-process and show the result as the model receives it (DX-4)."""
-    from fastmcp import Client
-
-    try:
-        arguments = json.loads(raw or "{}")
-    except json.JSONDecodeError as exc:
-        print(f"ouncemcp context: --call is not valid JSON ({exc})", file=sys.stderr)
+    if ns.call is not None and match is None:
+        print("ouncemcp context: --call needs a tool name", file=sys.stderr)
         return 2
+    arguments: dict[str, Any] | None = None
+    if ns.call is not None:
+        try:
+            arguments = json.loads(ns.call or "{}")
+        except json.JSONDecodeError as exc:
+            print(f"ouncemcp context: --call is not valid JSON ({exc})", file=sys.stderr)
+            return 2
+    ounce = server if isinstance(server, OunceServer) else None
+    overrides = ounce.budget_overrides() if ounce else None
+    if match is not None:
+        cost = measure_tool(match, budget, counter, override=(overrides or {}).get(match.name))
+        print(json.dumps(definition_payload(match), indent=2, ensure_ascii=False))
+        print(
+            f"\n{cost.total} tokens (description {cost.description}, input schema "
+            f"{cost.input_schema}, output schema {cost.output_schema}, other "
+            f"{cost.name_tokens + cost.structure}) [{cost.status.upper()}] "
+            f"counted with {counter.name}\n"
+            f"Counted: {', '.join(COUNTED_FIELDS)}; not counted: {', '.join(UNCOUNTED_FIELDS)}",
+            file=sys.stderr,
+        )
+    result = None
+    if arguments is not None and match is not None:
+        from ouncemcp.ui.views import call_result
 
-    async def run() -> Any:
-        async with Client(getattr(server, "fastmcp", server)) as client:
-            return await client.call_tool_mcp(tool, arguments)
+        result = asyncio.run(call_result(server, match.name, arguments, counter))
+        _print_result(result, counter)
+    if ns.html:
+        from ouncemcp.ui import render_report
+        from ouncemcp.ui.views import context_data
 
-    result = asyncio.run(run())
-    text = "".join(getattr(c, "text", "") for c in result.content or [])
+        decision = _discovery(server)
+        modes = {name: spec.output_schema for name, spec in ounce.tools.items()} if ounce else None
+        data = context_data(
+            tools,
+            budget,
+            counter,
+            title=f"Context: {ns.server}",
+            overrides=overrides,
+            output_schema_modes=modes,
+            discovery=decision.to_dict() if decision is not None else None,
+            results=[result] if result else [],
+            focus=ns.tool,
+        )
+        Path(ns.html).write_text(render_report(data), encoding="utf-8")
+        print(f"HTML context view: {ns.html}", file=sys.stderr)
+    return 1 if result is not None and not result["ok"] else 0
+
+
+def _print_result(result: dict[str, Any], counter: TokenCounter) -> None:
+    """Show a tool result as the model receives it (DX-4)."""
     print("\n--- result content (what the model reads) ---")
-    print(text)
-    if result.structured_content is not None:
+    print(result["content"])
+    if result["structured"] is not None:
         print("--- structuredContent ---")
-        print(json.dumps(result.structured_content, indent=2, ensure_ascii=False))
-    meta = (result.meta or {}).get("ouncemcp")
-    tokens = counter.count(text)
-    status = "error" if result.is_error else "ok"
+        print(json.dumps(result["structured"], indent=2, ensure_ascii=False))
+    meta = result["meta"]
     print(
-        f"\nresult: {status}, {tokens} tokens of content counted with {counter.name}"
+        f"\nresult: {'ok' if result['ok'] else 'error'}, {result['content_tokens']} tokens of "
+        f"content counted with {counter.name}"
         + (f"; _meta.ouncemcp = {json.dumps(meta)}" if meta else ""),
         file=sys.stderr,
     )
-    return 1 if result.is_error else 0
 
 
 def _audit(ns: argparse.Namespace) -> int:
@@ -325,6 +358,12 @@ def _audit(ns: argparse.Namespace) -> int:
     data["regressions"] = regressions
     if ns.output:
         Path(ns.output).write_text(json.dumps(data, indent=2))
+    if ns.html:
+        from ouncemcp.ui import render_report
+        from ouncemcp.ui.views import audit_data
+
+        page = render_report(audit_data(data, title=f"Audit: {target}"))
+        Path(ns.html).write_text(page, encoding="utf-8")
     if ns.json:
         print(json.dumps(data, indent=2))
     elif ns.markdown:

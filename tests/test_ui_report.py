@@ -105,3 +105,59 @@ def test_build_inputs_are_pinned():
             assert version[0].isdigit(), f"{name} is not pinned: {version}"
     lock = json.loads((app / "package-lock.json").read_text())["packages"]
     assert lock["node_modules/react"]["version"] == package["dependencies"]["react"]
+
+
+def test_context_page_shows_definitions_as_clients_receive_them(tmp_path: Path):
+    page = tmp_path / "context.html"
+    server = str(ROOT / "examples" / "inventory" / "server.py")
+    assert (
+        main(
+            [
+                "context",
+                server,
+                "inventory.get",
+                "--call",
+                '{"id": "vm-00000"}',
+                "--html",
+                str(page),
+            ]
+        )
+        == 0
+    )
+    data = _data(page.read_text())
+    assert data["kind"] == "context" and data["focus"] == "inventory.get"
+    tools = {t["name"]: t for t in data["tools"]}
+    get = tools["inventory.get"]
+    assert get["counted"]["name"] == "inventory.get" and "inputSchema" in get["counted"]
+    assert get["not_counted"]["_meta"]["ouncemcp/parallelSafe"] is True
+    assert (
+        get["parallel_safe"]
+        and get["total"] == data["startup_tokens"] - tools["inventory.search"]["total"]
+    )
+    (result,) = data["results"]
+    assert (
+        result["ok"] and result["structured"]["id"] == "vm-00000" and result["content_tokens"] > 0
+    )
+    assert data["discovery"]["mode"] == "direct"
+
+
+def test_context_html_without_a_tool_shows_every_tool(tmp_path: Path):
+    page = tmp_path / "context.html"
+    server = str(ROOT / "examples" / "ticketing" / "server.py")
+    assert main(["context", server, "--html", str(page)]) == 0
+    assert {t["name"] for t in _data(page.read_text())["tools"]} >= {
+        "tickets.search",
+        "tickets.close",
+    }
+    assert main(["context", server]) == 2  # a tool name or --html is needed
+
+
+def test_audit_page(tmp_path: Path):
+    page = tmp_path / "audit.html"
+    assert (
+        main(["audit", str(ROOT / "examples" / "markitdown" / "server.py"), "--html", str(page)])
+        == 0
+    )
+    data = _data(page.read_text())
+    assert data["kind"] == "audit" and data["tool_tokens"] == sum(t["total"] for t in data["tools"])
+    assert data["recommendation"]["mode"] == "direct"

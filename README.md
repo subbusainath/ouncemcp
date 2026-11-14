@@ -92,6 +92,7 @@ What you get:
 ```bash
 ouncemcp check examples/inventory/server.py
 ouncemcp context examples/inventory/server.py inventory.search
+ouncemcp context examples/inventory/server.py --html context.html   # every tool, as a page
 ouncemcp dev examples/inventory/server.py      # hot reload, live per-call token lines
 ```
 

@@ -50,7 +50,7 @@ Keep the tool name, so hosts and prompts keep working. Give it a Pydantic output
 ## Step 5: compare
 
 ```bash
-ouncemcp audit path/to/server.py --compare before.json --fail-on-regression
+ouncemcp audit path/to/server.py --compare before.json --fail-on-regression --html audit.html
 ```
 
 ## markitdown-mcp, measured
