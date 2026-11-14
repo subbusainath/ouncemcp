@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -86,6 +87,24 @@ def build_parser() -> argparse.ArgumentParser:
             _add_tokenizer_option(cmd)
             cmd.add_argument("--header", action="append", default=[], metavar="'Name: value'")
             cmd.add_argument("--bearer", metavar="TOKEN", help="bearer token for HTTP servers")
+            cmd.add_argument(
+                "--oauth",
+                action="store_true",
+                help="sign in with OAuth in the browser (HTTP servers). Registration order: "
+                "--client-id, then --client-metadata-url, then dynamic registration",
+            )
+            cmd.add_argument("--client-id", metavar="ID", help="pre-registered OAuth client id")
+            cmd.add_argument(
+                "--client-metadata-url",
+                metavar="URL",
+                help="https URL of this client's Client ID Metadata Document",
+            )
+            cmd.add_argument(
+                "--no-dynamic-registration",
+                action="store_true",
+                help="refuse dynamic client registration",
+            )
+            cmd.add_argument("--scope", action="append", default=[], help="OAuth scope to request")
             cmd.add_argument("--env", action="append", default=[], metavar="KEY=VALUE")
             cmd.add_argument(
                 "--inherit-env", action="store_true", help="pass this environment to stdio servers"
@@ -333,6 +352,24 @@ def _audit(ns: argparse.Namespace) -> int:
         print(f"ouncemcp audit: bad option ({exc})", file=sys.stderr)
         return 2
     budget = Budget(tool_definition_fail=ns.fail_tool) if ns.fail_tool else Budget()
+    auth = None
+    if ns.oauth or ns.client_id or ns.client_metadata_url:
+        from ouncemcp.client.oauth import OunceOAuth
+
+        try:
+            auth = OunceOAuth(
+                client_id=ns.client_id,
+                # Secrets never go on the command line, where they end up in shell history.
+                client_secret=os.environ.get("OUNCEMCP_OAUTH_CLIENT_SECRET"),
+                client_metadata_url=ns.client_metadata_url,
+                allow_dynamic=not ns.no_dynamic_registration,
+                scopes=ns.scope or None,
+                client_name="ouncemcp audit",
+            )
+        except ValueError as exc:
+            print(f"ouncemcp audit: {exc}", file=sys.stderr)
+            return 2
+        print(f"ouncemcp audit: OAuth with {auth.registration} client", file=sys.stderr)
     try:
         report = asyncio.run(
             audit(
@@ -345,6 +382,7 @@ def _audit(ns: argparse.Namespace) -> int:
                 bearer=ns.bearer,
                 env=env,
                 inherit_env=ns.inherit_env,
+                auth=auth,
             )
         )
     except Exception as exc:  # noqa: BLE001 - report connection problems plainly

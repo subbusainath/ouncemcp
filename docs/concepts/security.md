@@ -32,4 +32,6 @@ Policies apply over HTTP and to in-process calls. Over stdio FastMCP skips compo
 
 **Fetching URLs the model chose (SEC-9).** `safe_client(allow_hosts=[...])` is an HTTP client that refuses private, loopback, link-local and metadata addresses, connects only to the address it checked, and checks every redirect again ([proposal 0023](../proposals/0023-safe-fetch.md)).
 
+**OAuth (SEC-10).** Protect a server with one of FastMCP's maintained providers, `OunceServer(auth=GitHubProvider(...))`; policies then read the identity it verifies. Clients sign in with `ouncemcp.client.OunceOAuth`, which uses a pre-registered client id first, then a Client ID Metadata Document, and dynamic registration only as a last resort (`allow_dynamic=False` refuses it); `ouncemcp audit URL --oauth` does the same from the command line ([proposal 0025](../proposals/0025-oauth.md)).
+
 Test policies with `ouncemcp.testing.as_caller(subject=..., tenant=..., scopes=[...])`, and probe a whole server with the [security catalog](../guides/testing.md).

@@ -10,7 +10,7 @@ Project specification
 | Target protocol | MCP specification `2026-07-28`, with tested legacy compatibility |
 | Reference implementation | Python, built on FastMCP 4 and the official MCP Python SDK |
 | License (proposed) | Apache-2.0 |
-| Status | M0 and M1 done: host verification passed in Claude Desktop and Cursor (12 November 2026, [compatibility matrix](compatibility.md)); DX-8 user testing and the inventory pilot with real data remain. M2 merged ([PR #14](https://github.com/subbusainath/ouncemcp/pull/14), [M2 report](m2-report.md)): exit criteria and release gates 1 to 5 met. M3 and M4 not started. See sections 15.3 and 15.4 |
+| Status | M0 and M1 done: host verification passed in Claude Desktop and Cursor (12 November 2026, [compatibility matrix](compatibility.md)); DX-8 user testing and the inventory pilot with real data remain. M2 merged ([PR #14](https://github.com/subbusainath/ouncemcp/pull/14), [M2 report](m2-report.md)): exit criteria and release gates 1 to 5 met. M3 in progress ([PR #16](https://github.com/subbusainath/ouncemcp/pull/16): trace viewer, task suites with the replay model, report UI); real-model runs, `bench` and the benchmark need API keys. M4: the P1 requirements that need no people or keys are built on branch `claude/loving-shannon-gm4zxr` (BUD-4, RES-11, EXE-5, SEC-9, SEC-10, DX-3, DX-4 web, AUD-10 HTML, conformance gating). See sections 15.3 and 15.4 |
 | Repository | [github.com/subbusainath/ouncemcp](https://github.com/subbusainath/ouncemcp) (private), default branch `main`, last merge `ebe47c1` (PR #13) |
 
 This specification turns two research investigations into a buildable plan. Protocol facts are cited to primary sources. Requirements, default limits, interfaces, and milestones are proposals and are marked as such; numeric defaults must be validated experimentally before being presented as recommendations to users.
@@ -309,7 +309,7 @@ Budgets are declared per server and per tool. The defaults below are **proposed 
 | SEC-7 | MUST NOT perform irreversible effects before an input-required return unless replay-safe | P0 | Lint rule plus test. **Done in M1: `ctx.require_input` refuses after `ctx.effect_applied()` unless `replay_safe`; `check` rule `input-after-effect`** |
 | SEC-8 | MUST validate `Origin` on HTTP and bind local HTTP servers to loopback by default ([HTTP transport](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http.md)) | P0 | Delegated to SDK; verified in tests. **Done in M1: HTTP binds `127.0.0.1` with `Host` and `Origin` checks on; public binds need `allowed_hosts`** |
 | SEC-9 | MUST protect outbound fetches from SSRF using allowlists and private-range blocking ([security best practices](https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/security_best_practices.md)) | P1 | SSRF test suite. **Done: `check_url` in M2 ([proposal 0015](proposals/0015-migration-and-audit.md)); in M4, `safe_client` pins each connection to the checked address, checks every redirect and keeps one pool per host name ([proposal 0023](proposals/0023-safe-fetch.md))** |
-| SEC-10 | SHOULD use maintained OAuth integrations; client registration order is pre-registration, then Client ID Metadata Documents, then deprecated Dynamic Client Registration ([client registration](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/client-registration.md)) | P1 | Integration tests with one provider |
+| SEC-10 | SHOULD use maintained OAuth integrations; client registration order is pre-registration, then Client ID Metadata Documents, then deprecated Dynamic Client Registration ([client registration](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/client-registration.md)) | P1 | Integration tests with one provider. **Done in M4 ([proposal 0025](proposals/0025-oauth.md)): servers use FastMCP's maintained providers via `OunceServer(auth=...)`; clients use `OunceOAuth`, which applies the registration order and records it; `audit --oauth` and `Broker(auth=...)`; full flows tested over HTTP against FastMCP's in-memory OAuth provider** |
 | SEC-11 | MUST redact secrets and personal data from traces by default | P0 | Redaction tests. **Done in M1 ([proposal 0009](proposals/0009-traces.md)): hashed principals, no messages or results, arguments only on request and redacted** |
 | SEC-12 | MUST issue tamper-evident cursors: HMAC-signed and bound to the principal, the tool, a digest of the normalized query arguments, and an expiry; support key rotation; reject invalid, expired, or foreign cursors with an actionable validation error (MCP suggests `-32602 Invalid params` for invalid list cursors, [pagination](https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/pagination.md)) | P0 | Tests for tampering, expiry, cross-principal reuse, use with changed filters, and rotation; the M0 base64 offset cursor is removed. **Done in M1** ([PR #7](https://github.com/subbusainath/ouncemcp/pull/7), merged): `s1.` cursors of 59 characters, bound to tool, principal and arguments other than `cursor`, `limit` and `response_format`; one-hour expiry by default; keys from `CursorSigner` or `OUNCEMCP_CURSOR_KEYS`, newest first; a random per-process key with a one-time warning when none is set; errors carry a `reason` (`malformed`, `legacy`, `signature`, `expired`, `tool`, `principal`, `query`) |
 
@@ -343,7 +343,7 @@ Budgets are declared per server and per tool. The defaults below are **proposed 
 
 | ID | Requirement | Priority | Acceptance criteria |
 | --- | --- | --- | --- |
-| EVAL-1 | MUST run the official conformance suite for declared revisions ([conformance](https://github.com/modelcontextprotocol/conformance)) | P0 | CI job. **Done in M1, not yet gating: `ouncemcp.eval.conformance` target and `.github/workflows/conformance.yml` (suite 0.2.0-alpha.12, revision 2026-07-28); the baseline needs confirming on the first CI run** |
+| EVAL-1 | MUST run the official conformance suite for declared revisions ([conformance](https://github.com/modelcontextprotocol/conformance)) | P0 | CI job. **Done: `ouncemcp.eval.conformance` target and `.github/workflows/conformance.yml` (suite 0.2.0-alpha.12, revision 2026-07-28); baseline confirmed by CI (36 passed, 5 expected failures) and the job gates since M4 (no `continue-on-error`)** |
 | EVAL-2 | MUST provide security tests: cross-tenant access, guessed names and handles, replay, SSRF, token passthrough | P0 | Test catalog. **Done in M1: `ouncemcp.eval.security` with six probe types and automatic guessed-name probes** |
 | EVAL-3 | MUST run agent task suites defined in YAML with verifiable outcomes | P1 | Example suite per pilot. **Done with the replay model: `examples/inventory/eval.yaml`, `examples/ticketing/eval.yaml` ([proposal 0019](proposals/0019-eval-kit.md)); real-model adapters await API keys** |
 | EVAL-4 | MUST report task success, correct tool selection, argument validity, calls per task, turns, tokens, latency, and errors, as Anthropic recommends measuring ([Anthropic tool guidance](https://www.anthropic.com/research/writing-tools-for-agents)) | P1 | Report fields. **Done ([proposal 0019](proposals/0019-eval-kit.md))** |
@@ -812,7 +812,7 @@ These were measured on Python 3.12.15, x86_64, 2 vCPU.
 
 #### Next tasks, in order
 
-1. **Conformance job:** make it required in CI (remove `continue-on-error`); its first run passed.
+1. **Conformance job:** done; it gates since M4. Ask the owner to mark it as a required check in the branch protection settings.
 2. **Record host versions** for Claude Desktop and Cursor in `docs/compatibility.md`.
 3. **Host verification follow-ups:** Claude Desktop and Cursor pass (owner, 12 November 2026). Record their versions, run VS Code and the Claude mobile app (remote MCP over HTTPS), and do the BUD-7 host study (which definition fields reach the model), all in `docs/compatibility.md`.
 4. **DX-8 and the inventory pilot** with real data, once people and credentials are available.
@@ -851,8 +851,8 @@ Status as of 12 November 2026. M1 ([PR #13](https://github.com/subbusainath/ounc
 | **M0: Core spike** | **Complete**; host verification done in M1 (Claude Desktop, Cursor) | Core, budgets, shaping, token counting, `check` and `context`, inventory example, overhead measured |
 | **M1: Framework 0.1** | **Merged; host verification passed** | Open: DX-8 user testing and the inventory pilot with real data |
 | **M2: Framework 0.2** | **Complete** ([PR #14](https://github.com/subbusainath/ouncemcp/pull/14)); exit criteria and gates 1 to 5 met | Store and idempotency, safe writes, handles and jobs, resources and prompts, migration adapter and guide, `audit`, client broker, `ouncemcp.toml`, health and metrics, description lints; ticketing, report and markitdown-mcp pilots |
-| **M3: Eval and benchmark 0.5** | Not started | Agent task suites, `bench`, trace viewer, published benchmark, public launch |
-| **M4: 1.0** | Not started | Remaining P1 work, external security review, host matrix, stable API |
+| **M3: Eval and benchmark 0.5** | **In progress**: trace viewer, OpenTelemetry, task suites with the replay model and the report UI merged ([PR #16](https://github.com/subbusainath/ouncemcp/pull/16)) | Open: real-model adapters (need API keys and a spending limit), `bench`, the published benchmark, public launch |
+| **M4: 1.0** | **In progress**: P1 work that needs no people or keys built on branch `claude/loving-shannon-gm4zxr` (proposals 0021 to 0025) | Open: external security review, host matrix, accuracy gate (needs real-model runs), API freeze |
 | **Post-1.0** | Not started | TypeScript port, `code` discovery mode, more idempotency backends, `npx` audit wrapper |
 
 #### Completed
@@ -876,18 +876,15 @@ Status as of 12 November 2026. M1 ([PR #13](https://github.com/subbusainath/ounc
 | Migration, `audit`, URL checks, markitdown-mcp pilot | DX-7, AUD-1 to AUD-13 (HTML excepted), part of SEC-9 | Branch ([proposal 0015](proposals/0015-migration-and-audit.md)) |
 | Client broker | CLI-1 to CLI-8 | Branch ([proposal 0016](proposals/0016-client-broker.md)) |
 | Configuration, health and readiness, metrics, description lints | Spec 9.2, 9.4, CAP-5 | Branch ([proposal 0017](proposals/0017-operations.md)) |
+| Trace viewer, OpenTelemetry, task suites with the replay model, report UI | DX-4 (results view), DX-5, EVAL-3 to EVAL-7 (replay model), DISC-6 | [PR #16](https://github.com/subbusainath/ouncemcp/pull/16) |
+| Budget overrides, handler hints, parallel-safe marks, safe fetch, schema lints, context and audit pages, OAuth, conformance gating | BUD-4, RES-11, EXE-5, SEC-9, DX-3, DX-4 (web), AUD-10 (HTML), SEC-10, EVAL-1 (gating) | Branch `claude/loving-shannon-gm4zxr` (proposals 0021 to 0025) |
 
 #### Partly done
 
 | Requirement | Done | Still open |
 | --- | --- | --- |
-| EVAL-1 | Conformance target and CI workflow; the first run passed (36 checks, 5 expected failures) | Make the job required (remove `continue-on-error`) |
-| SEC-9 (P1) | `check_url` for private, loopback, link-local and metadata targets | Connections pinned to the checked address; redirect checks |
-| AUD-10 | Terminal, JSON, Markdown | HTML (P2) |
-| DISC-6 (search recall) | `measure_recall`, `RecallCase` and `RecallReport` | Recall in eval output (M3) |
 | BUD-7 (per-host data, P1) | Declared counting scope | Host study in real hosts; decide the output-schema default |
 | BUD-6 (P1 part) | tiktoken encodings and callables | Provider counting adapters |
-| DX-4 (context view) | `ouncemcp context` for definitions; per-call result tokens in `dev` | Results view in `context`; the web view is P1 |
 | Section 16.3 docs | Quickstart, concepts, guides (including migration, safe writes, deployment, the broker), references | API reference generated from code; publishing the site |
 | Jobs | Background jobs with leases; `interrupted` after a restart | Resuming interrupted jobs; mapping onto the MCP tasks extension |
 
@@ -903,12 +900,9 @@ Status as of 12 November 2026. M1 ([PR #13](https://github.com/subbusainath/ounc
 
 | Group | Requirements |
 | --- | --- |
-| Budgets | BUD-4 (per-tool overrides with justification) |
-| Results | RES-11 (skip work for unreturned fields) |
-| Execution | EXE-5 (parallel-safe marks) |
-| Security | SEC-9 (rest), SEC-10 (maintained OAuth integrations) |
-| Developer experience | DX-5 (trace view, M3) |
-| Eval | EVAL-3 to EVAL-7 (M3) |
+| Eval | Real-model adapters for EVAL-3 to EVAL-7 and release gate 6 (need API keys) |
+| Benchmark | `bench`, the published benchmark, PERF-6 (M3) |
+| Tokenizers | BUD-6 provider counting adapters (need API keys) |
 | Discovery | DISC-8 (`code` mode, post-1.0) |
 
 ---

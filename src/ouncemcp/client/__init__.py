@@ -11,6 +11,7 @@ from ouncemcp.client.broker import (
     BrokerTool,
     CrossServerCall,
 )
+from ouncemcp.client.oauth import OunceOAuth, registration_method
 
 __all__ = [
     "META_DEFINITIONS",
@@ -19,4 +20,6 @@ __all__ = [
     "BrokerResult",
     "BrokerTool",
     "CrossServerCall",
+    "OunceOAuth",
+    "registration_method",
 ]
