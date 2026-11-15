@@ -9,5 +9,5 @@ Traces are redacted by default (SEC-11): principals are keyed digests, error mes
 **Viewing and exporting** ([proposal 0018](../proposals/0018-trace-viewer.md)):
 
 - `ouncemcp trace calls.jsonl` prints a per-tool summary and writes an HTML report with every call, its tokens against budget and what shaping removed. You can search and filter the calls, and the page opens offline ([proposal 0020](../proposals/0020-report-ui.md)).
-- `OTelSink()` sends each call to OpenTelemetry as a span, for Jaeger, Tempo, Honeycomb or any other backend.
+- `OTelSink()` (from `ouncemcp.trace.otel`; install the `otel` extra) sends each call to OpenTelemetry as a span, for Jaeger, Tempo, Honeycomb or any other backend.
 - `ouncemcp context server.py tool --call '{"arg": 1}'` shows a result exactly as the model receives it.

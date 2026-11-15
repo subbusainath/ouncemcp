@@ -25,7 +25,7 @@ server = OunceServer(
 )
 
 @server.tool(name="tickets.purge", effect=Effect.DESTRUCTIVE, policy=require_scopes("admin"))
-async def purge(...) -> Purged: ...
+async def purge(ctx: ToolContext) -> Purged: ...
 ```
 
 Policies apply over HTTP and to in-process calls. Over stdio FastMCP skips component authorization, because the server runs as the local user who started it, so by default (`stdio_policy="trust"`) every tool is visible and callable there. Set `OunceServer(stdio_policy="enforce")` to apply every check on stdio with the anonymous caller. `ouncemcp check` warns when tools have policies and stdio is trusted ([`stdio-skips-policy`](../rules/stdio-skips-policy.md)).

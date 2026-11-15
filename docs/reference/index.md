@@ -8,7 +8,8 @@ Generated from the docstrings in the code. The [concepts](../concepts/budgets.md
 - [Execution](execution.md): stores, idempotency, approvals, retries, limits and jobs.
 - [Security](security.md): identity, policies, cached data, state tokens and safe fetches.
 - [Clients](client.md): the broker and OAuth.
+- [Traces](trace.md): the tracer, its sinks and redaction.
 - [Evaluation](eval.md): task suites, models, reports and the benchmark.
 - [Testing helpers](testing.md): `as_caller` and `make_token`.
 
-Names exported from `ouncemcp`, `ouncemcp.security`, `ouncemcp.client` and `ouncemcp.eval.agent` are the public API. Anything else may change before 1.0.
+Names exported from `ouncemcp`, `ouncemcp.security`, `ouncemcp.client`, `ouncemcp.trace`, `ouncemcp.eval`, `ouncemcp.eval.agent`, `ouncemcp.testing` and `ouncemcp.ui` are the public API; `tests/test_api_surface.py` fails if any of them changes by accident. Anything else may change before 1.0. The plan for freezing it is [proposal 0029](../proposals/0029-api-freeze.md).
