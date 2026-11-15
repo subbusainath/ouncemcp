@@ -61,6 +61,7 @@ nav:
       - M0 report: m0-report.md
       - M2 report: m2-report.md
       - M4 report: m4-report.md
+      - Repository settings: maintainers/repository-settings.md
       - Performance research: performance-research.md
       - Proposals:
           - Overview: proposals/README.md
