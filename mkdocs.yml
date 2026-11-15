@@ -130,6 +130,7 @@ nav:
       - M4 report: m4-report.md
       - Repository settings: maintainers/repository-settings.md
       - Releasing: maintainers/releasing.md
+      - Security review brief: maintainers/security-review.md
       - Performance research: performance-research.md
       - Proposals:
           - Overview: proposals/README.md
