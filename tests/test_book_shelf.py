@@ -75,6 +75,7 @@ async def test_step2_pages_shapes_and_skips_work():
     assert error_code(await call(server, "books.search", {"query": "  "})) == "validation"
 
 
+# --8<-- [start:writes]
 @pytest.mark.anyio
 async def test_step3_borrowing_needs_a_yes_and_happens_once():
     step = module("step3_writes")
@@ -96,6 +97,9 @@ async def test_step3_borrowing_needs_a_yes_and_happens_once():
     assert returned["returned"] and library.writes[-1] == f"return {loan['loan_id']}"
 
 
+# --8<-- [end:writes]
+
+
 @pytest.mark.anyio
 async def test_step3_the_approval_shows_the_exact_book():
     step = module("step3_writes")
@@ -112,6 +116,7 @@ async def test_step3_the_approval_shows_the_exact_book():
     assert seen == [f"Borrow '{title}' (b-003) for 3 weeks? It will be due back on the 21st day."]
 
 
+# --8<-- [start:callers]
 @pytest.mark.anyio
 async def test_step4_members_see_only_their_branch_and_loans():
     step = module("step4_secure")
@@ -130,6 +135,9 @@ async def test_step4_members_see_only_their_branch_and_loans():
         open_loans = (await call(server, "loans.open")).structured_content["loans"]
     assert [l["loan_id"] for l in open_loans] == [loan["loan_id"]]
     assert server.deps.writes == [f"borrow {north_book} by ana"]
+
+
+# --8<-- [end:callers]
 
 
 @pytest.mark.anyio
@@ -161,5 +169,28 @@ async def test_step5_resources_and_prompt():
     assert "about history" in prompt.messages[0].content.text
 
 
+# --8<-- [start:eval]
 def test_the_book_task_suite_passes_with_the_replay_model():
     assert main(["eval", str(SHELF / "eval.yaml"), "--repeats", "1"]) == 0
+
+
+# --8<-- [end:eval]
+
+
+# --8<-- [start:security]
+@pytest.mark.anyio
+async def test_step5_passes_the_security_catalog():
+    from ouncemcp.eval import CrossTenant, CursorReuse, run_security_suite
+
+    server = module("step5_complete").build(approver=lambda request: True)
+    report = await run_security_suite(
+        server,
+        [
+            CrossTenant("books.get", {"id": "b-002"}, owner=ANA, intruder=BO),
+            CursorReuse("books.search", {"query": "the", "limit": 1}, owner=ANA, intruder=BO),
+        ],
+    )
+    assert report.passed, report.render_text()
+
+
+# --8<-- [end:security]

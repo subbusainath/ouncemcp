@@ -2,7 +2,7 @@
 
 **Every token counts.** OunceMCP is a framework for building Model Context Protocol (MCP) servers and clients that are fast, low-noise, and safe for agents by default. It builds on [FastMCP](https://gofastmcp.com) and the official MCP Python SDK, and targets the MCP `2026-07-28` specification.
 
-> **Status: pre-alpha (M2 complete).** Everything in M1 plus safe writes (approvals and idempotency), results by reference and background jobs, resources and prompts, a migration path from FastMCP, the `audit` command, a client broker for many servers, a config file, health checks and metrics work and are tested. The official MCP conformance suite passes in CI, and the examples are verified in Claude Desktop and Cursor ([compatibility](docs/compatibility.md)). Agent task suites and the public benchmark are M3. APIs will change. See the [roadmap](#roadmap), the [docs](docs/README.md) and the [M0 report](docs/m0-report.md).
+> **Status: pre-1.0 (M0 to M4 built).** The framework, safe writes, jobs, the client broker, the eval kit, the trace viewer and the benchmark work and are tested; the official MCP conformance suite passes in CI and the M4 performance gates are met ([M4 report](docs/m4-report.md)). The 1.0 API freeze is drafted in [proposal 0029](docs/proposals/0029-api-freeze.md); until it is accepted, APIs may change. Release gates that need people or outside systems are listed in the [spec](docs/spec.md) (section 14.2). New here? Read [The OunceMCP Book](docs/book/index.md).
 
 ## Why
 
@@ -23,7 +23,7 @@ uv venv && uv pip install -e ".[dev]"   # until it is on PyPI, add: -e /path/to/
 uv run pytest && uv run ouncemcp dev server.py
 ```
 
-The full walkthrough is in [docs/quickstart.md](docs/quickstart.md). A tool looks like this:
+The full walkthrough is in [docs/quickstart.md](docs/quickstart.md). To learn the framework step by step, read [The OunceMCP Book](docs/book/index.md): one library server built across 15 chapters, every stage tested. A tool looks like this:
 
 ```python
 from typing import Annotated
@@ -151,13 +151,13 @@ tests/
 
 ## Roadmap
 
-| Milestone | Scope | Estimate |
+| Milestone | Scope | Status |
 | --- | --- | --- |
-| M0: core spike | `OunceServer`, typed tools with effects, token counting, result budgets, one example server | 2 weeks |
-| M1: v0.1 | Framework core, automatic discovery, errors, security, `init`/`dev`/`check`/`context`, docs | 6 weeks |
-| M2: v0.2 | Safe writes, client broker, migration guide, pilots, optional `audit` (built; see the [M2 report](docs/m2-report.md)) | 6 weeks |
-| M3: v0.5 | Eval kit, trace viewer, public benchmark, launch | 6 weeks |
-| M4: v1.0 | Security review, host compatibility matrix, stable API | 6 weeks |
+| M0: core spike | `OunceServer`, typed tools with effects, token counting, result budgets, one example server | Built ([M0 report](docs/m0-report.md)) |
+| M1: v0.1 | Framework core, automatic discovery, errors, security, `init`/`dev`/`check`/`context`, docs | Built |
+| M2: v0.2 | Safe writes, client broker, migration guide, pilots, optional `audit` | Built ([M2 report](docs/m2-report.md)) |
+| M3: v0.5 | Eval kit, trace viewer, public benchmark, launch | Built ([benchmark](benchmarks/results/m3-bench.md)); launch waits on the repository going public |
+| M4: v1.0 | Security review, host compatibility matrix, stable API, the book | Built ([M4 report](docs/m4-report.md)); the API freeze ([0029](docs/proposals/0029-api-freeze.md)) is a draft |
 
 The full plan is in [docs/spec.md](docs/spec.md), and the supporting research is in [docs/performance-research.md](docs/performance-research.md).
 

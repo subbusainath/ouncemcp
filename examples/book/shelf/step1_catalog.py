@@ -6,7 +6,7 @@ Two tools: search the catalog, and get one book. Run it with
 
 from __future__ import annotations
 
-from data import make_catalog
+from library import make_catalog
 from pydantic import BaseModel, Field
 
 from ouncemcp import Effect, NotFound, OunceServer

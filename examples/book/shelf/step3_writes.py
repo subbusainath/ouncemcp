@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from data import Library, Loan
+from library import Library, Loan
 from pydantic import BaseModel, Field
 
 from ouncemcp import (
@@ -65,6 +65,7 @@ class Loans(BaseModel):
     loans: list[LoanOut] = Field(max_length=20)
 
 
+# --8<-- [start:build]
 def build(library: Library | None = None, *, approver: Approver | None = None) -> OunceServer:
     server = OunceServer(
         "shelf",
@@ -72,6 +73,7 @@ def build(library: Library | None = None, *, approver: Approver | None = None) -
         deps=library or Library(),
         approver=approver,
     )
+    # --8<-- [end:build]
 
     def loan_out(ctx: ToolContext, loan: Loan) -> LoanOut:
         book = ctx.deps.books[loan.book_id]
@@ -127,6 +129,7 @@ def build(library: Library | None = None, *, approver: Approver | None = None) -
             summary=book.summary,
         )
 
+    # --8<-- [start:borrow]
     async def borrow_preview(book_id: str, ctx: ToolContext) -> str:
         book = ctx.deps.books.get(book_id)
         title = book.title if book else book_id
@@ -155,6 +158,9 @@ def build(library: Library | None = None, *, approver: Approver | None = None) -
             )
         return loan_out(ctx, await ctx.deps.borrow(book_id, MEMBER, BRANCH))
 
+    # --8<-- [end:borrow]
+
+    # --8<-- [start:return]
     @server.tool(name="loans.return", effect=Effect.WRITE, idempotency=True)
     async def give_back(
         ctx: ToolContext,
@@ -168,6 +174,8 @@ def build(library: Library | None = None, *, approver: Approver | None = None) -
                 f"No loan '{loan_id}' for you.", hint="Use loans.mine to see your loans."
             )
         return loan_out(ctx, loan if loan.returned else await ctx.deps.give_back(loan))
+
+    # --8<-- [end:return]
 
     @server.tool(name="loans.mine", effect=Effect.READ)
     def mine(ctx: ToolContext) -> Loans:

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from data import BRANCHES, Library, Loan
+from library import BRANCHES, Library, Loan
 from pydantic import BaseModel, Field
 
 from ouncemcp import (
@@ -30,6 +30,7 @@ from ouncemcp.security import require_scopes
 LOCAL_MEMBER, LOCAL_BRANCH = "demo-member", "north"
 
 
+# --8<-- [start:member]
 def member(ctx: ToolContext) -> tuple[str, str]:
     """The verified member and branch. Without a token (a local stdio run) the caller
     is the demo member; a signed-in caller without a branch is refused."""
@@ -39,6 +40,9 @@ def member(ctx: ToolContext) -> tuple[str, str]:
     if identity.tenant not in BRANCHES:
         raise PermissionDenied("Your account has no library branch.", hint="Ask a librarian.")
     return identity.subject or identity.principal, identity.tenant
+
+
+# --8<-- [end:member]
 
 
 class BookSummary(BaseModel):
@@ -194,12 +198,15 @@ def build(library: Library | None = None, *, approver: Approver | None = None) -
         loans = [l for l in ctx.deps.loans.values() if l.member == who and not l.returned]
         return Loans(loans=[loan_out(ctx, l) for l in reversed(loans)][:20])
 
+    # --8<-- [start:open]
     @server.tool(name="loans.open", effect=Effect.READ, policy=require_scopes("librarian"))
     def open_loans(ctx: ToolContext) -> Loans:
         """List every open loan at your branch (librarians only). Use it to chase late books."""
         branch = member(ctx)[1]
         loans = [l for l in ctx.deps.loans.values() if l.branch == branch and not l.returned]
         return Loans(loans=[loan_out(ctx, l) for l in loans][:20])
+
+    # --8<-- [end:open]
 
     return server
 

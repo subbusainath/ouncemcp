@@ -17,6 +17,7 @@ tasks:
         args: {query: ada moreau}
       - say: b-010, b-020, b-030, b-040, b-050 and b-060 are by Ada Moreau.
 
+  # --8<-- [start:borrow]
   - id: borrow-approved
     caller: {subject: ana, tenant: north}
     approve: true
@@ -31,6 +32,7 @@ tasks:
       - call: loans.borrow
         args: {book_id: b-002}
       - say: You have borrowed b-002.
+  # --8<-- [end:borrow]
 
   - id: borrow-declined
     caller: {subject: ana, tenant: north}

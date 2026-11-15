@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from data import Library
+from library import Library
 from pydantic import BaseModel, Field
 
 from ouncemcp import (
@@ -30,6 +30,7 @@ server = OunceServer(
 )
 
 
+# --8<-- [start:models]
 class BookSummary(BaseModel):
     id: str
     title: str
@@ -56,6 +57,10 @@ class BookDetail(BaseModel):
     reviews: Annotated[list[str] | None, Detail] = None
 
 
+# --8<-- [end:models]
+
+
+# --8<-- [start:search]
 @server.tool(name="books.search", effect=Effect.READ, deadline_ms=5_000)
 def search(
     ctx: ToolContext,
@@ -86,6 +91,10 @@ def search(
     )
 
 
+# --8<-- [end:search]
+
+
+# --8<-- [start:get]
 @server.tool(name="books.get", effect=Effect.READ, deadline_ms=5_000)
 async def get(
     ctx: ToolContext,
@@ -110,6 +119,9 @@ async def get(
     if ctx.includes("reviews"):
         detail.reviews = await LIBRARY.reviews(book.id)
     return detail
+
+
+# --8<-- [end:get]
 
 
 if __name__ == "__main__":

@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from data import BRANCHES, Library, Loan
+from library import BRANCHES, Library, Loan
 from pydantic import BaseModel, Field
 
 from ouncemcp import (
@@ -235,6 +235,7 @@ def build(library: Library | None = None, *, approver: Approver | None = None) -
 
     # Chapter 8: a background job. It is registered by name, so if the process running it
     # stops, the next jobs.get (on any replica sharing the store) starts it again.
+    # --8<-- [start:job]
     @server.job("reports.circulation", max_attempts=3)
     async def circulation(args: ReportArgs) -> JobResult:
         library: Library = server.deps
@@ -259,7 +260,10 @@ def build(library: Library | None = None, *, approver: Approver | None = None) -
         job = await ctx.start_job("reports.circulation", {"branch": member(ctx)[1]})
         return ReportStarted(job=job, message="Report started. Check it with jobs.get.")
 
+    # --8<-- [end:job]
+
     # Chapter 9: resources the host can show or attach, and a prompt.
+    # --8<-- [start:resources]
     @server.resource("shelf://rules", mime_type="text/markdown")
     def rules() -> str:
         """The lending rules: how many books, for how long, and where to return them."""
@@ -277,6 +281,8 @@ def build(library: Library | None = None, *, approver: Approver | None = None) -
             f"Recommend three books about {subject} from the Shelf catalog. Search with "
             "books.search, check details with books.get, and say which are available now."
         )
+
+    # --8<-- [end:resources]
 
     return server
 
