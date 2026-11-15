@@ -2,6 +2,12 @@
 
 All notable changes to OunceMCP. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [semantic versioning](https://semver.org/) with the promises in [proposal 0029](https://github.com/subbusainath/ouncemcp/blob/main/docs/proposals/0029-api-freeze.md).
 
+## 1.0.0rc2 (15 November 2026)
+
+### Fixed
+
+- The project description on PyPI (the README) used relative links, which PyPI resolves against pypi.org, so every link returned a 404. All links are now absolute.
+
 ## 1.0.0rc1 (15 November 2026)
 
 Release candidate for 1.0.0. Install it with `pip install --pre ouncemcp` or `pipx install "ouncemcp==1.0.0rc1"`. 1.0.0 follows the external security review; the API below will not change before it unless the review requires it.
