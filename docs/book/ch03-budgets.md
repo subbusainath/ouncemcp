@@ -89,7 +89,7 @@ A tool that raises its own budget must say why. Without `budget_reason`, `check`
 
 ## Counting tokens
 
-Counts use the `o200k_base` tokenizer by default. Different models tokenize differently, but the relative sizes, which are what you are optimising, barely change. Pass `tokenizer="cl100k_base"` or your own counting function to `OunceServer` to match your model; every report names the tokenizer it used.
+Counts use the `o200k_base` tokenizer by default. Different models tokenize differently, but the relative sizes, which are what you are optimising, barely change. Pass `tokenizer="cl100k_base"` or your own counting function to `OunceServer` to match your model; every report names the tokenizer it used. For Claude models, `ouncemcp check server.py --tokenizer anthropic:claude-opus-5-5` asks Anthropic's own token-counting API (install `ouncemcp[anthropic]` and set `ANTHROPIC_API_KEY`).
 
 ## Summary
 

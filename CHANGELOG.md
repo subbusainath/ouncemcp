@@ -17,7 +17,11 @@ The first stable release. The public API is frozen: names listed as stable in pr
 
 ### Provisional
 
-May change in a minor release, with the change named here: `ouncemcp.eval.agent` (task suites and models), `ouncemcp.eval.bench` and `ouncemcp.ui`.
+May change in a minor release, with the change named here: `ouncemcp.eval.agent` (task suites and models), `ouncemcp.eval.bench`, `ouncemcp.ui` and `AnthropicCounter`.
+
+### Added
+
+- `AnthropicCounter` and `--tokenizer anthropic:MODEL`: token counts from Anthropic's counting API, through the official SDK (`pip install "ouncemcp[anthropic]"`). Provisional (spec BUD-6).
 
 ### Deprecated
 

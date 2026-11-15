@@ -30,6 +30,7 @@ These are public and documented, but may change in a minor release, with the cha
 - `ouncemcp.eval.agent`: task suites, models and reports.
 - `ouncemcp.eval.bench`.
 - `ouncemcp.ui`.
+- `ouncemcp.AnthropicCounter` (added after the draft): it follows a provider's token-counting API.
 
 ### Made internal at 1.0
 

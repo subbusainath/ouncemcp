@@ -13,6 +13,11 @@
 
 ::: ouncemcp.CallableCounter
 
+::: ouncemcp.AnthropicCounter
+
+!!! warning "Provisional"
+    `AnthropicCounter` follows Anthropic's token-counting API and may change in a minor release.
+
 ::: ouncemcp.get_counter
 
 ::: ouncemcp.measure_tool

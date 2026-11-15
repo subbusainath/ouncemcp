@@ -152,7 +152,9 @@ def get_counter(
     if isinstance(tokenizer, str):
         if name is not None:
             raise ValueError("name only applies to a callable tokenizer")
-        return _encoding_counter(tokenizer)
+        from ouncemcp.core.provider_tokens import provider_counter
+
+        return provider_counter(tokenizer) or _encoding_counter(tokenizer)
     if isinstance(tokenizer, TokenCounter):
         if name is not None:
             raise ValueError("name only applies to a callable tokenizer")
