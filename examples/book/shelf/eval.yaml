@@ -1,0 +1,60 @@
+# Task suite for Shelf (the book, chapters 10 and 11). The replay model plays each
+# task's script, so it runs in CI without a key; real models use the same tasks:
+#   ouncemcp eval examples/book/shelf/eval.yaml --model openrouter:anthropic/claude-haiku-5.5
+name: shelf
+server: step5_complete.py
+repeats: 2
+tasks:
+  - id: find-by-author
+    caller: {subject: ana, tenant: north}
+    prompt: Which books by Ada Moreau does my branch have?
+    expect_tools: [books.search]
+    checks:
+      - called: books.search
+      - answer: [b-030]
+    script:
+      - call: books.search
+        args: {query: ada moreau}
+      - say: b-010, b-020, b-030, b-040, b-050 and b-060 are by Ada Moreau.
+
+  - id: borrow-approved
+    caller: {subject: ana, tenant: north}
+    approve: true
+    prompt: Borrow book b-002 for me.
+    expect_tools: [loans.borrow]
+    checks:
+      - result: loans.borrow
+        path: book_id
+        equals: b-002
+      - state: eval_checks.py:borrowed_once
+    script:
+      - call: loans.borrow
+        args: {book_id: b-002}
+      - say: You have borrowed b-002.
+
+  - id: borrow-declined
+    caller: {subject: ana, tenant: north}
+    approve: false
+    prompt: Borrow book b-002 for me.
+    expect_tools: [loans.borrow]
+    checks:
+      - error: loans.borrow
+        category: permission
+      - state: eval_checks.py:nothing_borrowed
+    script:
+      - call: loans.borrow
+        args: {book_id: b-002}
+      - say: You declined, so nothing was borrowed.
+
+  - id: other-branch
+    split: heldout
+    caller: {subject: bo, tenant: south}
+    prompt: Tell me about book b-002.
+    expect_tools: [books.get]
+    checks:
+      - error: books.get
+        category: not_found
+    script:
+      - call: books.get
+        args: {id: b-002}
+      - say: That book is not at your branch.

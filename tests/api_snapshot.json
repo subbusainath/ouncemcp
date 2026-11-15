@@ -5,6 +5,17 @@
       "kind": "class",
       "members": {}
     },
+    "ApprovalRequest": {
+      "init": "(tool: 'str', effect: 'Effect', arguments: 'Mapping[str, Any]', identity: 'Identity', summary: 'str') -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, tool: 'str', effect: 'Effect', arguments: 'Mapping[str, Any]', identity: 'Identity', summary: 'str') -> None"
+      }
+    },
+    "Approver": {
+      "kind": "function",
+      "signature": "(*args, **kwargs)"
+    },
     "AuthenticationRequired": {
       "init": "(message: 'str', *, hint: 'str | None' = None, retry_after: 'float | None' = None) -> 'None'",
       "kind": "class",

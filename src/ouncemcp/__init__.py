@@ -40,6 +40,7 @@ from ouncemcp.core.errors import (
 )
 from ouncemcp.discovery import DiscoveryDecision, RecallCase, RecallReport
 from ouncemcp.execution import Limits, RetryPolicy, WriteAttempt, WriteResolver
+from ouncemcp.execution.approval import ApprovalRequest, Approver
 from ouncemcp.execution.handles import JobResult
 from ouncemcp.execution.idempotency import Idempotency
 from ouncemcp.execution.store import KeyValueStore, MemoryStore, OunceStore, RedisStore
@@ -48,6 +49,8 @@ __version__ = "0.0.1.dev0"
 
 __all__ = [
     "AmbiguousWrite",
+    "ApprovalRequest",
+    "Approver",
     "AuthenticationRequired",
     "Budget",
     "BudgetOverride",
