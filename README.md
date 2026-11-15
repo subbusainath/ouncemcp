@@ -2,7 +2,7 @@
 
 **Every token counts.** OunceMCP is a framework for building Model Context Protocol (MCP) servers and clients that are fast, low-noise, and safe for agents by default. It builds on [FastMCP](https://gofastmcp.com) and the official MCP Python SDK, and targets the MCP `2026-07-28` specification.
 
-> **Status: pre-1.0 (M0 to M4 built).** The framework, safe writes, jobs, the client broker, the eval kit, the trace viewer and the benchmark work and are tested; the official MCP conformance suite passes in CI and the M4 performance gates are met ([M4 report](docs/m4-report.md)). The 1.0 API freeze is drafted in [proposal 0029](docs/proposals/0029-api-freeze.md); until it is accepted, APIs may change. Release gates that need people or outside systems are listed in the [spec](docs/spec.md) (section 14.2). New here? Read [The OunceMCP Book](docs/book/index.md).
+> **Status: pre-1.0 (M0 to M4 built).** The framework, safe writes, jobs, the client broker, the eval kit, the trace viewer and the benchmark work and are tested; the official MCP conformance suite passes in CI and the M4 performance gates are met ([M4 report](docs/m4-report.md)). The 1.0 API is frozen ([proposal 0029](docs/proposals/0029-api-freeze.md), [changelog](CHANGELOG.md)); 1.0 ships after the external security review. Release gates that need people or outside systems are listed in the [spec](docs/spec.md) (section 14.2). New here? Read [The OunceMCP Book](docs/book/index.md).
 
 ## Why
 
@@ -157,7 +157,7 @@ tests/
 | M1: v0.1 | Framework core, automatic discovery, errors, security, `init`/`dev`/`check`/`context`, docs | Built |
 | M2: v0.2 | Safe writes, client broker, migration guide, pilots, optional `audit` | Built ([M2 report](docs/m2-report.md)) |
 | M3: v0.5 | Eval kit, trace viewer, public benchmark, launch | Built ([benchmark](benchmarks/results/m3-bench.md)); launch waits on the repository going public |
-| M4: v1.0 | Security review, host compatibility matrix, stable API, the book | Built ([M4 report](docs/m4-report.md)); the API freeze ([0029](docs/proposals/0029-api-freeze.md)) is a draft |
+| M4: v1.0 | Security review, host compatibility matrix, stable API, the book | API frozen ([0029](docs/proposals/0029-api-freeze.md)), all release gates checked, release workflow ready ([M4 report](docs/m4-report.md)); waiting on the external security review |
 
 The full plan is in [docs/spec.md](docs/spec.md), and the supporting research is in [docs/performance-research.md](docs/performance-research.md).
 
