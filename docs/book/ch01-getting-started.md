@@ -19,7 +19,7 @@ OunceMCP is a framework on top of [FastMCP](https://gofastmcp.com) that makes th
 You need Python 3.11 or newer and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-uv tool install --prerelease allow ouncemcp   # the ouncemcp command
+uv tool install ouncemcp      # the ouncemcp command
 ouncemcp --version
 ```
 
@@ -31,7 +31,7 @@ cd ouncemcp
 uv sync
 ```
 
-The current release is the 1.0 release candidate, so the installer is told to accept a pre-release (`--prerelease allow`; with pipx, `pipx install "ouncemcp==1.0.0rc2"`). Once 1.0.0 is out, `uv tool install ouncemcp` is enough. To use the clone instead, run `uv tool install -e .`.
+`pipx install ouncemcp` works too. To use the clone instead, run `uv tool install -e .`.
 
 ## The commands you will use
 

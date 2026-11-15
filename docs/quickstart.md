@@ -5,13 +5,13 @@ From nothing to a tested server running in your MCP host.
 ## 1. Create a project
 
 ```bash
-pipx install "ouncemcp==1.0.0rc2"   # or: uv tool install --prerelease allow ouncemcp
+pipx install ouncemcp        # or: uv tool install ouncemcp
 ouncemcp init notes-server
 cd notes-server
-uv venv && uv pip install --prerelease allow -e ".[dev]"
+uv venv && uv pip install -e ".[dev]"
 ```
 
-The current release is the 1.0 release candidate, so installers need to be told to accept a pre-release: name the version (`ouncemcp==1.0.0rc2`), or pass `--pip-args=--pre` to pipx, `--pre` to pip, or `--prerelease allow` to uv. Once 1.0.0 is out, plain `pipx install ouncemcp` works. To work from a checkout instead, run `uv pip install -e /path/to/ouncemcp -e ".[dev]"`.
+The current release is the 1.0 release candidate; while no stable release exists, pip, pipx and uv install it without extra flags. To work from a checkout instead, run `uv pip install -e /path/to/ouncemcp -e ".[dev]"`.
 
 `init` writes:
 
