@@ -71,24 +71,26 @@ def build(
         cursors=cursors,
     )
 
+    # A named job: if the replica running it stops, the next jobs.get on any replica
+    # builds the report again (building it twice is harmless), up to 3 runs in all.
+    @server.job("report.build", max_attempts=3)
+    async def build_report(args: StartInput) -> JobResult:
+        rows = await build_rows(args.period, delay_s)
+        totals: dict[str, float] = {}
+        for row in rows:
+            totals[row[args.group_by]] = totals.get(row[args.group_by], 0) + row["amount"]
+        summary = Summary(
+            period=args.period,
+            rows=len(rows),
+            revenue=round(sum(totals.values()), 2),
+            top=max(totals, key=lambda k: totals[k]),
+        )
+        return JobResult(summary=summary, items=rows)
+
     @server.tool(name="report.start", effect=Effect.READ)
     async def start(args: StartInput, ctx: ToolContext) -> Started:
         """Start a monthly sales report in the background, then use jobs.get with the job id."""
-
-        async def work() -> JobResult:
-            rows = await build_rows(args.period, delay_s)
-            totals: dict[str, float] = {}
-            for row in rows:
-                totals[row[args.group_by]] = totals.get(row[args.group_by], 0) + row["amount"]
-            summary = Summary(
-                period=args.period,
-                rows=len(rows),
-                revenue=round(sum(totals.values()), 2),
-                top=max(totals, key=lambda k: totals[k]),
-            )
-            return JobResult(summary=summary, items=rows)
-
-        job = await ctx.start_job(work)
+        job = await ctx.start_job("report.build", args.model_dump(mode="json"))
         return Started(job=job, message="Report started. Check it with jobs.get.")
 
     return server

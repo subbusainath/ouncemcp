@@ -81,3 +81,4 @@ nav:
           - 0025 OAuth: proposals/0025-oauth.md
           - 0026 Real-model evals: proposals/0026-real-model-evals.md
           - 0027 Benchmark: proposals/0027-benchmark.md
+          - 0028 Resumable jobs: proposals/0028-resumable-jobs.md

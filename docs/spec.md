@@ -886,7 +886,7 @@ Status as of 12 November 2026. M1 ([PR #13](https://github.com/subbusainath/ounc
 | BUD-7 (per-host data, P1) | Declared counting scope | Host study in real hosts; decide the output-schema default |
 | BUD-6 (P1 part) | tiktoken encodings and callables | Provider counting adapters |
 | Section 16.3 docs | Quickstart, concepts, guides (including migration, safe writes, deployment, the broker), references | API reference generated from code; publishing the site |
-| Jobs | Background jobs with leases; `interrupted` after a restart | Resuming interrupted jobs; mapping onto the MCP tasks extension |
+| Jobs | Background jobs with leases; named jobs (`@server.job`) resume on the next `jobs.get` after a restart, on any replica, up to `max_attempts` ([proposal 0028](proposals/0028-resumable-jobs.md)) | Mapping onto the MCP tasks extension (needs the `fastmcp-tasks` package; owner decision) |
 
 #### Pending that needs people or real systems
 

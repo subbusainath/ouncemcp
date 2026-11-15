@@ -91,7 +91,7 @@ async def test_two_replicas_and_a_restart_share_jobs_and_handles(report):
 
 
 @pytest.mark.anyio
-async def test_a_job_lost_in_a_restart_reports_interrupted(report, monkeypatch):
+async def test_a_report_lost_in_a_restart_is_built_again(report, monkeypatch):
     store, keys = MemoryStore(), CursorSigner(["shared-signing-key-0123456789"])
     a = report.build(store=store, cursors=keys, delay_s=30)
     with as_caller(**ALICE):
@@ -102,10 +102,13 @@ async def test_a_job_lost_in_a_restart_reports_interrupted(report, monkeypatch):
 
         later = time.time() + handles_mod.JOB_LEASE_S + 1
         monkeypatch.setattr(handles_mod.time, "time", lambda: later)
-        b = report.build(store=store, cursors=keys)
+        b = report.build(store=store, cursors=keys, delay_s=0.01)
         status = (await b.call_tool("jobs.get", {"job": job})).structured_content
-    assert status["state"] == "interrupted"
-    assert "Start it again" in status["retry"]
+        assert status["state"] == "running" and status["attempt"] == 2
+        monkeypatch.undo()
+        await b.jobs.drain()
+        done = (await b.call_tool("jobs.get", {"job": job})).structured_content
+    assert done["state"] == "done" and done["result"]["period"] == "2026-07"
 
 
 class Out(BaseModel):
