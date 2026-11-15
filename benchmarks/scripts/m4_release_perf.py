@@ -264,7 +264,10 @@ if __name__ == "__main__":
         c["added_p50_ms"] < 2 and c["added_p95_ms"] < 10 for c in perf1_cases.values()
     )
     commit = subprocess.run(
-        ["git", "-C", str(ROOT), "rev-parse", "--short", "HEAD"], capture_output=True, text=True
+        ["git", "-C", str(ROOT), "rev-parse", "--short", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=False,
     ).stdout.strip()
     data = {
         "gate": "release gate 7: PERF-1 to PERF-5",
