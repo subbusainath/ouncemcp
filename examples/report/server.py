@@ -18,8 +18,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from ouncemcp import CursorSigner, Effect, OunceServer, OunceStore, ToolContext
-from ouncemcp.execution.handles import JobResult
+from ouncemcp import CursorSigner, Effect, JobResult, OunceServer, OunceStore, ToolContext
 
 REGIONS = ["north", "south", "east", "west"]
 

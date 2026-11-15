@@ -42,11 +42,13 @@ The first figure in each cell is OunceMCP, the second is plain FastMCP. Held-out
 
 ## PERF-6
 
-The target was at least 70% fewer startup tokens, fewer task tokens, and no drop in success. It is **met for 0 of 8 suite and model pairs**:
+Under the original target (at least 70% fewer startup tokens, fewer task tokens, no drop in success), PERF-6 was met for **0 of 8** suite and model pairs: these pilots have 2–4 tools, and the startup target was written for large catalogs where `search` discovery applies.
 
-- **Success:** the no-drop condition holds everywhere.
-- **Task tokens:** lower for inventory, higher for ticketing.
-- **Startup tokens:** fail everywhere at this scale. PERF-6's startup target came from progressive discovery over large catalogs; these pilots have 2–4 tools and stay in `direct` mode. See [proposal 0027](../../docs/proposals/0027-benchmark.md) for the proposed revision.
+Under the **revised target** ([proposal 0027](../../docs/proposals/0027-benchmark.md), accepted 15 November 2026), it is met for **4 of 8** (`ouncemcp bench --from benchmarks/results/m3-bench.json` judges these results by the current rule):
+
+- **Ticketing (all four models): met.** Definitions are 1.8× the plain server's (649 vs 366 tokens, within 2×), success did not drop (100% vs 68–70%), and results are small, so task tokens are reported but not judged.
+- **Inventory (all four models): not met.** Definitions are 2.4× the plain server's (584 vs 244 tokens), over the 2× limit. Success did not drop and task tokens fell 58–85%. These results were recorded before reports kept result tokens per task, so the task-token rule is not applied to them. Output schemas are about half of these definitions; the next benchmark tries `output_schemas="auto"`.
+- **Large servers** are not benchmarked yet.
 
 ## Fixes the benchmark produced along the way
 

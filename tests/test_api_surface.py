@@ -24,6 +24,8 @@ PUBLIC_MODULES = (
     "ouncemcp",
     "ouncemcp.security",
     "ouncemcp.client",
+    "ouncemcp.trace",
+    "ouncemcp.eval",
     "ouncemcp.eval.agent",
     "ouncemcp.testing",
     "ouncemcp.ui",

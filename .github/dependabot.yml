@@ -1,0 +1,24 @@
+# Weekly dependency and GitHub Actions updates, grouped so they arrive as one PR each.
+version: 2
+updates:
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      python:
+        patterns: ["*"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+  - package-ecosystem: npm
+    directory: /ui/report
+    schedule:
+      interval: monthly
+    groups:
+      report-ui:
+        patterns: ["*"]

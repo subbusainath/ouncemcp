@@ -1,6 +1,6 @@
 # 0027: The benchmark harness, first results and PERF-6
 
-Status: proposed for M3. Covers spec section 13 and PERF-6.
+Status: accepted (the PERF-6 revision, 15 November 2026). Covers spec section 13 and PERF-6.
 
 ## Proposal
 
@@ -28,7 +28,7 @@ Pilots against their plain FastMCP equivalents: four models, 5 runs each, 840 ru
 
 PERF-6 ("at least 70% fewer startup tokens and fewer total task tokens with no drop in task success") is met for 0 of 8 pairs. The startup part assumed large catalogs, where `search` discovery replaces most definitions. Small servers stay in `direct` mode and pay for output schemas.
 
-Proposed revision, for the owner to decide:
+Accepted revision:
 
 1. **Split PERF-6 by server size.**
     - For servers over the startup budget, which use `search` mode: keep the 70% startup reduction.

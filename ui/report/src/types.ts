@@ -149,7 +149,13 @@ export type BenchComparison = {
   turns_per_task: Pair<number>
   latency_ms_p50: Pair<number>
   cost_usd_per_task: Pair<number | null>
-  perf6: { startup_reduction_ok: boolean; task_tokens_ok: boolean; success_ok: boolean; met: boolean }
+  perf6: {
+    size?: "large" | "small"
+    startup_ok: boolean
+    task_tokens_ok: boolean | null
+    success_ok: boolean
+    met: boolean
+  }
 }
 
 export type BenchData = {

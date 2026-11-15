@@ -4,6 +4,7 @@ OunceMCP is a Python framework on FastMCP for building MCP servers that are fast
 
 | Start here | |
 | --- | --- |
+| [The OunceMCP Book](book/index.md) | Learn the framework by building one server, chapter by chapter |
 | [Quickstart](quickstart.md) | A working server, tests and CI in five minutes |
 | [Concepts](concepts/budgets.md) | Budgets, discovery, response shaping, security, execution, traces |
 | [Guides](guides/securing-tools.md) | Securing tools, HTTP deployment, testing, host verification |

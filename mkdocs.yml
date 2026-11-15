@@ -6,6 +6,26 @@ strict: true
 nav:
   - Home: README.md
   - Quickstart: quickstart.md
+  - The OunceMCP Book:
+      - Introduction: book/index.md
+      - 1. Getting started: book/ch01-getting-started.md
+      - 2. A first server: book/ch02-first-server.md
+      - 3. Budgets: book/ch03-budgets.md
+      - 4. Shaping results: book/ch04-shaping.md
+      - 5. Errors the model can use: book/ch05-errors.md
+      - 6. Safe writes: book/ch06-writes.md
+      - 7. Callers and policies: book/ch07-security.md
+      - 8. Background jobs and handles: book/ch08-jobs.md
+      - 9. Resources and prompts: book/ch09-resources-prompts.md
+      - 10. Testing: book/ch10-testing.md
+      - 11. Measuring with agents: book/ch11-measuring.md
+      - 12. Large catalogs: book/ch12-discovery.md
+      - 13. Deploying: book/ch13-deploying.md
+      - 14. Migrating a FastMCP server: book/ch14-migrating.md
+      - 15. Clients: book/ch15-clients.md
+      - "A. Command line": book/appendix-a-cli.md
+      - "B. Errors and lints": book/appendix-b-errors-lints.md
+      - "C. Glossary": book/appendix-c-glossary.md
   - Concepts:
       - Context budgets: concepts/budgets.md
       - Discovery modes: concepts/discovery.md
@@ -61,6 +81,7 @@ nav:
       - M0 report: m0-report.md
       - M2 report: m2-report.md
       - M4 report: m4-report.md
+      - Repository settings: maintainers/repository-settings.md
       - Performance research: performance-research.md
       - Proposals:
           - Overview: proposals/README.md
@@ -92,6 +113,16 @@ nav:
           - 0026 Real-model evals: proposals/0026-real-model-evals.md
           - 0027 Benchmark: proposals/0027-benchmark.md
           - 0028 Resumable jobs: proposals/0028-resumable-jobs.md
+          - 0029 API freeze: proposals/0029-api-freeze.md
+markdown_extensions:
+  - admonition
+  - tables
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.tasklist
+  - pymdownx.snippets:
+      base_path: ["."]
+      check_paths: true
 plugins:
   - search
   - mkdocstrings:

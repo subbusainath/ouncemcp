@@ -1,6 +1,8 @@
 """OunceMCP: build MCP servers and clients that are fast, low-noise, and safe for agents.
 
-Pre-alpha (milestone M0). See docs/spec.md for the full specification.
+Pre-1.0. The names exported here, from ``ouncemcp.security``, ``ouncemcp.client``,
+``ouncemcp.trace``, ``ouncemcp.eval`` and ``ouncemcp.testing`` are the public API
+(see docs/proposals/0029-api-freeze.md); everything else is internal.
 """
 
 from ouncemcp.core import (
@@ -25,6 +27,7 @@ from ouncemcp.core import (
     measure_tools,
     shape_result,
 )
+from ouncemcp.core.budget import BudgetOverride, BudgetOverrideWarning
 from ouncemcp.core.errors import (
     AmbiguousWrite,
     AuthenticationRequired,
@@ -37,6 +40,8 @@ from ouncemcp.core.errors import (
 )
 from ouncemcp.discovery import DiscoveryDecision, RecallCase, RecallReport
 from ouncemcp.execution import Limits, RetryPolicy, WriteAttempt, WriteResolver
+from ouncemcp.execution.approval import ApprovalRequest, Approver
+from ouncemcp.execution.handles import JobResult
 from ouncemcp.execution.idempotency import Idempotency
 from ouncemcp.execution.store import KeyValueStore, MemoryStore, OunceStore, RedisStore
 
@@ -44,8 +49,12 @@ __version__ = "0.0.1.dev0"
 
 __all__ = [
     "AmbiguousWrite",
+    "ApprovalRequest",
+    "Approver",
     "AuthenticationRequired",
     "Budget",
+    "BudgetOverride",
+    "BudgetOverrideWarning",
     "CallableCounter",
     "Cursor",
     "CursorSigner",
@@ -55,6 +64,7 @@ __all__ = [
     "Idempotency",
     "InvalidCursor",
     "InvalidInput",
+    "JobResult",
     "KeyValueStore",
     "Limits",
     "MemoryStore",
