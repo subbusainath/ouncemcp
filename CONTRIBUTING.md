@@ -25,3 +25,8 @@ uv run ruff check .
 - Any change that affects token usage should state its measured effect.
 
 By participating you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+## Public API changes
+
+`tests/test_api_surface.py` records every exported name and public signature of `ouncemcp`, `ouncemcp.security`, `ouncemcp.client`, `ouncemcp.eval.agent`, `ouncemcp.testing` and `ouncemcp.ui` in `tests/api_snapshot.json`. A change to the public API fails it on purpose. If the change is intended, regenerate the snapshot with `OUNCEMCP_UPDATE_API_SNAPSHOT=1 uv run pytest tests/test_api_surface.py` and explain the change in the PR. After 1.0, removing or changing a public name needs a deprecation first.
+

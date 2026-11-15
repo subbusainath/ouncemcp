@@ -91,10 +91,12 @@ from ouncemcp.execution.handles import (
     HANDLE_KIND,
     JOB_KIND,
     HandlePage,
+    JobKind,
     JobResult,
     JobRunner,
     JobStatus,
     binding,
+    check_job_args,
     get_items,
     put_items,
 )
@@ -300,18 +302,45 @@ class ToolContext:
 
     async def start_job(
         self,
-        work: Callable[[], Awaitable[Any]],
+        work: Callable[[], Awaitable[Any]] | str,
+        args: Mapping[str, Any] | None = None,
         *,
         ttl_s: int = DEFAULT_JOB_TTL_S,
     ) -> str:
-        """Run ``work`` in the background and return a job id for ``jobs.get``.
+        """Run a job in the background and return a job id for ``jobs.get``.
 
-        ``work`` returns a model or dict (the summary) or a ``JobResult`` with a summary
-        and many items, which are stored behind a handle. Needs
-        ``OunceServer(handles=True)``. The id is bound to this caller and tenant.
+        ``work`` is either a function to run, or the name of a job registered with
+        ``@server.job`` plus its JSON ``args``. A named job is started again by the next
+        ``jobs.get`` if its process stops; a function cannot be, and is reported
+        ``interrupted``. The job returns a model or dict (the summary) or a
+        ``JobResult`` with a summary and many items, which are stored behind a handle.
+        Needs ``OunceServer(handles=True)``. The id is bound to this caller and tenant.
         """
         if self._jobs is None:
             raise RuntimeError("Jobs need OunceServer(handles=True)")
+        if isinstance(work, str):
+            kind = self._jobs.kinds.get(work)
+            if kind is None:
+                raise ValueError(f"No job named '{work}'; register it with @server.job")
+            stored = check_job_args(args or {})
+            ref = await self._jobs.start(
+                lambda: kind.run(stored, 1),
+                ttl_s=ttl_s,
+                spill=self._job_spill(ttl_s),
+                kind=kind.name,
+                args=stored,
+            )
+        else:
+            if args is not None:
+                raise TypeError("args are for named jobs; a function job takes no args")
+            ref = await self._jobs.start(work, ttl_s=ttl_s, spill=self._job_spill(ttl_s))
+        return self.issue_state(
+            JOB_KIND, {"id": ref}, request=binding(self.identity.tenant), ttl_s=ttl_s
+        )
+
+    def _job_spill(self, ttl_s: int) -> Callable[[Any], Awaitable[dict[str, Any]]]:
+        """Stores a finished job's result for this caller: the summary inline, many
+        items behind a handle bound to this caller and tenant."""
         principal, tenant = self.principal, self.identity.tenant
 
         async def spill(result: Any) -> dict[str, Any]:
@@ -334,8 +363,7 @@ class ToolContext:
                 data["items"] = len(outcome.items)
             return data
 
-        ref = await self._jobs.start(work, ttl_s=ttl_s, spill=spill)
-        return self.issue_state(JOB_KIND, {"id": ref}, request=binding(tenant), ttl_s=ttl_s)
+        return spill
 
     async def consume_state(self, token: str, kind: str, *, request: Any = None) -> dict[str, Any]:
         """Like ``verify_state(..., consume=True)``, but single use is recorded in the
@@ -1140,6 +1168,26 @@ class OunceServer:
             )
         return override
 
+    def job(self, name: str, *, max_attempts: int = 3) -> Callable[[Any], Any]:
+        """Register a named background job that resumes after a restart.
+
+        ``fn(args)`` or ``fn(args, attempt)`` runs the job; ``args`` is the dict passed to
+        ``ctx.start_job(name, args)``, or a Pydantic model if the parameter is annotated
+        with one. If the process running it stops, the next ``jobs.get`` (on any
+        replica) starts it again from the beginning, up to ``max_attempts`` runs in all,
+        so the job must be safe to repeat. Needs ``OunceServer(handles=True)``.
+        """
+        if not isinstance(max_attempts, int) or max_attempts < 1:
+            raise ValueError("max_attempts must be an integer >= 1")
+
+        def decorator(fn: Callable[..., Awaitable[Any]]) -> Callable[..., Awaitable[Any]]:
+            if not inspect.iscoroutinefunction(fn):
+                raise TypeError(f"Job '{name}' must be an async function")
+            self.jobs.register(JobKind(name, fn, max_attempts))
+            return fn
+
+        return decorator
+
     def budget_overrides(self) -> dict[str, BudgetOverride]:
         """Each tool's own budget and its reason (BUD-4)."""
         return {
@@ -1547,19 +1595,31 @@ class OunceServer:
             """Check a background job. When done, read large results with handles.read."""
             ref = ctx.verify_state(job, JOB_KIND, request=binding(ctx.identity.tenant))["id"]
             record = await self.jobs.status(str(ref))
+            resumed_now = False
+            if record.get("state") == "interrupted":
+                ttl = float(record.get("ttl_s", DEFAULT_JOB_TTL_S))
+                resumed = await self.jobs.resume(str(ref), record, ctx._job_spill(int(ttl)))
+                if resumed is not None:
+                    record, resumed_now = resumed, True
             state = record.get("state", "interrupted")
             error = record.get("error")
+            retry = None
+            if state == "interrupted":
+                kind = self.jobs.kinds.get(str(record.get("kind")))
+                retry = (
+                    f"The job stopped {record.get('attempt', 1)} times, using all "
+                    f"{kind.max_attempts} attempts. Start it again."
+                    if kind is not None
+                    else "The job stopped when its server restarted. Start it again."
+                )
             return JobStatus(
                 state=state,
                 result=record.get("result"),
                 handle=record.get("handle"),
                 items=record.get("items"),
                 error=error.get("message") if isinstance(error, dict) else None,
-                retry=(
-                    "The job stopped when its server restarted. Start it again."
-                    if state == "interrupted"
-                    else None
-                ),
+                retry=retry,
+                attempt=record.get("attempt") if record.get("kind") or resumed_now else None,
             )
 
     async def _approval_gate(

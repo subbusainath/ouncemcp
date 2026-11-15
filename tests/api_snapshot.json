@@ -1,0 +1,666 @@
+{
+  "ouncemcp": {
+    "AmbiguousWrite": {
+      "init": "(message: 'str', *, hint: 'str | None' = None, retry_after: 'float | None' = None) -> 'None'",
+      "kind": "class",
+      "members": {}
+    },
+    "AuthenticationRequired": {
+      "init": "(message: 'str', *, hint: 'str | None' = None, retry_after: 'float | None' = None) -> 'None'",
+      "kind": "class",
+      "members": {}
+    },
+    "Budget": {
+      "init": "(tool_definition_target: 'int' = 250, tool_definition_warn: 'int' = 500, tool_definition_fail: 'int' = 1000, startup_tokens: 'int' = 4000, result_tokens: 'int' = 2000, result_ceiling: 'int' = 8000) -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, tool_definition_target: 'int' = 250, tool_definition_warn: 'int' = 500, tool_definition_fail: 'int' = 1000, startup_tokens: 'int' = 4000, result_tokens: 'int' = 2000, result_ceiling: 'int' = 8000) -> None"
+      }
+    },
+    "CallableCounter": {
+      "init": "(fn: 'Callable[[str], int]', *, name: 'str') -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, fn: 'Callable[[str], int]', *, name: 'str') -> 'None'",
+        "count": "(self, text: 'str') -> 'int'"
+      }
+    },
+    "Cursor": {
+      "kind": "function",
+      "signature": "(*args, **kwargs)"
+    },
+    "CursorSigner": {
+      "init": "(keys: 'Sequence[str | bytes]', *, ttl_s: 'int' = 3600, clock: 'Callable[[], float]' = <built-in function time>, _ephemeral: 'bool' = False) -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, keys: 'Sequence[str | bytes]', *, ttl_s: 'int' = 3600, clock: 'Callable[[], float]' = <built-in function time>, _ephemeral: 'bool' = False) -> 'None'",
+        "bind": "(self, *, tool: 'str', principal: 'str', query: 'Mapping[str, Any] | None' = None) -> 'BoundCursors'",
+        "ephemeral": "(cls, *, ttl_s: 'int' = 3600, clock: 'Callable[[], float]' = <built-in function time>) -> 'CursorSigner'",
+        "from_env": "(cls, env: 'Mapping[str, str] | None' = None, *, ttl_s: 'int' = 3600, clock: 'Callable[[], float]' = <built-in function time>) -> 'CursorSigner'"
+      }
+    },
+    "Detail": {
+      "kind": "_DetailMarker"
+    },
+    "DiscoveryDecision": {
+      "init": "(setting: 'DiscoverySetting', mode: 'DiscoveryMode', direct_tokens: 'int', search_tokens: 'int', threshold: 'int', pinned: 'tuple[str, ...]', reason: 'str') -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, setting: 'DiscoverySetting', mode: 'DiscoveryMode', direct_tokens: 'int', search_tokens: 'int', threshold: 'int', pinned: 'tuple[str, ...]', reason: 'str') -> None",
+        "render_text": "(self) -> 'str'",
+        "to_dict": "(self) -> 'dict[str, Any]'"
+      }
+    },
+    "Effect": {
+      "kind": "enum",
+      "values": [
+        "destructive",
+        "read",
+        "write"
+      ]
+    },
+    "Idempotency": {
+      "init": "(ttl_s: 'float' = 86400, grace_s: 'float' = 60, wait_s: 'float' = 5) -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, ttl_s: 'float' = 86400, grace_s: 'float' = 60, wait_s: 'float' = 5) -> None"
+      }
+    },
+    "InvalidCursor": {
+      "init": "(reason: 'CursorProblem' = 'malformed') -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, reason: 'CursorProblem' = 'malformed') -> 'None'"
+      }
+    },
+    "InvalidInput": {
+      "init": "(message: 'str', *, hint: 'str | None' = None, retry_after: 'float | None' = None) -> 'None'",
+      "kind": "class",
+      "members": {}
+    },
+    "KeyValueStore": {
+      "init": "(kv: 'Any') -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, kv: 'Any') -> 'None'",
+        "delete": "(self, ns: 'str', key: 'str') -> 'bool'",
+        "get": "(self, ns: 'str', key: 'str') -> 'Value | None'",
+        "put": "(self, ns: 'str', key: 'str', value: 'Mapping[str, Any]', *, ttl_s: 'float') -> 'None'",
+        "put_if_absent": "(self, ns: 'str', key: 'str', value: 'Mapping[str, Any]', *, ttl_s: 'float') -> 'bool'"
+      }
+    },
+    "Limits": {
+      "init": "(default_deadline_ms: 'int' = 30000, max_request_bytes: 'int' = 65536, max_depth: 'int' = 16, max_concurrency: 'int' = 8, max_error_chars: 'int' = 300) -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, default_deadline_ms: 'int' = 30000, max_request_bytes: 'int' = 65536, max_depth: 'int' = 16, max_concurrency: 'int' = 8, max_error_chars: 'int' = 300) -> None"
+      }
+    },
+    "MemoryStore": {
+      "init": "(*, clock: 'Callable[[], float]' = <built-in function monotonic>) -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, *, clock: 'Callable[[], float]' = <built-in function monotonic>) -> 'None'",
+        "delete": "(self, ns: 'str', key: 'str') -> 'bool'",
+        "get": "(self, ns: 'str', key: 'str') -> 'Value | None'",
+        "put": "(self, ns: 'str', key: 'str', value: 'Mapping[str, Any]', *, ttl_s: 'float') -> 'None'",
+        "put_if_absent": "(self, ns: 'str', key: 'str', value: 'Mapping[str, Any]', *, ttl_s: 'float') -> 'bool'"
+      }
+    },
+    "NotFound": {
+      "init": "(message: 'str', *, hint: 'str | None' = None, retry_after: 'float | None' = None) -> 'None'",
+      "kind": "class",
+      "members": {}
+    },
+    "OunceError": {
+      "init": "(message: 'str', *, hint: 'str | None' = None, retry_after: 'float | None' = None) -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, message: 'str', *, hint: 'str | None' = None, retry_after: 'float | None' = None) -> 'None'"
+      }
+    },
+    "OunceServer": {
+      "init": "(name: 'str', *, instructions: 'str | None' = None, version: 'str | None' = None, budget: 'Budget | None' = None, tokenizer: 'str | TokenCounter | Callable[[str], int]' = 'o200k_base', tokenizer_name: 'str | None' = None, output_schemas: 'bool | OutputSchemaMode' = 'on', cursors: 'CursorSigner | None' = None, principal: 'PrincipalResolver | None' = None, discovery: 'DiscoverySetting' = 'auto', pinned: 'Sequence[str]' = (), search_results: 'int' = 5, limits: 'Limits | None' = None, retry: 'RetryPolicy | None' = None, write_resolver: 'WriteResolver | None' = None, policy: 'Policy | Sequence[Policy] | None' = None, audience: 'str | Sequence[str] | None' = None, tenant_claims: 'Sequence[str]' = ('tenant', 'tenant_id', 'tid', 'org_id'), cache: 'PartitionedCache | None' = None, trace: 'Tracer | TraceSink | Sequence[TraceSink] | None' = None, stdio_policy: 'StdioPolicy' = 'trust', store: 'OunceStore | None' = None, deps: 'Any' = None, approver: 'Approver | None' = None, handles: 'bool' = False, metrics: 'bool' = False, readiness: 'Sequence[Callable[[], Any]]' = (), http_host: 'str' = '127.0.0.1', **fastmcp_kwargs: 'Any') -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, name: 'str', *, instructions: 'str | None' = None, version: 'str | None' = None, budget: 'Budget | None' = None, tokenizer: 'str | TokenCounter | Callable[[str], int]' = 'o200k_base', tokenizer_name: 'str | None' = None, output_schemas: 'bool | OutputSchemaMode' = 'on', cursors: 'CursorSigner | None' = None, principal: 'PrincipalResolver | None' = None, discovery: 'DiscoverySetting' = 'auto', pinned: 'Sequence[str]' = (), search_results: 'int' = 5, limits: 'Limits | None' = None, retry: 'RetryPolicy | None' = None, write_resolver: 'WriteResolver | None' = None, policy: 'Policy | Sequence[Policy] | None' = None, audience: 'str | Sequence[str] | None' = None, tenant_claims: 'Sequence[str]' = ('tenant', 'tenant_id', 'tid', 'org_id'), cache: 'PartitionedCache | None' = None, trace: 'Tracer | TraceSink | Sequence[TraceSink] | None' = None, stdio_policy: 'StdioPolicy' = 'trust', store: 'OunceStore | None' = None, deps: 'Any' = None, approver: 'Approver | None' = None, handles: 'bool' = False, metrics: 'bool' = False, readiness: 'Sequence[Callable[[], Any]]' = (), http_host: 'str' = '127.0.0.1', **fastmcp_kwargs: 'Any') -> 'None'",
+        "add_trace_sink": "(self, sink: 'TraceSink') -> 'None'",
+        "budget_overrides": "(self) -> 'dict[str, BudgetOverride]'",
+        "call_tool": "(self, name: 'str', arguments: 'dict[str, Any] | None' = None) -> 'ToolResult'",
+        "catalog": "(self) -> 'list[Any]'",
+        "check_ready": "(self) -> 'list[str]'",
+        "cost_report": "(self) -> 'ServerCost'",
+        "discovery": "(self) -> 'DiscoveryDecision'",
+        "from_config": "(cls, name: 'str', path: 'str | Any', **overrides: 'Any') -> 'OunceServer'",
+        "http_app": "(self, **kwargs: 'Any') -> 'Any'",
+        "job": "(self, name: 'str', *, max_attempts: 'int' = 3) -> 'Callable[[Any], Any]'",
+        "list_tools": "(self) -> 'list[Any]'",
+        "measure_recall": "(self, cases: 'Sequence[RecallCase]', *, k: 'int | None' = None) -> 'RecallReport'",
+        "prompt": "(self, name: 'str | None' = None, *, description: 'str | None' = None, max_tokens: 'int | None' = None, policy: 'Policy | Sequence[Policy] | None' = None, tags: 'set[str] | None' = None) -> 'Callable[[Callable[..., Any]], Callable[..., Any]]'",
+        "resource": "(self, uri: 'str', *, name: 'str | None' = None, description: 'str | None' = None, mime_type: 'str | None' = None, max_tokens: 'int | None' = None, policy: 'Policy | Sequence[Policy] | None' = None, tags: 'set[str] | None' = None) -> 'Callable[[Callable[..., Any]], Callable[..., Any]]'",
+        "run": "(self, transport: \"Literal['stdio', 'http', 'sse', 'streamable-http']\" = 'stdio', *, check_budget: 'bool' = True, **kwargs: 'Any') -> 'None'",
+        "tool": "(self, fn: 'Callable[..., Any] | None' = None, *, effect: 'Effect | None' = None, name: 'str | None' = None, description: 'str | None' = None, title: 'str | None' = None, result_tokens: 'int | None' = None, deadline_ms: 'int | None' = None, tags: 'set[str] | None' = None, min_items: 'int' = 1, output_schema: 'OutputSchemaMode | None' = None, auth: 'AuthCheck | list[AuthCheck] | None' = None, policy: 'Policy | Sequence[Policy] | None' = None, replay_safe: 'bool' = False, idempotency: 'bool | Idempotency | None' = None, approval: 'ApprovalRule' = 'never', preview: 'Preview | None' = None, definition_tokens: 'int | None' = None, budget_reason: 'str | None' = None, parallel_safe: 'bool | None' = None) -> 'Any'",
+        "tools": "property",
+        "wrap": "(cls, mcp: 'FastMCP', *, effects: 'Mapping[str, Effect] | None' = None, **kwargs: 'Any') -> 'OunceServer'"
+      }
+    },
+    "OunceStore": {
+      "init": "(*args, **kwargs)",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, *args, **kwargs)",
+        "delete": "(self, ns: 'str', key: 'str') -> 'bool'",
+        "get": "(self, ns: 'str', key: 'str') -> 'Value | None'",
+        "put": "(self, ns: 'str', key: 'str', value: 'Mapping[str, Any]', *, ttl_s: 'float') -> 'None'",
+        "put_if_absent": "(self, ns: 'str', key: 'str', value: 'Mapping[str, Any]', *, ttl_s: 'float') -> 'bool'",
+        "shared": "property"
+      }
+    },
+    "PageWindow": {
+      "init": "(items: 'list[T]', start: 'int', total: 'int | None', next_cursor: 'str | None') -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, items: 'list[T]', start: 'int', total: 'int | None', next_cursor: 'str | None') -> None"
+      }
+    },
+    "Paginated": {
+      "kind": "_Marker"
+    },
+    "PermissionDenied": {
+      "init": "(message: 'str', *, hint: 'str | None' = None, retry_after: 'float | None' = None) -> 'None'",
+      "kind": "class",
+      "members": {}
+    },
+    "RateLimited": {
+      "init": "(message: 'str', *, hint: 'str | None' = None, retry_after: 'float | None' = None) -> 'None'",
+      "kind": "class",
+      "members": {}
+    },
+    "RecallCase": {
+      "init": "(query: 'str', expected: 'frozenset[str] | set[str]') -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, query: 'str', expected: 'frozenset[str] | set[str]') -> None"
+      }
+    },
+    "RecallReport": {
+      "init": "(k: 'int', cases: 'tuple[CaseRecall, ...]') -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, k: 'int', cases: 'tuple[CaseRecall, ...]') -> None",
+        "mean_recall": "property",
+        "missed_tools": "property",
+        "render_text": "(self) -> 'str'",
+        "to_dict": "(self) -> 'dict[str, Any]'"
+      }
+    },
+    "RedisStore": {
+      "init": "(client: 'Any', *, prefix: 'str' = 'ouncemcp') -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, client: 'Any', *, prefix: 'str' = 'ouncemcp') -> 'None'",
+        "delete": "(self, ns: 'str', key: 'str') -> 'bool'",
+        "get": "(self, ns: 'str', key: 'str') -> 'Value | None'",
+        "put": "(self, ns: 'str', key: 'str', value: 'Mapping[str, Any]', *, ttl_s: 'float') -> 'None'",
+        "put_if_absent": "(self, ns: 'str', key: 'str', value: 'Mapping[str, Any]', *, ttl_s: 'float') -> 'bool'"
+      }
+    },
+    "ResultTooLarge": {
+      "init": "(min_tokens: 'int', budget: 'int', truncation: 'Truncation', items: 'int | None' = None) -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, min_tokens: 'int', budget: 'int', truncation: 'Truncation', items: 'int | None' = None) -> 'None'",
+        "reason": "property"
+      }
+    },
+    "RetryPolicy": {
+      "init": "(max_attempts: 'int' = 3, base_delay: 'float' = 0.1, max_delay: 'float' = 2.0, jitter: 'float' = 0.2, sleep: 'Callable[[float], Awaitable[None]]' = <function sleep>) -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, max_attempts: 'int' = 3, base_delay: 'float' = 0.1, max_delay: 'float' = 2.0, jitter: 'float' = 0.2, sleep: 'Callable[[float], Awaitable[None]]' = <function sleep>) -> None",
+        "delay": "(self, attempt: 'int', retry_after: 'float | None' = None) -> 'float'",
+        "sleep": "(delay: 'float') -> 'None'"
+      }
+    },
+    "ServerCost": {
+      "init": "(tokenizer: 'str', budget: 'Budget', tools: 'list[ToolCost]' = <factory>) -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, tokenizer: 'str', budget: 'Budget', tools: 'list[ToolCost]' = <factory>) -> None",
+        "failed": "property",
+        "output_schema_share": "property",
+        "output_schema_tokens": "property",
+        "render_text": "(self) -> 'str'",
+        "startup_status": "property",
+        "to_dict": "(self) -> 'dict[str, Any]'",
+        "total": "property"
+      }
+    },
+    "TiktokenCounter": {
+      "init": "(encoding: 'str' = 'o200k_base') -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, encoding: 'str' = 'o200k_base') -> 'None'",
+        "count": "(self, text: 'str') -> 'int'",
+        "truncate_text": "(self, text: 'str', max_tokens: 'int') -> 'str'"
+      }
+    },
+    "TokenCounter": {
+      "init": "()",
+      "kind": "class",
+      "members": {
+        "count": "(self, text: 'str') -> 'int'",
+        "count_json": "(self, value: 'Any') -> 'int'",
+        "encoding_name": "property",
+        "truncate_text": "(self, text: 'str', max_tokens: 'int') -> 'str'"
+      }
+    },
+    "ToolContext": {
+      "init": "(tool: 'str', response_format: 'ResponseFormat', result_budget: 'int', fastmcp: 'FastMCPContext | None' = None, _signer: 'CursorSigner | None' = None, _arguments: 'Callable[[], Mapping[str, Any]]' = <class 'dict'>, _resolve: 'PrincipalResolver' = <function default_principal>, _principal: 'str | None' = None, attempt: 'int' = 1, _deadline_at: 'float | None' = None, _window: 'PageWindow[Any] | None' = None, _encode: 'Callable[[int], str] | None' = None, _bound: 'dict[frozenset[str], BoundCursors]' = <factory>, effect: 'Effect | None' = None, replay_safe: 'bool' = False, _identity: 'Identity | None' = None, _tenant_claims: 'tuple[str, ...]' = ('tenant', 'tenant_id', 'tid', 'org_id'), _cache: 'PartitionedCache | None' = None, _state: 'StateSigner | None' = None, _deps: 'Any' = None, _store: 'OunceStore | None' = None, _effects_applied: 'bool' = False, _approved: 'bool' = False, _jobs: 'JobRunner | None' = None, _output_model: 'type[BaseModel] | None' = None) -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, tool: 'str', response_format: 'ResponseFormat', result_budget: 'int', fastmcp: 'FastMCPContext | None' = None, _signer: 'CursorSigner | None' = None, _arguments: 'Callable[[], Mapping[str, Any]]' = <class 'dict'>, _resolve: 'PrincipalResolver' = <function default_principal>, _principal: 'str | None' = None, attempt: 'int' = 1, _deadline_at: 'float | None' = None, _window: 'PageWindow[Any] | None' = None, _encode: 'Callable[[int], str] | None' = None, _bound: 'dict[frozenset[str], BoundCursors]' = <factory>, effect: 'Effect | None' = None, replay_safe: 'bool' = False, _identity: 'Identity | None' = None, _tenant_claims: 'tuple[str, ...]' = ('tenant', 'tenant_id', 'tid', 'org_id'), _cache: 'PartitionedCache | None' = None, _state: 'StateSigner | None' = None, _deps: 'Any' = None, _store: 'OunceStore | None' = None, _effects_applied: 'bool' = False, _approved: 'bool' = False, _jobs: 'JobRunner | None' = None, _output_model: 'type[BaseModel] | None' = None) -> None",
+        "cache": "property",
+        "consume_state": "(self, token: 'str', kind: 'str', *, request: 'Any' = None) -> 'dict[str, Any]'",
+        "deps": "property",
+        "detailed": "property",
+        "effect_applied": "(self) -> 'None'",
+        "encode_cursor": "(self, offset: 'int', *, ignore: 'Sequence[str]' = ()) -> 'str'",
+        "gather": "(self, steps: 'Mapping[str, Callable[[], Awaitable[T]]]', *, concurrency: 'int' = 4) -> 'dict[str, T]'",
+        "identity": "property",
+        "includes": "(self, path: 'str') -> 'bool'",
+        "input_responses": "property",
+        "issue_state": "(self, kind: 'str', data: 'Mapping[str, Any] | None' = None, *, request: 'Any' = None, ttl_s: 'int | None' = None) -> 'str'",
+        "offset": "(self, cursor: 'str | None', *, ignore: 'Sequence[str]' = ()) -> 'int'",
+        "page": "(self, rows: 'Sequence[T]', *, cursor: 'str | None', limit: 'int', ignore: 'Sequence[str]' = ()) -> 'PageWindow[T]'",
+        "principal": "property",
+        "remaining": "(self) -> 'float'",
+        "require_input": "(self, input_requests: 'Any', *, state: 'Mapping[str, Any] | None' = None) -> 'typing.NoReturn'",
+        "resume_state": "(self) -> 'dict[str, Any] | None'",
+        "start_job": "(self, work: 'Callable[[], Awaitable[Any]] | str', args: 'Mapping[str, Any] | None' = None, *, ttl_s: 'int' = 3600) -> 'str'",
+        "store": "property",
+        "store_result": "(self, items: 'Sequence[Any]', *, ttl_s: 'int' = 3600) -> 'str'",
+        "verify_state": "(self, token: 'str', kind: 'str', *, request: 'Any' = None, consume: 'bool' = False) -> 'dict[str, Any]'",
+        "window": "(self, items: 'Sequence[T]', *, start: 'int', has_more: 'bool', total: 'int | None' = None, ignore: 'Sequence[str]' = ()) -> 'PageWindow[T]'"
+      }
+    },
+    "ToolCost": {
+      "init": "(name: 'str', total: 'int', name_tokens: 'int', description: 'int', input_schema: 'int', output_schema: 'int', structure: 'int', status: 'Status', output_schema_advertised: 'bool' = False, output_schema_mode: 'str | None' = None, output_schema_cost: 'int' = 0, override: 'dict[str, Any] | None' = None) -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, name: 'str', total: 'int', name_tokens: 'int', description: 'int', input_schema: 'int', output_schema: 'int', structure: 'int', status: 'Status', output_schema_advertised: 'bool' = False, output_schema_mode: 'str | None' = None, output_schema_cost: 'int' = 0, override: 'dict[str, Any] | None' = None) -> None"
+      }
+    },
+    "TransientError": {
+      "init": "(message: 'str', *, hint: 'str | None' = None, retry_after: 'float | None' = None) -> 'None'",
+      "kind": "class",
+      "members": {}
+    },
+    "WriteAttempt": {
+      "init": "(tool: 'str', principal: 'str', arguments: 'Mapping[str, Any]' = <factory>, reason: 'str' = 'write_status_unknown') -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, tool: 'str', principal: 'str', arguments: 'Mapping[str, Any]' = <factory>, reason: 'str' = 'write_status_unknown') -> None"
+      }
+    },
+    "WriteResolver": {
+      "init": "(*args, **kwargs)",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, *args, **kwargs)",
+        "resolve": "(self, attempt: 'WriteAttempt') -> 'BaseModel | Mapping[str, Any] | None'"
+      }
+    },
+    "get_counter": {
+      "kind": "function",
+      "signature": "(tokenizer: 'str | TokenCounter | Callable[[str], int]' = 'o200k_base', *, name: 'str | None' = None) -> 'TokenCounter'"
+    },
+    "measure_tool": {
+      "kind": "function",
+      "signature": "(tool: 'Any', budget: 'Budget', counter: 'TokenCounter | None' = None, output_schema_mode: 'str | None' = None, override: 'BudgetOverride | None' = None) -> 'ToolCost'"
+    },
+    "measure_tools": {
+      "kind": "function",
+      "signature": "(tools: 'Iterable[Any]', budget: 'Budget', counter: 'TokenCounter | None' = None, output_schema_modes: 'Mapping[str, str] | None' = None, overrides: 'Mapping[str, BudgetOverride] | None' = None) -> 'ServerCost'"
+    },
+    "shape_result": {
+      "kind": "function",
+      "signature": "(value: 'Any', *, response_format: 'ResponseFormat', budget: 'int', counter: 'TokenCounter', validator: 'Validator | None' = None, strict: 'bool | None' = None, min_items: 'int' = 1, page: 'PageSpec | None' = None, protect: 'Collection[str]' = (), cursor_hint: 'str | None' = None, assume_valid: 'bool' = False) -> 'ShapedResult'"
+    }
+  },
+  "ouncemcp.client": {
+    "Broker": {
+      "init": "(servers: 'Mapping[str, Any]', *, budget: 'Budget | None' = None, tokenizer: 'str | TokenCounter | None' = None, deadline_s: 'float' = 60.0, elicitation_handler: 'Any' = None, sampling_handler: 'Any' = None, roots: 'Any' = None, approver: 'Approver | None' = None, failure_threshold: 'int' = 3, cooldown_s: 'float' = 30.0, search_results: 'int' = 5, connect_timeout_s: 'float' = 15.0, auth: 'Mapping[str, Any] | None' = None) -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, servers: 'Mapping[str, Any]', *, budget: 'Budget | None' = None, tokenizer: 'str | TokenCounter | None' = None, deadline_s: 'float' = 60.0, elicitation_handler: 'Any' = None, sampling_handler: 'Any' = None, roots: 'Any' = None, approver: 'Approver | None' = None, failure_threshold: 'int' = 3, cooldown_s: 'float' = 30.0, search_results: 'int' = 5, connect_timeout_s: 'float' = 15.0, auth: 'Mapping[str, Any] | None' = None) -> 'None'",
+        "call": "(self, name: 'str', arguments: 'Mapping[str, Any] | None' = None, *, deadline_s: 'float | None' = None, caused_by: 'BrokerResult | None' = None) -> 'BrokerResult'",
+        "describe": "(self, name: 'str') -> 'dict[str, Any]'",
+        "handle": "(self, meta_tool: 'str', arguments: 'Mapping[str, Any]') -> 'Any'",
+        "host_tools": "(self) -> 'tuple[str, list[dict[str, Any]]]'",
+        "instructions": "(self) -> 'dict[str, str]'",
+        "search": "(self, query: 'str', *, detail: 'str' = 'summary', limit: 'int | None' = None) -> 'list[dict[str, Any]]'",
+        "tools": "(self, *, refresh: 'bool' = False) -> 'list[BrokerTool]'",
+        "unavailable": "property"
+      }
+    },
+    "BrokerError": {
+      "init": "(code: 'str', message: 'str') -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, code: 'str', message: 'str') -> 'None'"
+      }
+    },
+    "BrokerResult": {
+      "init": "(name: 'str', server: 'str', text: 'str', structured: 'Any', is_error: 'bool', tokens: 'int', tokenizer: 'str', meta: 'dict[str, Any]' = <factory>, untrusted: 'bool' = True) -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, name: 'str', server: 'str', text: 'str', structured: 'Any', is_error: 'bool', tokens: 'int', tokenizer: 'str', meta: 'dict[str, Any]' = <factory>, untrusted: 'bool' = True) -> None",
+        "for_model": "(self) -> 'str'"
+      }
+    },
+    "BrokerTool": {
+      "init": "(name: 'str', server: 'str', tool: 'str', definition: 'Any') -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, name: 'str', server: 'str', tool: 'str', definition: 'Any') -> None",
+        "read_only": "property"
+      }
+    },
+    "CrossServerCall": {
+      "init": "(tool: 'str', arguments: 'Mapping[str, Any]', caused_by: 'BrokerResult') -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, tool: 'str', arguments: 'Mapping[str, Any]', caused_by: 'BrokerResult') -> None"
+      }
+    },
+    "META_DEFINITIONS": {
+      "kind": "list"
+    },
+    "OunceOAuth": {
+      "init": "(mcp_url: 'str | None' = None, *, client_id: 'str | None' = None, client_secret: 'str | None' = None, client_metadata_url: 'str | None' = None, allow_dynamic: 'bool' = True, **kwargs: 'Any') -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, mcp_url: 'str | None' = None, *, client_id: 'str | None' = None, client_secret: 'str | None' = None, client_metadata_url: 'str | None' = None, allow_dynamic: 'bool' = True, **kwargs: 'Any') -> 'None'"
+      }
+    },
+    "registration_method": {
+      "kind": "function",
+      "signature": "(*, client_id: 'str | None' = None, client_metadata_url: 'str | None' = None, allow_dynamic: 'bool' = True) -> 'Registration'"
+    }
+  },
+  "ouncemcp.eval.agent": {
+    "EvalReport": {
+      "init": "(suite: 'str', suite_digest: 'str', model: 'str', target: 'str', tokenizer: 'str', environment: 'dict[str, Any]', tasks: 'dict[str, Task]', runs: 'list[RunRecord]', recall: 'dict[str, Any] | None' = None, notes: 'list[str]' = <factory>, usage: 'dict[str, Any] | None' = None) -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, suite: 'str', suite_digest: 'str', model: 'str', target: 'str', tokenizer: 'str', environment: 'dict[str, Any]', tasks: 'dict[str, Task]', runs: 'list[RunRecord]', recall: 'dict[str, Any] | None' = None, notes: 'list[str]' = <factory>, usage: 'dict[str, Any] | None' = None) -> None",
+        "passed": "property",
+        "per_task": "(self) -> 'dict[str, dict[str, Any]]'",
+        "render_html": "(self, regressions: 'Sequence[str]' = ()) -> 'str'",
+        "render_text": "(self) -> 'str'",
+        "splits": "(self) -> 'dict[str, dict[str, Any]]'",
+        "to_dict": "(self) -> 'dict[str, Any]'"
+      }
+    },
+    "Model": {
+      "init": "(*args, **kwargs)",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, *args, **kwargs)",
+        "respond": "(self, task_id: 'str', conversation: 'Sequence[Mapping[str, Any]]', tools: 'Sequence[Mapping[str, Any]]') -> 'Turn'"
+      }
+    },
+    "OpenRouterModel": {
+      "init": "(model: 'str', *, max_cost_usd: 'float' = 1.0, fallbacks: 'Sequence[str]' = (), temperature: 'float' = 0.0, max_tokens: 'int' = 2000, system_prompt: 'str' = \"You are an agent working through the tools of one MCP server. Use the tools to complete the user's task; do not guess data you can look up. When the task is done or cannot be done, answer briefly without calling a tool.\", api_key: 'str | None' = None, retries: 'int' = 5, timeout_s: 'float' = 120.0, transport: 'httpx2.AsyncBaseTransport | None' = None, pool: 'CostPool | None' = None) -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, model: 'str', *, max_cost_usd: 'float' = 1.0, fallbacks: 'Sequence[str]' = (), temperature: 'float' = 0.0, max_tokens: 'int' = 2000, system_prompt: 'str' = \"You are an agent working through the tools of one MCP server. Use the tools to complete the user's task; do not guess data you can look up. When the task is done or cannot be done, answer briefly without calling a tool.\", api_key: 'str | None' = None, retries: 'int' = 5, timeout_s: 'float' = 120.0, transport: 'httpx2.AsyncBaseTransport | None' = None, pool: 'CostPool | None' = None) -> 'None'",
+        "exhausted": "property",
+        "respond": "(self, task_id: 'str', conversation: 'Sequence[Mapping[str, Any]]', tools: 'Sequence[Mapping[str, Any]]') -> 'Turn'"
+      }
+    },
+    "ReplayModel": {
+      "init": "(scripts: 'Mapping[str, Sequence[Mapping[str, Any]]]') -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, scripts: 'Mapping[str, Sequence[Mapping[str, Any]]]') -> 'None'",
+        "reset": "(self, task_id: 'str') -> 'None'",
+        "respond": "(self, task_id: 'str', conversation: 'Sequence[Mapping[str, Any]]', tools: 'Sequence[Mapping[str, Any]]') -> 'Turn'"
+      }
+    },
+    "RunRecord": {
+      "init": "(task_id: 'str', split: 'str', repeat: 'int', calls: 'list[CallRecord]' = <factory>, turns: 'int' = 0, checks: 'list[tuple[str, bool]]' = <factory>, final_text: 'str' = '', input_tokens: 'int' = 0, output_tokens: 'int' = 0, definition_tokens: 'int' = 0, latency_ms: 'float' = 0.0, harness_error: 'str | None' = None, cost_usd: 'float | None' = None) -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, task_id: 'str', split: 'str', repeat: 'int', calls: 'list[CallRecord]' = <factory>, turns: 'int' = 0, checks: 'list[tuple[str, bool]]' = <factory>, final_text: 'str' = '', input_tokens: 'int' = 0, output_tokens: 'int' = 0, definition_tokens: 'int' = 0, latency_ms: 'float' = 0.0, harness_error: 'str | None' = None, cost_usd: 'float | None' = None) -> None",
+        "errors": "property",
+        "invalid_arguments": "property",
+        "selection": "(self, expected: 'Sequence[str]') -> 'tuple[int, int]'",
+        "success": "property",
+        "tokens": "property"
+      }
+    },
+    "SpendingLimitReached": {
+      "init": "(?)",
+      "kind": "class",
+      "members": {}
+    },
+    "Suite": {
+      "init": "(name: 'str', server: 'str', tasks: 'tuple[Task, ...]', repeats: 'int' = 1, recall: 'tuple[RecallItem, ...]' = (), path: 'Path | None' = None, digest: 'str' = '') -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, name: 'str', server: 'str', tasks: 'tuple[Task, ...]', repeats: 'int' = 1, recall: 'tuple[RecallItem, ...]' = (), path: 'Path | None' = None, digest: 'str' = '') -> None",
+        "scripts": "(self) -> 'dict[str, list[Mapping[str, Any]]]'",
+        "select": "(self, split: 'str') -> 'tuple[Task, ...]'"
+      }
+    },
+    "SuiteError": {
+      "init": "(?)",
+      "kind": "class",
+      "members": {}
+    },
+    "ToolCall": {
+      "init": "(name: 'str', arguments: 'Mapping[str, Any]' = <factory>) -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, name: 'str', arguments: 'Mapping[str, Any]' = <factory>) -> None"
+      }
+    },
+    "Turn": {
+      "init": "(text: 'str' = '', tool_calls: 'Sequence[ToolCall]' = (), input_tokens: 'int | None' = None, output_tokens: 'int | None' = None) -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, text: 'str' = '', tool_calls: 'Sequence[ToolCall]' = (), input_tokens: 'int | None' = None, output_tokens: 'int | None' = None) -> None"
+      }
+    },
+    "compare": {
+      "kind": "function",
+      "signature": "(old: 'Mapping[str, Any]', new: 'Mapping[str, Any]', *, tolerance: 'float' = 0.05) -> 'list[str]'"
+    },
+    "load_suite": {
+      "kind": "function",
+      "signature": "(path: 'str | Path') -> 'Suite'"
+    },
+    "run_suite": {
+      "kind": "function",
+      "signature": "(suite: 'Suite', model: 'Model | None' = None, *, repeats: 'int | None' = None, split: 'str' = 'all', server: 'str | None' = None, tokenizer: 'str | TokenCounter | None' = None, tool_map: 'Mapping[str, str] | None' = None) -> 'Any'"
+    }
+  },
+  "ouncemcp.security": {
+    "ANONYMOUS_IDENTITY": {
+      "kind": "Identity"
+    },
+    "CacheView": {
+      "init": "(cache: 'PartitionedCache', identity: 'Identity', namespace: 'str') -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, cache: 'PartitionedCache', identity: 'Identity', namespace: 'str') -> None",
+        "get": "(self, key: 'Hashable', default: 'Any' = None) -> 'Any'",
+        "get_or_set": "(self, key: 'Hashable', make: 'Callable[[], Awaitable[Any]]', *, ttl_s: 'float | None' = None) -> 'Any'",
+        "set": "(self, key: 'Hashable', value: 'Any', *, ttl_s: 'float | None' = None) -> 'None'"
+      }
+    },
+    "Identity": {
+      "init": "(principal: 'str', subject: 'str | None' = None, issuer: 'str | None' = None, client_id: 'str | None' = None, tenant: 'str | None' = None, scopes: 'frozenset[str]' = frozenset(), audiences: 'frozenset[str]' = frozenset(), claims: 'Mapping[str, Any]' = <factory>, authenticated: 'bool' = True) -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, principal: 'str', subject: 'str | None' = None, issuer: 'str | None' = None, client_id: 'str | None' = None, tenant: 'str | None' = None, scopes: 'frozenset[str]' = frozenset(), audiences: 'frozenset[str]' = frozenset(), claims: 'Mapping[str, Any]' = <factory>, authenticated: 'bool' = True) -> None",
+        "has_scopes": "(self, *scopes: 'str') -> 'bool'"
+      }
+    },
+    "InvalidState": {
+      "init": "(reason: 'StateProblem') -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, reason: 'StateProblem') -> 'None'"
+      }
+    },
+    "PartitionedCache": {
+      "init": "(*, ttl_s: 'float' = 60.0, max_entries: 'int' = 1024, clock: 'Callable[[], float]' = <built-in function monotonic>) -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, *, ttl_s: 'float' = 60.0, max_entries: 'int' = 1024, clock: 'Callable[[], float]' = <built-in function monotonic>) -> 'None'",
+        "clear": "(self, identity: 'Identity | None' = None) -> 'None'",
+        "get": "(self, identity: 'Identity', key: 'Hashable', default: 'Any' = None) -> 'Any'",
+        "set": "(self, identity: 'Identity', key: 'Hashable', value: 'Any', *, ttl_s: 'float | None' = None) -> 'None'"
+      }
+    },
+    "PinnedTransport": {
+      "init": "(*, schemes: 'Sequence[str]' = ('https', 'http'), allow_hosts: 'Sequence[str] | None' = None, allow_private: 'bool' = False, resolve: 'Resolver | None' = None, transport_factory: 'TransportFactory | None' = None, **transport_kwargs: 'Any') -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, *, schemes: 'Sequence[str]' = ('https', 'http'), allow_hosts: 'Sequence[str] | None' = None, allow_private: 'bool' = False, resolve: 'Resolver | None' = None, transport_factory: 'TransportFactory | None' = None, **transport_kwargs: 'Any') -> 'None'",
+        "aclose": "(self) -> 'None'",
+        "handle_async_request": "(self, request: 'httpx2.Request') -> 'httpx2.Response'"
+      }
+    },
+    "Policy": {
+      "kind": "function",
+      "signature": "(*args, **kwargs)"
+    },
+    "PolicyRequest": {
+      "init": "(tool: 'str', effect: 'Effect', tags: 'frozenset[str]', identity: 'Identity') -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, tool: 'str', effect: 'Effect', tags: 'frozenset[str]', identity: 'Identity') -> None"
+      }
+    },
+    "StateSigner": {
+      "init": "(keys: 'CursorSigner', *, ttl_s: 'int' = 900, clock: 'Callable[[], float]' = <built-in function time>, used: 'MutableMapping[str, float] | None' = None) -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, keys: 'CursorSigner', *, ttl_s: 'int' = 900, clock: 'Callable[[], float]' = <built-in function time>, used: 'MutableMapping[str, float] | None' = None) -> 'None'",
+        "issue": "(self, kind: 'str', *, principal: 'str', request: 'Any' = None, data: 'Mapping[str, Any] | None' = None, ttl_s: 'int | None' = None) -> 'str'",
+        "verify": "(self, token: 'str', *, kind: 'str', principal: 'str', request: 'Any' = None, consume: 'bool' = False) -> 'dict[str, Any]'"
+      }
+    },
+    "TokenPassthrough": {
+      "init": "() -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self) -> 'None'"
+      }
+    },
+    "URLNotAllowed": {
+      "init": "(message: 'str', *, hint: 'str | None' = None, retry_after: 'float | None' = None) -> 'None'",
+      "kind": "class",
+      "members": {}
+    },
+    "UnsafeInputRequest": {
+      "init": "(tool: 'str') -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, tool: 'str') -> 'None'"
+      }
+    },
+    "all_of": {
+      "kind": "function",
+      "signature": "(*policies: 'Policy') -> 'Policy'"
+    },
+    "allow_all": {
+      "kind": "function",
+      "signature": "(request: 'PolicyRequest') -> 'bool'"
+    },
+    "any_of": {
+      "kind": "function",
+      "signature": "(*policies: 'Policy') -> 'Policy'"
+    },
+    "audience_matches": {
+      "kind": "function",
+      "signature": "(identity: 'Identity', audiences: 'Iterable[str]') -> 'bool'"
+    },
+    "authenticated": {
+      "kind": "function",
+      "signature": "(request: 'PolicyRequest') -> 'bool'"
+    },
+    "check_outbound": {
+      "kind": "function",
+      "signature": "(headers: 'Mapping[str, Any] | Any', *, token: 'str | None' = None) -> 'None'"
+    },
+    "check_url": {
+      "kind": "function",
+      "signature": "(url: 'str', *, schemes: 'Sequence[str]' = ('https', 'http'), allow_hosts: 'Sequence[str] | None' = None, allow_private: 'bool' = False, resolve: 'Resolver | None' = None) -> 'str'"
+    },
+    "checked_addresses": {
+      "kind": "function",
+      "signature": "(url: 'str', *, schemes: 'Sequence[str]' = ('https', 'http'), allow_hosts: 'Sequence[str] | None' = None, allow_private: 'bool' = False, resolve: 'Resolver | None' = None) -> 'tuple[str, list[str]]'"
+    },
+    "current_identity": {
+      "kind": "function",
+      "signature": "(*, tenant_claims: 'Sequence[str]' = ('tenant', 'tenant_id', 'tid', 'org_id')) -> 'Identity'"
+    },
+    "guarded_client": {
+      "kind": "function",
+      "signature": "(**kwargs: 'Any') -> 'Any'"
+    },
+    "identity_from_token": {
+      "kind": "function",
+      "signature": "(token: 'Any', *, tenant_claims: 'Sequence[str]' = ('tenant', 'tenant_id', 'tid', 'org_id')) -> 'Identity'"
+    },
+    "partition_key": {
+      "kind": "function",
+      "signature": "(identity: 'Identity') -> 'str'"
+    },
+    "passthrough_guard": {
+      "kind": "function",
+      "signature": "() -> 'Callable[[Any], Awaitable[None]]'"
+    },
+    "require_scopes": {
+      "kind": "function",
+      "signature": "(*scopes: 'str') -> 'Policy'"
+    },
+    "require_tenant": {
+      "kind": "function",
+      "signature": "(*tenants: 'str') -> 'Policy'"
+    },
+    "resolve_http_options": {
+      "kind": "function",
+      "signature": "(kwargs: 'Mapping[str, Any]') -> 'dict[str, Any]'"
+    },
+    "safe_client": {
+      "kind": "function",
+      "signature": "(*, allow_hosts: 'Sequence[str] | None' = None, allow_private: 'bool' = False, schemes: 'Sequence[str]' = ('https', 'http'), resolve: 'Resolver | None' = None, max_redirects: 'int' = 5, transport_factory: 'TransportFactory | None' = None, **kwargs: 'Any') -> 'httpx2.AsyncClient'"
+    },
+    "writes_require": {
+      "kind": "function",
+      "signature": "(policy: 'Policy') -> 'Policy'"
+    }
+  },
+  "ouncemcp.testing": {
+    "as_caller": {
+      "kind": "function",
+      "signature": "(access_token: 'AccessToken | None' = None, **fields: 'Any') -> 'Iterator[AccessToken]'"
+    },
+    "make_token": {
+      "kind": "function",
+      "signature": "(*, subject: 'str | None' = 'user', issuer: 'str | None' = None, client_id: 'str' = 'test-client', tenant: 'str | None' = None, scopes: 'Sequence[str]' = (), audience: 'str | Sequence[str] | None' = None, token: 'str' = 'test-inbound-token-0123456789', claims: 'dict[str, Any] | None' = None) -> 'AccessToken'"
+    }
+  },
+  "ouncemcp.ui": {
+    "render_report": {
+      "kind": "function",
+      "signature": "(data: 'Mapping[str, Any]') -> 'str'"
+    }
+  }
+}

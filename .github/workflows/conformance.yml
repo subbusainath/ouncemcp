@@ -24,8 +24,11 @@ jobs:
       - run: uv venv
       - run: uv pip install -e ".[dev]"
       - name: Start the conformance target
+        # The venv's Python directly, not `uv run`: a background `uv run` holds uv's cache
+        # lock, and setup-uv's cache prune at the end of the job then times out.
         run: |
-          uv run python -m ouncemcp.eval.conformance --port 3001 > server.log 2>&1 &
+          .venv/bin/python -m ouncemcp.eval.conformance --port 3001 > server.log 2>&1 &
+          echo $! > server.pid
           for i in $(seq 1 30); do
             if curl -s -o /dev/null http://127.0.0.1:3001/mcp; then exit 0; fi
             sleep 1
@@ -39,6 +42,9 @@ jobs:
           --spec-version 2026-07-28
           --expected-failures conformance/expected-failures.yml
           -o conformance-results
+      - name: Stop the conformance target
+        if: always()
+        run: kill "$(cat server.pid)" 2>/dev/null || true
       - if: always()
         uses: actions/upload-artifact@v4
         with:

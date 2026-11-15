@@ -192,6 +192,16 @@ def build_parser() -> argparse.ArgumentParser:
                 "--max-cost", type=float, metavar="USD", help="total budget (default: the file's)"
             )
             cmd.add_argument("--concurrency", type=int, default=6)
+            cmd.add_argument(
+                "--compare",
+                metavar="BASELINE.json",
+                help="release gate 6: test for a drop in task success against this report",
+            )
+            cmd.add_argument(
+                "--fail-on-regression",
+                action="store_true",
+                help="exit 1 when --compare finds a statistically meaningful drop",
+            )
             cmd.add_argument("--json", action="store_true", help="print the report as JSON")
             cmd.add_argument("--output", metavar="PATH", help="also write the JSON report here")
             cmd.add_argument("--html", metavar="PATH", help="also write an HTML report here")
@@ -516,7 +526,20 @@ def _bench(ns: argparse.Namespace) -> int:
     import secrets
 
     from ouncemcp.eval.agent import SuiteError
-    from ouncemcp.eval.bench import load_bench, load_bench_report, run_bench
+    from ouncemcp.eval.bench import (
+        compare_releases,
+        load_bench,
+        load_bench_report,
+        render_comparison,
+        run_bench,
+    )
+
+    def gate6(data: dict[str, Any]) -> int:
+        if not ns.compare:
+            return 0
+        result = compare_releases(load_bench_report(ns.compare), data)
+        print(render_comparison(result))
+        return 1 if ns.fail_on_regression and not result["passed"] else 0
 
     if ns.from_results:
         from ouncemcp.ui import render_report
@@ -527,7 +550,7 @@ def _bench(ns: argparse.Namespace) -> int:
             Path(ns.html).write_text(page, encoding="utf-8")
         met = data["perf6"]
         print(f"Benchmark {data['name']}: PERF-6 met for {met['met']} of {met['pairs']} pairs")
-        return 0
+        return gate6(data)
     if not ns.config:
         print("ouncemcp bench: give a benchmark file or --from RESULTS.json", file=sys.stderr)
         return 2
@@ -560,7 +583,7 @@ def _bench(ns: argparse.Namespace) -> int:
     if ns.html:
         Path(ns.html).write_text(report.render_html(), encoding="utf-8")
     print(json.dumps(data, indent=2, default=str) if ns.json else report.render_text())
-    return 0
+    return gate6(data)
 
 
 def _trace(ns: argparse.Namespace) -> int:

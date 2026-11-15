@@ -24,6 +24,16 @@ nav:
       - Evaluating with task suites: guides/evaluating.md
       - Host verification: guides/host-verification.md
   - Compatibility: compatibility.md
+  - API reference:
+      - Overview: reference/index.md
+      - Server and tools: reference/server.md
+      - Budgets and tokens: reference/budgets.md
+      - Errors: reference/errors.md
+      - Execution: reference/execution.md
+      - Security: reference/security.md
+      - Clients: reference/client.md
+      - Evaluation: reference/eval.md
+      - Testing helpers: reference/testing.md
   - Error reference:
       - Validation: errors/validation.md
       - Authentication: errors/authentication.md
@@ -50,6 +60,7 @@ nav:
       - Specification: spec.md
       - M0 report: m0-report.md
       - M2 report: m2-report.md
+      - M4 report: m4-report.md
       - Performance research: performance-research.md
       - Proposals:
           - Overview: proposals/README.md
@@ -80,3 +91,20 @@ nav:
           - 0025 OAuth: proposals/0025-oauth.md
           - 0026 Real-model evals: proposals/0026-real-model-evals.md
           - 0027 Benchmark: proposals/0027-benchmark.md
+          - 0028 Resumable jobs: proposals/0028-resumable-jobs.md
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: google
+            show_source: false
+            show_root_heading: true
+            show_root_full_path: false
+            members_order: source
+            filters: ["!^_"]
+            merge_init_into_class: true
+            show_signature_annotations: true
+            separate_signature: true

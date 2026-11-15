@@ -341,3 +341,112 @@ def _commit(path: Path | None) -> str | None:
 
 def load_bench_report(path: str | Path) -> dict[str, Any]:
     return json.loads(Path(path).read_text())  # type: ignore[no-any-return]
+
+
+# ---------------------------------------------------------------- release gate 6
+
+
+def fisher_drop_p(old_ok: int, old_n: int, new_ok: int, new_n: int) -> float:
+    """One-sided Fisher exact test: the probability of seeing ``new_ok`` or fewer
+    successes in ``new_n`` runs if both releases had the same success rate."""
+    from math import comb
+
+    total_ok, total = old_ok + new_ok, old_n + new_n
+    denom = comb(total, new_n)
+    low = max(0, total_ok - old_n)
+    return (
+        sum(comb(total_ok, k) * comb(total - total_ok, new_n - k) for k in range(low, new_ok + 1))
+        / denom
+    )
+
+
+def _counts(report: Mapping[str, Any]) -> tuple[int, int]:
+    split = report["splits"]["all"]
+    n = int(split["runs"])
+    return round(split["success_rate"] * n), n
+
+
+def compare_releases(
+    old: Mapping[str, Any],
+    new: Mapping[str, Any],
+    *,
+    alpha: float = 0.05,
+    token_tolerance: float = 0.10,
+) -> dict[str, Any]:
+    """Release gate 6: does ``new`` (a bench report) drop task success against ``old``?
+
+    For every suite, model and condition in both reports, a one-sided Fisher exact test
+    on successes and runs. A drop with p < ``alpha`` fails the gate. Task-level drops
+    and token increases over ``token_tolerance`` are warnings: five runs per task are too
+    few to separate a real drop from chance."""
+    index = {(r["suite"], r["model"], r["condition"]): r["report"] for r in old.get("results", [])}
+    checks, warnings = [], []
+    for r in new.get("results", []):
+        key = (r["suite"], r["model"], r["condition"])
+        before = index.get(key)
+        if (
+            before is None
+            or not before["splits"]["all"]["runs"]
+            or not r["report"]["splits"]["all"]["runs"]
+        ):
+            continue
+        old_ok, old_n = _counts(before)
+        new_ok, new_n = _counts(r["report"])
+        p = fisher_drop_p(old_ok, old_n, new_ok, new_n) if new_ok / new_n < old_ok / old_n else 1.0
+        checks.append(
+            {
+                "suite": key[0],
+                "model": key[1],
+                "condition": key[2],
+                "success_before": round(old_ok / old_n, 3),
+                "success_now": round(new_ok / new_n, 3),
+                "runs": [old_n, new_n],
+                "p_value": round(p, 4),
+                "regression": p < alpha,
+            }
+        )
+        b_tok = before["splits"]["all"]["tokens_per_task"]
+        n_tok = r["report"]["splits"]["all"]["tokens_per_task"]
+        if b_tok and n_tok > b_tok * (1 + token_tolerance):
+            warnings.append(
+                f"{key[0]} / {key[1]} / {key[2]}: tokens per task rose {n_tok / b_tok - 1:+.0%} "
+                f"({b_tok:.0f} to {n_tok:.0f})"
+            )
+        for task_id, t in r["report"]["tasks"].items():
+            was = before["tasks"].get(task_id)
+            if was and t["success_rate"] < was["success_rate"]:
+                warnings.append(
+                    f"{key[0]} / {key[1]} / {key[2]}: task {task_id} fell from "
+                    f"{was['success_rate']:.0%} to {t['success_rate']:.0%}"
+                )
+    missing = sorted(
+        f"{s} / {m} / {c}"
+        for (s, m, c) in index
+        if (s, m, c)
+        not in {(r["suite"], r["model"], r["condition"]) for r in new.get("results", [])}
+    )
+    return {
+        "gate": "release gate 6: no statistically meaningful drop in task success",
+        "alpha": alpha,
+        "passed": not any(c["regression"] for c in checks) and bool(checks),
+        "checks": checks,
+        "warnings": warnings,
+        "not_compared": missing,
+    }
+
+
+def render_comparison(result: Mapping[str, Any]) -> str:
+    verdict = "passed" if result["passed"] else "FAILED"
+    lines = [f"Gate 6 {verdict}: one-sided Fisher exact test, alpha {result['alpha']}"]
+    for c in result["checks"]:
+        flag = "REGRESSION" if c["regression"] else "ok"
+        lines.append(
+            f"  {flag:<10} {c['suite']} / {c['model']} / {c['condition']}: "
+            f"{c['success_before']:.0%} -> {c['success_now']:.0%} (p={c['p_value']})"
+        )
+    lines += [f"  warning: {w}" for w in result["warnings"]]
+    if result["not_compared"]:
+        lines.append(f"  not in the new run: {', '.join(result['not_compared'])}")
+    if not result["checks"]:
+        lines.append("  nothing to compare: the reports share no suite, model and condition")
+    return "\n".join(lines)

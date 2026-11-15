@@ -398,11 +398,11 @@ Protocol overhead is small, so performance targets focus on tokens and turns fir
 
 | ID | Requirement | Target (proposed) |
 | --- | --- | --- |
-| PERF-1 | Framework middleware overhead per call, excluding handler | p50 under 2 ms, p95 under 10 ms |
-| PERF-2 | Server cold start for 50 tools | Under 1 second |
-| PERF-3 | Token counting at startup for 500 tools | Under 2 seconds |
-| PERF-4 | Optional audit of a 100-tool server, discovery only | Under 10 seconds on a normal network |
-| PERF-5 | Startup context in `search` mode | Under 400 tokens |
+| PERF-1 | Framework middleware overhead per call, excluding handler | p50 under 2 ms, p95 under 10 ms. **Met in M4: 0.24 to 0.43 ms p50 added ([report](m4-report.md))** |
+| PERF-2 | Server cold start for 50 tools | Under 1 second. **M4 ([report](m4-report.md)): 1.60 s, of which plain FastMCP alone is 1.01 s; OunceMCP adds 0.59 s, mostly the tokenizer load that BUD-1 needs. Not met; revision proposed: under 0.75 s added over plain FastMCP** |
+| PERF-3 | Token counting at startup for 500 tools | Under 2 seconds. **Met in M4: 0.30 s** |
+| PERF-4 | Optional audit of a 100-tool server, discovery only | Under 10 seconds on a normal network. **Met in M4: 0.28 s on loopback** |
+| PERF-5 | Startup context in `search` mode | Under 400 tokens. **Met in M4: 279 tokens for 100 tools** |
 | PERF-6 | Benchmark target versus naive equivalent | At least 70% fewer startup tokens and fewer total task tokens with no drop in task success. **First benchmark (M3, [results](https://github.com/subbusainath/ouncemcp/blob/main/benchmarks/results/m3-bench.md)): met for 0 of 8 pairs. Success never dropped (100% against 68–100%) and inventory task tokens fell 58–85%, but on 2–4 tool servers definitions are 77–139% larger and ticketing tasks cost 17–40% more. A revision is proposed in [proposal 0027](proposals/0027-benchmark.md), for the owner to decide** |
 | PERF-7 | Added overhead when a 50-item result is truncated | p50 under 1 ms (M0 measured 1.44 ms). **Met in M1: 0.70 ms p50, 0.80 ms p95** |
 
@@ -598,7 +598,7 @@ A release MUST NOT ship if any gate fails:
 3. **Writes:** No duplicate effects on replay within the documented guarantee.
 4. **Approvals:** Unsupported clients cannot bypass required approvals.
 5. **Budgets:** Example servers and scaffold pass `ouncemcp check`, and the shaping fuzz test (RES-8) and pagination property test (RES-9) pass.
-6. **Accuracy:** No statistically meaningful drop in task success versus the previous release.
+6. **Accuracy:** No statistically meaningful drop in task success versus the previous release. **Check in place (M4): `ouncemcp bench --compare benchmarks/results/m3-bench.json --fail-on-regression`, a one-sided Fisher exact test per suite, model and server ([M4 report](m4-report.md)).**
 7. **Performance:** PERF-1 through PERF-5 met or regressions explained.
 8. **Documentation:** Every lint rule and error links to a working page.
 
@@ -885,8 +885,8 @@ Status as of 12 November 2026. M1 ([PR #13](https://github.com/subbusainath/ounc
 | --- | --- | --- |
 | BUD-7 (per-host data, P1) | Declared counting scope | Host study in real hosts; decide the output-schema default |
 | BUD-6 (P1 part) | tiktoken encodings and callables | Provider counting adapters |
-| Section 16.3 docs | Quickstart, concepts, guides (including migration, safe writes, deployment, the broker), references | API reference generated from code; publishing the site |
-| Jobs | Background jobs with leases; `interrupted` after a restart | Resuming interrupted jobs; mapping onto the MCP tasks extension |
+| Section 16.3 docs | Quickstart, concepts, guides (including migration, safe writes, deployment, the broker), references, and an API reference generated from the code with mkdocstrings (M4) | Publishing the site |
+| Jobs | Background jobs with leases; named jobs (`@server.job`) resume on the next `jobs.get` after a restart, on any replica, up to `max_attempts` ([proposal 0028](proposals/0028-resumable-jobs.md)) | Mapping onto the MCP tasks extension (needs the `fastmcp-tasks` package; owner decision) |
 
 #### Pending that needs people or real systems
 
@@ -900,7 +900,7 @@ Status as of 12 November 2026. M1 ([PR #13](https://github.com/subbusainath/ounc
 
 | Group | Requirements |
 | --- | --- |
-| Eval | Release gate 6 with paid models (OpenRouter account needs credits; free models are limited to about 50 requests a day) |
+| Eval | Release gate 6: run the benchmark again before each release and compare (about $2.20; the check itself is built) |
 | Benchmark | Open-source servers (10–20), desktop hosts, larger catalogs; the PERF-6 decision (proposal 0027) |
 | Tokenizers | BUD-6 provider counting adapters (need API keys) |
 | Discovery | DISC-8 (`code` mode, post-1.0) |
