@@ -1,0 +1,95 @@
+{
+  "gate": "release gate 7: PERF-1 to PERF-5",
+  "commit": "d80e03d",
+  "python": "3.13.18",
+  "platform": "Linux-6.18.44-fc-v470-x86_64-with-glibc2.39",
+  "cpus": 4,
+  "time": "2026-11-15T10:45:04Z",
+  "results": {
+    "PERF-1": {
+      "iterations": 2000,
+      "python": "3.13.18",
+      "machine": "x86_64",
+      "target": {
+        "added_p50_ms": 2,
+        "added_p95_ms": 10
+      },
+      "cases": {
+        "truncated to 300 tokens": {
+          "ouncemcp_p50_ms": 1.333,
+          "ouncemcp_p95_ms": 2.085,
+          "plain_p50_ms": 0.947,
+          "plain_p95_ms": 1.049,
+          "added_p50_ms": 0.387,
+          "added_p95_ms": 1.035
+        },
+        "small (limit=5)": {
+          "ouncemcp_p50_ms": 0.736,
+          "ouncemcp_p95_ms": 0.826,
+          "plain_p50_ms": 0.496,
+          "plain_p95_ms": 0.577,
+          "added_p50_ms": 0.24,
+          "added_p95_ms": 0.249
+        },
+        "page (limit=20)": {
+          "ouncemcp_p50_ms": 1.017,
+          "ouncemcp_p95_ms": 1.107,
+          "plain_p50_ms": 0.591,
+          "plain_p95_ms": 0.72,
+          "added_p50_ms": 0.426,
+          "added_p95_ms": 0.387
+        },
+        "full page (limit=50)": {
+          "ouncemcp_p50_ms": 0.846,
+          "ouncemcp_p95_ms": 1.535,
+          "plain_p50_ms": 0.496,
+          "plain_p95_ms": 0.579,
+          "added_p50_ms": 0.35,
+          "added_p95_ms": 0.955
+        }
+      },
+      "met": true
+    },
+    "PERF-2": {
+      "tools": 50,
+      "runs": 5,
+      "cold_start_ms_median": 1602.4,
+      "cold_start_ms_max": 1994.5,
+      "of_which_imports_ms_median": 1115.8,
+      "plain_fastmcp_cold_start_ms_median": 1009.5,
+      "plain_fastmcp_imports_ms_median": 887.2,
+      "added_by_ouncemcp_ms_median": 592.9,
+      "target_ms": 1000,
+      "met": false
+    },
+    "PERF-3": {
+      "tools": 500,
+      "definition_tokens": 107900,
+      "counting_ms_median": 76.4,
+      "listing_and_counting_ms": 300.3,
+      "target_ms": 2000,
+      "met": true
+    },
+    "PERF-4": {
+      "tools": 100,
+      "audit_ms": 278.7,
+      "network": "loopback HTTP (a remote server adds its round-trip time)",
+      "target_ms": 10000,
+      "met": true
+    },
+    "PERF-5": {
+      "tools_registered": 100,
+      "mode": "search",
+      "direct_tokens": 21500,
+      "search_mode_startup_tokens": 279,
+      "listed": [
+        "search_tools",
+        "describe_tool",
+        "call_tool"
+      ],
+      "target_tokens": 400,
+      "met": true
+    }
+  },
+  "all_met": false
+}
