@@ -58,7 +58,7 @@ Choose **New ruleset → Import a ruleset** and import `.github/rulesets/main.js
 
 **Settings → Pages (optional)**
 
-Publish the documentation site. The `docs` job already builds it in strict mode; a deploy workflow can be added once Pages is on.
+Set **Source** to **GitHub Actions**. `.github/workflows/docs.yml` then builds the site in strict mode and deploys it on every push to `main` (or by hand from the Actions tab). With the source left on "Deploy from a branch", GitHub publishes its own render of the repository files instead of the docs site. The site URL defaults to `https://subbusainath.github.io/ouncemcp/`; the workflow passes the real one, so a custom domain needs no change here.
 
 ## 4. Make the repository public
 

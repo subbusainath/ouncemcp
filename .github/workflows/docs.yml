@@ -1,0 +1,49 @@
+name: Docs
+
+# Builds the documentation site with MkDocs and publishes it to GitHub Pages on every
+# push to main. Pull requests are checked by the `docs` job in ci.yml instead.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Least privilege by default; only the deploy job may write to Pages.
+permissions:
+  contents: read
+
+# One deploy at a time. A newer push waits, and a deploy already running is not cancelled.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          python-version: "3.12"
+      - run: uv venv
+      - run: uv pip install -e ".[docs]"
+      - id: pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
+      - run: uv run mkdocs build --strict --site-dir site
+        env:
+          SITE_URL: ${{ steps.pages.outputs.base_url }}/
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
