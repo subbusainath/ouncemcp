@@ -2,7 +2,9 @@
 
 All notable changes to OunceMCP. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [semantic versioning](https://semver.org/) with the promises in [proposal 0029](https://github.com/subbusainath/ouncemcp/blob/main/docs/proposals/0029-api-freeze.md).
 
-## 1.0.0 (unreleased)
+## 1.0.0rc1 (15 November 2026)
+
+Release candidate for 1.0.0. Install it with `pip install --pre ouncemcp` or `pipx install "ouncemcp==1.0.0rc1"`. 1.0.0 follows the external security review; the API below will not change before it unless the review requires it.
 
 The first stable release. The public API is frozen: names listed as stable in proposal 0029 do not change in a breaking way before 2.0.
 

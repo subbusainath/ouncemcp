@@ -46,7 +46,7 @@ from ouncemcp.execution.handles import JobResult
 from ouncemcp.execution.idempotency import Idempotency
 from ouncemcp.execution.store import KeyValueStore, MemoryStore, OunceStore, RedisStore
 
-__version__ = "0.0.1.dev0"
+__version__ = "1.0.0rc1"
 
 __all__ = [
     "AmbiguousWrite",

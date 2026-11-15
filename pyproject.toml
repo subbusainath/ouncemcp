@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ouncemcp"
-version = "0.0.1.dev0"
+version = "1.0.0rc1"
 description = "Build MCP servers and clients that are fast, low-noise, and safe for agents by default."
 readme = "README.md"
 license = "Apache-2.0"
@@ -12,7 +12,7 @@ requires-python = ">=3.11"
 authors = [{ name = "Subbusainath Rengasamy" }]
 keywords = ["mcp", "model-context-protocol", "agents", "llm", "fastmcp"]
 classifiers = [
-  "Development Status :: 1 - Planning",
+  "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.11",
@@ -52,7 +52,11 @@ dev = [
 ouncemcp = "ouncemcp.cli:main"
 
 [project.urls]
+Homepage = "https://subbusainath.github.io/ouncemcp/"
+Documentation = "https://subbusainath.github.io/ouncemcp/"
 Repository = "https://github.com/subbusainath/ouncemcp"
+Changelog = "https://github.com/subbusainath/ouncemcp/blob/main/CHANGELOG.md"
+Issues = "https://github.com/subbusainath/ouncemcp/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ouncemcp"]

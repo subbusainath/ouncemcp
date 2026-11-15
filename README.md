@@ -18,8 +18,9 @@ Most MCP slowdowns don't come from the protocol. They come from loading every to
 ## Quickstart
 
 ```bash
+pipx install "ouncemcp==1.0.0rc1"   # or: uv tool install --prerelease allow ouncemcp
 ouncemcp init notes-server && cd notes-server
-uv venv && uv pip install -e ".[dev]"   # until it is on PyPI, add: -e /path/to/ouncemcp
+uv venv && uv pip install --prerelease allow -e ".[dev]"
 uv run pytest && uv run ouncemcp dev server.py
 ```
 
