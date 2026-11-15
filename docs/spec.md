@@ -686,6 +686,9 @@ If this document and the code disagree, the code on `main` wins. Update this doc
 | [#17](https://github.com/subbusainath/ouncemcp/pull/17) | M3 and M4: real-model evals, `bench`, the first benchmark, the P1 requirements; proposals 0021 to 0027 | Merged |
 | [#18](https://github.com/subbusainath/ouncemcp/pull/18) | M4: release gates 6 and 7, resumable jobs, API reference and snapshot; proposal 0028 | Merged |
 | [#19](https://github.com/subbusainath/ouncemcp/pull/19) | PERF-2 and PERF-6 revisions accepted, API freeze draft, The OunceMCP Book, repository rules for going public; proposal 0029 | Merged |
+| [#23](https://github.com/subbusainath/ouncemcp/pull/23) | Spec milestone status; workflow actions pinned to commit SHAs | Merged |
+| [#24](https://github.com/subbusainath/ouncemcp/pull/24) | `minimatch` advisory fixed in the report UI; docs deploy workflow for GitHub Pages | Merged |
+| [#25](https://github.com/subbusainath/ouncemcp/pull/25) | Docs site: Material theme, a landing page, and corrections checked against the code | Merged |
 
 #### Public API today
 
@@ -849,14 +852,14 @@ These were measured on Python 3.12.15, x86_64, 2 vCPU.
 
 ### 15.4 Milestone status: completed and pending
 
-Status as of 15 November 2026. Everything below is merged into `main`. M1 ([PR #13](https://github.com/subbusainath/ouncemcp/pull/13)) and M2 ([PR #14](https://github.com/subbusainath/ouncemcp/pull/14)) are checked in the [M2 report](m2-report.md); M3 and M4 ([PR #16](https://github.com/subbusainath/ouncemcp/pull/16) to [PR #19](https://github.com/subbusainath/ouncemcp/pull/19)) in the [M4 report](m4-report.md); host runs are in the [compatibility matrix](compatibility.md).
+Status as of 15 November 2026. Everything below is merged into `main`. M1 ([PR #13](https://github.com/subbusainath/ouncemcp/pull/13)) and M2 ([PR #14](https://github.com/subbusainath/ouncemcp/pull/14)) are checked in the [M2 report](m2-report.md); M3 and M4 ([PR #16](https://github.com/subbusainath/ouncemcp/pull/16) to [PR #19](https://github.com/subbusainath/ouncemcp/pull/19)) in the [M4 report](m4-report.md); host runs are in the [compatibility matrix](compatibility.md). Since then, [PR #23](https://github.com/subbusainath/ouncemcp/pull/23) to [PR #25](https://github.com/subbusainath/ouncemcp/pull/25) pinned the workflow actions to commit SHAs, fixed the `minimatch` advisory in the report UI, and published the documentation site to GitHub Pages with the Material theme.
 
 | Milestone | State | Summary |
 | --- | --- | --- |
 | **M0: Core spike** | **Complete**; host verification done in M1 (Claude Desktop, Cursor) | Core, budgets, shaping, token counting, `check` and `context`, inventory example, overhead measured |
 | **M1: Framework 0.1** | **Merged; host verification passed** | Open: DX-8 user testing and the inventory pilot with real data |
 | **M2: Framework 0.2** | **Complete** ([PR #14](https://github.com/subbusainath/ouncemcp/pull/14)); exit criteria and gates 1 to 5 met | Store and idempotency, safe writes, handles and jobs, resources and prompts, migration adapter and guide, `audit`, client broker, `ouncemcp.toml`, health and metrics, description lints; ticketing, report and markitdown-mcp pilots |
-| **M3: Eval and benchmark 0.5** | **Exit criteria met** ([PR #16](https://github.com/subbusainath/ouncemcp/pull/16), [PR #17](https://github.com/subbusainath/ouncemcp/pull/17), [PR #19](https://github.com/subbusainath/ouncemcp/pull/19)): trace viewer, OpenTelemetry, task suites, report UI, real models through OpenRouter, `ouncemcp bench`, the first benchmark (four models, 840 runs) published with its scripts; PERF-6 revised and accepted (proposal 0027) | Open: open-source servers, desktop hosts and larger catalogs in the benchmark (paid runs); public launch (repository visibility, PyPI, docs site) |
+| **M3: Eval and benchmark 0.5** | **Exit criteria met** ([PR #16](https://github.com/subbusainath/ouncemcp/pull/16), [PR #17](https://github.com/subbusainath/ouncemcp/pull/17), [PR #19](https://github.com/subbusainath/ouncemcp/pull/19)): trace viewer, OpenTelemetry, task suites, report UI, real models through OpenRouter, `ouncemcp bench`, the first benchmark (four models, 840 runs) published with its scripts; PERF-6 revised and accepted (proposal 0027) | Open: open-source servers, desktop hosts and larger catalogs in the benchmark (paid runs); public launch (repository visibility, PyPI); the docs site is published |
 | **M4: 1.0** | **Built** ([PR #17](https://github.com/subbusainath/ouncemcp/pull/17), [PR #18](https://github.com/subbusainath/ouncemcp/pull/18), [PR #19](https://github.com/subbusainath/ouncemcp/pull/19)): the P1 requirements that need no people or keys (proposals 0021 to 0025), release gates 6 and 7 checked, PERF-2 revised and met, resumable jobs (0028), API reference and snapshot test, the API freeze drafted (0029), The OunceMCP Book, repository rules for going public | Open: external security review; accepting the API freeze; host matrix follow-ups; a fresh benchmark run before release for gate 6 |
 | **Post-1.0** | Not started | TypeScript port, `code` discovery mode, more idempotency backends, `npx` audit wrapper |
 
@@ -886,6 +889,7 @@ Status as of 15 November 2026. Everything below is merged into `main`. M1 ([PR #
 | Real-model evals, `bench`, the first benchmark | EVAL-3 to EVAL-7 with real models, PERF-6 | [PR #17](https://github.com/subbusainath/ouncemcp/pull/17) (proposals 0026, 0027) |
 | Release gates 6 and 7, resumable jobs, API reference and snapshot | Gates 6 and 7, PERF-1 to PERF-5 | [PR #18](https://github.com/subbusainath/ouncemcp/pull/18) (proposal 0028) |
 | PERF-2 and PERF-6 revisions accepted, API freeze draft, The OunceMCP Book, repository rules | PERF-2, PERF-6, section 16.3 | [PR #19](https://github.com/subbusainath/ouncemcp/pull/19) (proposal 0029) |
+| Documentation site published to GitHub Pages on every merge to `main` (Material theme, corrections checked against the code) | Section 16.3 | [PR #24](https://github.com/subbusainath/ouncemcp/pull/24), [PR #25](https://github.com/subbusainath/ouncemcp/pull/25) |
 
 #### Partly done
 
@@ -893,7 +897,6 @@ Status as of 15 November 2026. Everything below is merged into `main`. M1 ([PR #
 | --- | --- | --- |
 | BUD-7 (per-host data, P1) | Declared counting scope | Host study in real hosts; decide the output-schema default |
 | BUD-6 (P1 part) | tiktoken encodings and callables | Provider counting adapters |
-| Section 16.3 docs | Quickstart, concepts, guides (including migration, safe writes, deployment, the broker), references, an API reference generated from the code with mkdocstrings, and The OunceMCP Book (M4) | Publishing the site |
 | Jobs | Background jobs with leases; named jobs (`@server.job`) resume on the next `jobs.get` after a restart, on any replica, up to `max_attempts` ([proposal 0028](proposals/0028-resumable-jobs.md)) | Mapping onto the MCP tasks extension (needs the `fastmcp-tasks` package; owner decision) |
 
 #### Pending that needs people or real systems
@@ -905,7 +908,7 @@ Status as of 15 November 2026. Everything below is merged into `main`. M1 ([PR #
 | Read-only inventory pilot | Section 15.1 | Needs real data and credentials |
 | External security review | M4 exit criteria | Needs a reviewer outside the project |
 | API freeze | M4 exit criteria | Owner review and acceptance of [proposal 0029](proposals/0029-api-freeze.md) |
-| Public launch | M3 scope | Owner: import the rulesets, apply [the repository settings](maintainers/repository-settings.md), make the repository public, publish to PyPI and the docs site |
+| Public launch | M3 scope | Owner: make the repository public and publish to PyPI; import the rulesets and apply [the repository settings](maintainers/repository-settings.md) if not done yet. The docs site is already published |
 
 #### Pending in P1 and later
 
