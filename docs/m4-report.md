@@ -44,3 +44,13 @@ The same check runs on two saved reports with `ouncemcp bench --from new.json --
     - A task whose success fell. Five runs per task are too few to tell a real drop from chance, so these are for a person to read.
     - Tokens per task up by more than 10%.
 - **Status.** The check is in place and passes against itself. It needs a new paid run (about $2.20 at the current scale) before each release. Running it is the release owner's decision, because it spends money.
+
+## Preparing the API freeze
+
+The 1.0 exit criteria include a frozen API. Two pieces are in place:
+
+- **An API reference generated from the code** (`docs/reference/`, mkdocstrings). It covers `OunceServer`, `ToolContext`, budgets and tokenizers, errors, execution, security, clients, evaluation and the testing helpers.
+- **A snapshot of the public API** (`tests/api_snapshot.json`): 94 exported names across six modules, with every public signature. `tests/test_api_surface.py` fails on any change until the snapshot is updated, so changes are deliberate and visible in review. It gives the same result on Python 3.11, 3.12 and 3.13.
+
+The freeze itself is a decision for the owner: review the names in the snapshot, mark anything that should stay internal, then declare it stable for 1.0.
+
