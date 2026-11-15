@@ -1,6 +1,7 @@
 site_name: OunceMCP
 site_description: Build MCP servers that are fast, low-noise and safe for agents by default.
 repo_url: https://github.com/subbusainath/ouncemcp
+site_url: !ENV [SITE_URL, "https://subbusainath.github.io/ouncemcp/"]
 docs_dir: docs
 strict: true
 nav:
