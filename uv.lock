@@ -1532,7 +1532,7 @@ otel = [
 [package.metadata]
 requires-dist = [
     { name = "anyio", marker = "extra == 'dev'", specifier = ">=4" },
-    { name = "fastmcp", specifier = "==4.1.6" },
+    { name = "fastmcp", specifier = ">=4.1.6,<5" },
     { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.100" },
     { name = "jsonschema", specifier = ">=4.20" },
     { name = "mkdocs", marker = "extra == 'docs'", specifier = "==1.6.1" },

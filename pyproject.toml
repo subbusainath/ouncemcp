@@ -23,7 +23,7 @@ classifiers = [
 # FastMCP and the tokenizer are pinned exactly and rechecked each release (spec 6.2).
 # FastMCP 4.1.6 brings the MCP Python SDK 2.3.0.
 dependencies = [
-  "fastmcp==4.1.6",
+  "fastmcp>=4.1.6,<5",
   "tiktoken==0.14.0",
   "pydantic>=2.11,<3",
   "jsonschema>=4.20",

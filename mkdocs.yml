@@ -123,6 +123,7 @@ nav:
           - write-without-side-effects: rules/write-without-side-effects.md
           - missing-usage-guidance: rules/missing-usage-guidance.md
   - Project:
+      - Changelog: changelog.md
       - Specification: spec.md
       - M0 report: m0-report.md
       - M2 report: m2-report.md

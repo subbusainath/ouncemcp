@@ -13,9 +13,15 @@
 - Trace redaction (SEC-11) lives in ``ouncemcp.trace``.
 """
 
-from ouncemcp.security.cache import CacheView, PartitionedCache, partition_key
+import functools
+import warnings
+from collections.abc import Callable
+from typing import Any, TypeVar
+
+from ouncemcp.security import cache as _cache
+from ouncemcp.security import http as _http
+from ouncemcp.security.cache import CacheView, PartitionedCache
 from ouncemcp.security.fetch import PinnedTransport, safe_client
-from ouncemcp.security.http import resolve_http_options
 from ouncemcp.security.identity import (
     ANONYMOUS_IDENTITY,
     Identity,
@@ -43,6 +49,34 @@ from ouncemcp.security.policy import (
 from ouncemcp.security.replay import UnsafeInputRequest
 from ouncemcp.security.state import InvalidState, StateSigner
 from ouncemcp.security.urls import URLNotAllowed, check_url, checked_addresses
+
+_F = TypeVar("_F", bound=Callable[..., Any])
+
+
+def _internal(func: _F, reason: str) -> _F:
+    """Keep an internal helper importable from here for one release, with a warning
+    (proposal 0029): it was public only by accident."""
+
+    @functools.wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        warnings.warn(
+            f"ouncemcp.security.{func.__name__} is internal and will be removed in 1.1; {reason}",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return func(*args, **kwargs)
+
+    return wrapper  # type: ignore[return-value]
+
+
+resolve_http_options = _internal(
+    _http.resolve_http_options,
+    "OunceServer.run applies it for you; pass host and allowed_hosts to run() instead.",
+)
+partition_key = _internal(
+    _cache.partition_key,
+    "PartitionedCache uses it for you; use ctx.cache or PartitionedCache instead.",
+)
 
 __all__ = [
     "ANONYMOUS_IDENTITY",

@@ -1,6 +1,6 @@
 # 0029: The 1.0 API freeze
 
-Status: draft for the owner's review (M4 exit criterion "API frozen").
+Status: accepted (M4 exit criterion "API frozen"). Accepted by the owner as drafted, 15 November 2026.
 
 ## Problem
 
@@ -31,7 +31,7 @@ These are public and documented, but may change in a minor release, with the cha
 - `ouncemcp.eval.bench`.
 - `ouncemcp.ui`.
 
-### To make internal before 1.0 (proposed)
+### Made internal at 1.0
 
 These are plumbing that is public only by accident. Each keeps working for one release with a `DeprecationWarning`.
 
@@ -63,17 +63,17 @@ These are visible to users and agents outside Python, so they get the same promi
 4. **Defaults are API.** Changing a default (budgets, `output_schemas`, discovery thresholds, `stdio_policy`) counts as a breaking change unless it only makes results smaller or safer, and it needs a proposal.
 5. **Supported versions.**
     - Python: 3.11 and later, following CPython's end-of-life dates.
-    - FastMCP: today OunceMCP pins it exactly (`fastmcp==4.1.6`). At 1.0 this should become a tested range within one FastMCP major (`>=4.1.6,<5`), with CI testing the lowest and highest versions in that range.
+    - FastMCP: a tested range within one FastMCP major, `>=4.1.6,<5`, with CI testing the lowest and highest versions in that range.
 
 ## Before declaring the freeze
 
 - [x] Snapshot test of every public name and signature, stable on Python 3.11 to 3.13.
 - [x] API reference generated from the code.
 - [x] Missing exports added: `JobResult`, `BudgetOverride`, `BudgetOverrideWarning`; `ouncemcp.trace` and `ouncemcp.eval` tracked.
-- [ ] Owner review of the stable and provisional lists above.
-- [ ] Deprecate the two internal security helpers.
-- [ ] Change the FastMCP pin to a tested range.
-- [ ] Add a CHANGELOG with the 1.0 entry, and mark the stable modules in the API reference.
+- [x] Owner review of the stable and provisional lists above.
+- [x] Deprecate the two internal security helpers: they warn and will be removed in 1.1.
+- [x] Change the FastMCP pin to a tested range: `>=4.1.6,<5`. The CI matrix tests 4.1.6 from the lockfile, and the `fastmcp-latest` job tests the newest release (4.2.0 today).
+- [x] Add a CHANGELOG with the 1.0 entry, and mark the stable modules in the API reference.
 
 ## Alternatives considered
 
