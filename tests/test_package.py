@@ -9,7 +9,7 @@ SUBPACKAGES = ["core", "discovery", "execution", "client", "eval", "trace", "cli
 
 
 def test_version():
-    assert ouncemcp.__version__ == "0.0.1.dev0"
+    assert ouncemcp.__version__ == "1.0.0rc1"
 
 
 @pytest.mark.parametrize("name", SUBPACKAGES)
