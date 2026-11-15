@@ -26,3 +26,14 @@ def test_cli_help_exits_zero(capsys):
 def test_unimplemented_commands_report_milestone(command, capsys):
     assert main([command]) == 2
     assert "not implemented yet" in capsys.readouterr().err
+
+
+def test_readme_links_work_on_pypi():
+    """PyPI shows README.md as the project description, where relative links 404."""
+    import re
+    from pathlib import Path
+
+    readme = (Path(__file__).resolve().parents[1] / "README.md").read_text()
+    targets = re.findall(r"\]\(([^)\s]+)\)", readme)
+    relative = [t for t in targets if not re.match(r"(https?:|#|mailto:)", t)]
+    assert not relative, f"use absolute URLs in README.md (shown on PyPI): {relative}"
