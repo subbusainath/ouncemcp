@@ -157,7 +157,7 @@ tests/
 | M0: core spike | `OunceServer`, typed tools with effects, token counting, result budgets, one example server | Built ([M0 report](https://subbusainath.github.io/ouncemcp/m0-report/)) |
 | M1: v0.1 | Framework core, automatic discovery, errors, security, `init`/`dev`/`check`/`context`, docs | Built |
 | M2: v0.2 | Safe writes, client broker, migration guide, pilots, optional `audit` | Built ([M2 report](https://subbusainath.github.io/ouncemcp/m2-report/)) |
-| M3: v0.5 | Eval kit, trace viewer, public benchmark, launch | Built ([benchmark](https://github.com/subbusainath/ouncemcp/blob/main/benchmarks/results/m3-bench.md)); launch waits on the repository going public |
+| M3: v0.5 | Eval kit, trace viewer, public benchmark, launch | Built ([benchmark](https://github.com/subbusainath/ouncemcp/blob/main/benchmarks/results/m3-bench.md)); release candidates on [PyPI](https://pypi.org/project/ouncemcp/); the repository goes public next |
 | M4: v1.0 | Security review, host compatibility matrix, stable API, the book | API frozen ([0029](https://subbusainath.github.io/ouncemcp/proposals/0029-api-freeze/)), all release gates checked, release workflow ready ([M4 report](https://subbusainath.github.io/ouncemcp/m4-report/)); waiting on the external security review |
 
 The full plan is in [docs/spec.md](https://subbusainath.github.io/ouncemcp/spec/), and the supporting research is in [docs/performance-research.md](https://subbusainath.github.io/ouncemcp/performance-research/).
