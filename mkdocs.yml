@@ -129,6 +129,7 @@ nav:
       - M2 report: m2-report.md
       - M4 report: m4-report.md
       - Repository settings: maintainers/repository-settings.md
+      - Releasing: maintainers/releasing.md
       - Performance research: performance-research.md
       - Proposals:
           - Overview: proposals/README.md
