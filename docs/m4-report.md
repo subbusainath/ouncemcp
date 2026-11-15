@@ -26,6 +26,21 @@ OunceMCP's own 0.59 s, from profiling:
 
 **Proposed revision, for the owner to decide:** measure PERF-2 as the time OunceMCP adds over plain FastMCP for 50 tools, with a target of under 0.75 s, and report the plain FastMCP baseline alongside it. A long-lived server pays this once. Hosts that start a stdio server per session see it on the first request.
 
-## Gate 6: accuracy
+## Gate 6: accuracy against the benchmark baseline
 
-See the [accuracy check](#gate-6-accuracy-against-the-benchmark-baseline) below.
+The gate says a release must not show a statistically meaningful drop in task success against the previous one. The baseline is the first benchmark, `benchmarks/results/m3-bench.json`: four models, two pilot suites, OunceMCP and plain FastMCP, 5 runs per task.
+
+Before a release, run the benchmark again and compare:
+
+```bash
+ouncemcp bench benchmarks/bench.yaml --output new.json \
+    --compare benchmarks/results/m3-bench.json --fail-on-regression
+```
+
+The same check runs on two saved reports with `ouncemcp bench --from new.json --compare old.json`.
+
+- **The test.** For every suite, model and server present in both reports, a one-sided Fisher exact test on successes and runs, at alpha 0.05. Any significant drop fails the gate. With about 50 runs per suite and model, a fall from 100% to 80% is significant (p < 0.001); a fall from 100% to 96% is not (p ≈ 0.25).
+- **Warnings that do not fail the gate.**
+    - A task whose success fell. Five runs per task are too few to tell a real drop from chance, so these are for a person to read.
+    - Tokens per task up by more than 10%.
+- **Status.** The check is in place and passes against itself. It needs a new paid run (about $2.20 at the current scale) before each release. Running it is the release owner's decision, because it spends money.

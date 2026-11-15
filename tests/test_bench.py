@@ -152,3 +152,66 @@ def test_published_results_render(tmp_path: Path, capsys):
     assert '"kind":"bench"' in page.read_text()
     data = json.loads(results.read_text())
     assert data["perf6"]["pairs"] == 8 and data["usage"]["cost_usd"] <= 5
+
+
+def _report(rows: dict) -> dict:
+    """A bench report with one result per (model, condition): (successes, runs, tokens)."""
+    results = []
+    for (model, condition), (ok, n, tokens) in rows.items():
+        results.append(
+            {
+                "suite": "s",
+                "model": model,
+                "condition": condition,
+                "report": {
+                    "splits": {
+                        "all": {"runs": n, "success_rate": ok / n, "tokens_per_task": tokens}
+                    },
+                    "tasks": {"t1": {"success_rate": ok / n}},
+                },
+            }
+        )
+    return {"results": results}
+
+
+def test_fisher_drop_p():
+    from ouncemcp.eval.bench import fisher_drop_p
+
+    assert fisher_drop_p(50, 50, 50, 50) == 1.0
+    assert fisher_drop_p(50, 50, 40, 50) < 0.001  # 100% -> 80% over 50 runs is real
+    assert fisher_drop_p(50, 50, 48, 50) > 0.2  # 100% -> 96% could be chance
+
+
+def test_gate6_flags_only_meaningful_drops():
+    from ouncemcp.eval.bench import compare_releases
+
+    old = _report({("m", "ounce"): (50, 50, 1000), ("m", "plain"): (35, 50, 900)})
+    noise = _report({("m", "ounce"): (48, 50, 1050), ("m", "plain"): (33, 50, 1200)})
+    result = compare_releases(old, noise)
+    assert result["passed"] and not any(c["regression"] for c in result["checks"])
+    assert any("tokens per task rose" in w for w in result["warnings"])
+    assert any("task t1 fell" in w for w in result["warnings"])
+    drop = _report({("m", "ounce"): (38, 50, 1000), ("m", "plain"): (35, 50, 900)})
+    failed = compare_releases(old, drop)
+    assert not failed["passed"]
+    assert [c["condition"] for c in failed["checks"] if c["regression"]] == ["ounce"]
+    assert compare_releases(old, {"results": []})["passed"] is False  # nothing compared
+
+
+def test_gate6_cli_against_the_published_baseline(tmp_path: Path, capsys):
+    baseline = ROOT / "benchmarks" / "results" / "m3-bench.json"
+    assert (
+        main(["bench", "--from", str(baseline), "--compare", str(baseline), "--fail-on-regression"])
+        == 0
+    )
+    assert "Gate 6 passed" in capsys.readouterr().out
+    worse = json.loads(baseline.read_text())
+    first = worse["results"][0]["report"]["splits"]["all"]
+    first["success_rate"] = 0.5
+    path = tmp_path / "worse.json"
+    path.write_text(json.dumps(worse))
+    assert (
+        main(["bench", "--from", str(path), "--compare", str(baseline), "--fail-on-regression"])
+        == 1
+    )
+    assert "REGRESSION" in capsys.readouterr().out

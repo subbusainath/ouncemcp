@@ -598,7 +598,7 @@ A release MUST NOT ship if any gate fails:
 3. **Writes:** No duplicate effects on replay within the documented guarantee.
 4. **Approvals:** Unsupported clients cannot bypass required approvals.
 5. **Budgets:** Example servers and scaffold pass `ouncemcp check`, and the shaping fuzz test (RES-8) and pagination property test (RES-9) pass.
-6. **Accuracy:** No statistically meaningful drop in task success versus the previous release.
+6. **Accuracy:** No statistically meaningful drop in task success versus the previous release. **Check in place (M4): `ouncemcp bench --compare benchmarks/results/m3-bench.json --fail-on-regression`, a one-sided Fisher exact test per suite, model and server ([M4 report](m4-report.md)).**
 7. **Performance:** PERF-1 through PERF-5 met or regressions explained.
 8. **Documentation:** Every lint rule and error links to a working page.
 
@@ -900,7 +900,7 @@ Status as of 12 November 2026. M1 ([PR #13](https://github.com/subbusainath/ounc
 
 | Group | Requirements |
 | --- | --- |
-| Eval | Release gate 6 with paid models (OpenRouter account needs credits; free models are limited to about 50 requests a day) |
+| Eval | Release gate 6: run the benchmark again before each release and compare (about $2.20; the check itself is built) |
 | Benchmark | Open-source servers (10–20), desktop hosts, larger catalogs; the PERF-6 decision (proposal 0027) |
 | Tokenizers | BUD-6 provider counting adapters (need API keys) |
 | Discovery | DISC-8 (`code` mode, post-1.0) |
