@@ -17,6 +17,20 @@
         "__init__": "(self, tool_definition_target: 'int' = 250, tool_definition_warn: 'int' = 500, tool_definition_fail: 'int' = 1000, startup_tokens: 'int' = 4000, result_tokens: 'int' = 2000, result_ceiling: 'int' = 8000) -> None"
       }
     },
+    "BudgetOverride": {
+      "init": "(result_tokens: 'int | None' = None, definition_tokens: 'int | None' = None, reason: 'str | None' = None) -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, result_tokens: 'int | None' = None, definition_tokens: 'int | None' = None, reason: 'str | None' = None) -> None",
+        "raises": "(self, budget: 'Budget') -> 'bool'",
+        "to_dict": "(self) -> 'dict[str, Any]'"
+      }
+    },
+    "BudgetOverrideWarning": {
+      "init": "(?)",
+      "kind": "class",
+      "members": {}
+    },
     "CallableCounter": {
       "init": "(fn: 'Callable[[str], int]', *, name: 'str') -> 'None'",
       "kind": "class",
@@ -77,6 +91,13 @@
       "init": "(message: 'str', *, hint: 'str | None' = None, retry_after: 'float | None' = None) -> 'None'",
       "kind": "class",
       "members": {}
+    },
+    "JobResult": {
+      "init": "(summary: 'BaseModel | dict[str, Any] | None' = None, items: 'Sequence[Any] | None' = None) -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, summary: 'BaseModel | dict[str, Any] | None' = None, items: 'Sequence[Any] | None' = None) -> None"
+      }
     },
     "KeyValueStore": {
       "init": "(kv: 'Any') -> 'None'",
@@ -389,6 +410,71 @@
       "signature": "(*, client_id: 'str | None' = None, client_metadata_url: 'str | None' = None, allow_dynamic: 'bool' = True) -> 'Registration'"
     }
   },
+  "ouncemcp.eval": {
+    "CrossTenant": {
+      "init": "(tool: 'str', arguments: 'Mapping[str, Any]', owner: 'Caller', intruder: 'Caller') -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, tool: 'str', arguments: 'Mapping[str, Any]', owner: 'Caller', intruder: 'Caller') -> None",
+        "run": "(self, server: 'Any') -> 'list[ProbeResult]'"
+      }
+    },
+    "CursorReuse": {
+      "init": "(tool: 'str', arguments: 'Mapping[str, Any]', owner: 'Caller', intruder: 'Caller', cursor_field: 'str' = 'next_cursor', cursor_argument: 'str' = 'cursor') -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, tool: 'str', arguments: 'Mapping[str, Any]', owner: 'Caller', intruder: 'Caller', cursor_field: 'str' = 'next_cursor', cursor_argument: 'str' = 'cursor') -> None",
+        "run": "(self, server: 'Any') -> 'list[ProbeResult]'"
+      }
+    },
+    "GuessedName": {
+      "init": "(tool: 'str', intruder: 'Caller' = None, arguments: 'Mapping[str, Any]' = <factory>) -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, tool: 'str', intruder: 'Caller' = None, arguments: 'Mapping[str, Any]' = <factory>) -> None",
+        "run": "(self, server: 'Any') -> 'list[ProbeResult]'"
+      }
+    },
+    "HandleReplay": {
+      "init": "(issue: 'str', issue_arguments: 'Mapping[str, Any]', use: 'str', handle_field: 'str', handle_argument: 'str', owner: 'Caller', intruder: 'Caller', use_arguments: 'Mapping[str, Any]' = <factory>, single_use: 'bool' = False) -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, issue: 'str', issue_arguments: 'Mapping[str, Any]', use: 'str', handle_field: 'str', handle_argument: 'str', owner: 'Caller', intruder: 'Caller', use_arguments: 'Mapping[str, Any]' = <factory>, single_use: 'bool' = False) -> None",
+        "run": "(self, server: 'Any') -> 'list[ProbeResult]'"
+      }
+    },
+    "SSRFProbe": {
+      "init": "(tool: 'str', argument: 'str', caller: 'Caller' = None, arguments: 'Mapping[str, Any]' = <factory>, targets: 'Sequence[str]' = ('http://169.254.169.254/latest/meta-data/', 'http://127.0.0.1:22/', 'http://localhost/admin', 'http://10.0.0.1/', 'http://[::1]/', 'http://metadata.google.internal/computeMetadata/v1/')) -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, tool: 'str', argument: 'str', caller: 'Caller' = None, arguments: 'Mapping[str, Any]' = <factory>, targets: 'Sequence[str]' = ('http://169.254.169.254/latest/meta-data/', 'http://127.0.0.1:22/', 'http://localhost/admin', 'http://10.0.0.1/', 'http://[::1]/', 'http://metadata.google.internal/computeMetadata/v1/')) -> None",
+        "run": "(self, server: 'Any') -> 'list[ProbeResult]'"
+      }
+    },
+    "SecurityReport": {
+      "init": "(results: 'list[ProbeResult]' = <factory>) -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, results: 'list[ProbeResult]' = <factory>) -> None",
+        "failures": "property",
+        "passed": "property",
+        "render_text": "(self) -> 'str'",
+        "to_dict": "(self) -> 'dict[str, Any]'"
+      }
+    },
+    "TokenPassthrough": {
+      "init": "(tool: 'str', arguments: 'Mapping[str, Any]', recorded: 'Callable[[], Iterable[Mapping[str, Any]]]', caller: 'Mapping[str, Any]' = <factory>) -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, tool: 'str', arguments: 'Mapping[str, Any]', recorded: 'Callable[[], Iterable[Mapping[str, Any]]]', caller: 'Mapping[str, Any]' = <factory>) -> None",
+        "run": "(self, server: 'Any') -> 'list[ProbeResult]'"
+      }
+    },
+    "run_security_suite": {
+      "kind": "function",
+      "signature": "(server: 'Any', cases: 'Iterable[Any]' = (), *, automatic: 'bool' = True) -> 'SecurityReport'"
+    }
+  },
   "ouncemcp.eval.agent": {
     "EvalReport": {
       "init": "(suite: 'str', suite_digest: 'str', model: 'str', target: 'str', tokenizer: 'str', environment: 'dict[str, Any]', tasks: 'dict[str, Task]', runs: 'list[RunRecord]', recall: 'dict[str, Any] | None' = None, notes: 'list[str]' = <factory>, usage: 'dict[str, Any] | None' = None) -> None",
@@ -655,6 +741,74 @@
     "make_token": {
       "kind": "function",
       "signature": "(*, subject: 'str | None' = 'user', issuer: 'str | None' = None, client_id: 'str' = 'test-client', tenant: 'str | None' = None, scopes: 'Sequence[str]' = (), audience: 'str | Sequence[str] | None' = None, token: 'str' = 'test-inbound-token-0123456789', claims: 'dict[str, Any] | None' = None) -> 'AccessToken'"
+    }
+  },
+  "ouncemcp.trace": {
+    "CallTrace": {
+      "init": "(tool: 'str', outcome: 'Outcome', started_at: 'float', duration_ms: 'float', result_tokens: 'int', tokenizer: 'str', budget: 'int | None' = None, truncated: 'bool' = False, attempts: 'int' = 1, effect: 'str | None' = None, error_category: 'str | None' = None, error_code: 'str | None' = None, principal: 'str | None' = None, parent: 'str | None' = None, resolved_by: 'str | None' = None, replayed: 'bool' = False, truncation: 'Mapping[str, Any] | None' = None, arguments: 'Mapping[str, Any] | None' = None, trace_id: 'str' = <factory>) -> None",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, tool: 'str', outcome: 'Outcome', started_at: 'float', duration_ms: 'float', result_tokens: 'int', tokenizer: 'str', budget: 'int | None' = None, truncated: 'bool' = False, attempts: 'int' = 1, effect: 'str | None' = None, error_category: 'str | None' = None, error_code: 'str | None' = None, principal: 'str | None' = None, parent: 'str | None' = None, resolved_by: 'str | None' = None, replayed: 'bool' = False, truncation: 'Mapping[str, Any] | None' = None, arguments: 'Mapping[str, Any] | None' = None, trace_id: 'str' = <factory>) -> None",
+        "to_dict": "(self) -> 'dict[str, Any]'"
+      }
+    },
+    "CallbackSink": {
+      "init": "(callback: 'Callable[[CallTrace], None]') -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, callback: 'Callable[[CallTrace], None]') -> 'None'",
+        "emit": "(self, trace: 'CallTrace') -> 'None'"
+      }
+    },
+    "JsonlSink": {
+      "init": "(path: 'str | Path') -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, path: 'str | Path') -> 'None'",
+        "emit": "(self, trace: 'CallTrace') -> 'None'"
+      }
+    },
+    "LoggingSink": {
+      "init": "(level: 'int' = 20) -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, level: 'int' = 20) -> 'None'",
+        "emit": "(self, trace: 'CallTrace') -> 'None'"
+      }
+    },
+    "MemorySink": {
+      "init": "(max_traces: 'int' = 1000) -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, max_traces: 'int' = 1000) -> 'None'",
+        "emit": "(self, trace: 'CallTrace') -> 'None'"
+      }
+    },
+    "TraceSink": {
+      "init": "(*args, **kwargs)",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, *args, **kwargs)",
+        "emit": "(self, trace: 'CallTrace') -> 'None'"
+      }
+    },
+    "Tracer": {
+      "init": "(sinks: 'TraceSink | Iterable[TraceSink]', *, arguments: 'bool' = False, principals: 'PrincipalMode' = 'hash', key: 'bytes | None' = None) -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, sinks: 'TraceSink | Iterable[TraceSink]', *, arguments: 'bool' = False, principals: 'PrincipalMode' = 'hash', key: 'bytes | None' = None) -> 'None'",
+        "coerce": "(cls, value: 'Any') -> 'Tracer | None'",
+        "principal": "(self, principal: 'str | None') -> 'str | None'",
+        "record": "(self, *, principal: 'str | None', arguments: 'Any', **fields: 'Any') -> 'CallTrace'"
+      }
+    },
+    "redact_text": {
+      "kind": "function",
+      "signature": "(text: 'str') -> 'str'"
+    },
+    "redact_value": {
+      "kind": "function",
+      "signature": "(value: 'Any', depth: 'int' = 0) -> 'Any'"
     }
   },
   "ouncemcp.ui": {

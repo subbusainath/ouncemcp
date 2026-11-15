@@ -92,6 +92,7 @@ nav:
           - 0026 Real-model evals: proposals/0026-real-model-evals.md
           - 0027 Benchmark: proposals/0027-benchmark.md
           - 0028 Resumable jobs: proposals/0028-resumable-jobs.md
+          - 0029 API freeze: proposals/0029-api-freeze.md
 plugins:
   - search
   - mkdocstrings:
