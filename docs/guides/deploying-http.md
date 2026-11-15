@@ -45,9 +45,8 @@ FROM python:3.12-slim
 WORKDIR /app
 COPY . .
 RUN pip install --no-cache-dir . redis
-ENV OUNCEMCP_CURSOR_KEYS=change-me-to-a-32-byte-secret
 EXPOSE 8080
 CMD ["python", "-c", "from server import server; server.run('http', host='0.0.0.0', port=8080, allowed_hosts=['mcp.example.com', 'localhost'])"]
 ```
 
-Set the real `OUNCEMCP_CURSOR_KEYS` and Redis URL from your secret store, not the image. Point the liveness probe at `/healthz` and the readiness probe at `/readyz`.
+Pass `OUNCEMCP_CURSOR_KEYS` and the Redis URL at run time from your secret store (for example `docker run -e OUNCEMCP_CURSOR_KEYS=...`), never in the image: anyone with the image could forge cursors and state tokens. Point the liveness probe at `/healthz` and the readiness probe at `/readyz`.

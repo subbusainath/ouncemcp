@@ -40,8 +40,8 @@ uv run ouncemcp dev server.py
 ```text
 [ouncemcp] notes-server: 2 tools
   notes.search     182 tokens
-  notes.add        106 tokens
-  startup context: 288 tokens (warn at 4,000); discovery: direct (...); counted with o200k_base
+  notes.add        118 tokens
+  startup context: 300 tokens (warn at 4,000); discovery: direct (direct costs 300 tokens, within the 4,000-token threshold); counted with o200k_base
 [ouncemcp] call notes.search ok 41/2,000 tokens 0.6 ms
 ```
 

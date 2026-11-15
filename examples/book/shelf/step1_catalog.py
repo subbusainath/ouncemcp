@@ -56,6 +56,7 @@ def search(
     )
 
 
+# --8<-- [start:get]
 @server.tool(name="books.get", effect=Effect.READ)
 def get(id: str = Field(description="Book id from books.search, for example b-007")) -> BookDetail:
     """Get one book: title, author, subject, year and branch. Use books.search to find ids."""
@@ -70,6 +71,9 @@ def get(id: str = Field(description="Book id from books.search, for example b-00
         year=book.year,
         branch=book.branch,
     )
+
+
+# --8<-- [end:get]
 
 
 if __name__ == "__main__":

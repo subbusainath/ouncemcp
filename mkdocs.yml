@@ -4,10 +4,54 @@ repo_url: https://github.com/subbusainath/ouncemcp
 site_url: !ENV [SITE_URL, "https://subbusainath.github.io/ouncemcp/"]
 docs_dir: docs
 strict: true
+edit_uri: edit/main/docs/
+repo_name: subbusainath/ouncemcp
+copyright: OunceMCP contributors. Released under the Apache-2.0 license.
+theme:
+  name: material
+  language: en
+  font: false
+  icon:
+    repo: fontawesome/brands/github
+    logo: material/scale-balance
+  favicon: assets/favicon.svg
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    - navigation.tracking
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.action.edit
+extra_css:
+  - assets/extra.css
 nav:
   - Home: README.md
-  - Quickstart: quickstart.md
-  - The OunceMCP Book:
+  - Get started:
+      - Quickstart: quickstart.md
+      - Compatibility: compatibility.md
+  - The Book:
       - Introduction: book/index.md
       - 1. Getting started: book/ch01-getting-started.md
       - 2. A first server: book/ch02-first-server.md
@@ -44,39 +88,40 @@ nav:
       - Testing a server: guides/testing.md
       - Evaluating with task suites: guides/evaluating.md
       - Host verification: guides/host-verification.md
-  - Compatibility: compatibility.md
-  - API reference:
-      - Overview: reference/index.md
-      - Server and tools: reference/server.md
-      - Budgets and tokens: reference/budgets.md
-      - Errors: reference/errors.md
-      - Execution: reference/execution.md
-      - Security: reference/security.md
-      - Clients: reference/client.md
-      - Evaluation: reference/eval.md
-      - Testing helpers: reference/testing.md
-  - Error reference:
-      - Validation: errors/validation.md
-      - Authentication: errors/authentication.md
-      - Permission: errors/permission.md
-      - Not found: errors/not_found.md
-      - Rate limit: errors/rate_limit.md
-      - Transient: errors/transient.md
-      - Ambiguous write: errors/ambiguous_write.md
-      - Internal: errors/internal.md
-  - Rule reference:
-      - input-after-effect: rules/input-after-effect.md
-      - elicit-in-write: rules/elicit-in-write.md
-      - destructive-without-policy: rules/destructive-without-policy.md
-      - budget-override-without-reason: rules/budget-override-without-reason.md
-      - undocumented-parameter: rules/undocumented-parameter.md
-      - free-form-input: rules/free-form-input.md
-      - unpaginated-list: rules/unpaginated-list.md
-      - inconsistent-tool-names: rules/inconsistent-tool-names.md
-      - stdio-skips-policy: rules/stdio-skips-policy.md
-      - description-too-short: rules/description-too-short.md
-      - write-without-side-effects: rules/write-without-side-effects.md
-      - missing-usage-guidance: rules/missing-usage-guidance.md
+  - Reference:
+      - API:
+          - Overview: reference/index.md
+          - Server and tools: reference/server.md
+          - Budgets and tokens: reference/budgets.md
+          - Errors: reference/errors.md
+          - Execution: reference/execution.md
+          - Security: reference/security.md
+          - Clients: reference/client.md
+          - Traces: reference/trace.md
+          - Evaluation: reference/eval.md
+          - Testing helpers: reference/testing.md
+      - Errors:
+          - Validation: errors/validation.md
+          - Authentication: errors/authentication.md
+          - Permission: errors/permission.md
+          - Not found: errors/not_found.md
+          - Rate limit: errors/rate_limit.md
+          - Transient: errors/transient.md
+          - Ambiguous write: errors/ambiguous_write.md
+          - Internal: errors/internal.md
+      - Lint rules:
+          - input-after-effect: rules/input-after-effect.md
+          - elicit-in-write: rules/elicit-in-write.md
+          - destructive-without-policy: rules/destructive-without-policy.md
+          - budget-override-without-reason: rules/budget-override-without-reason.md
+          - undocumented-parameter: rules/undocumented-parameter.md
+          - free-form-input: rules/free-form-input.md
+          - unpaginated-list: rules/unpaginated-list.md
+          - inconsistent-tool-names: rules/inconsistent-tool-names.md
+          - stdio-skips-policy: rules/stdio-skips-policy.md
+          - description-too-short: rules/description-too-short.md
+          - write-without-side-effects: rules/write-without-side-effects.md
+          - missing-usage-guidance: rules/missing-usage-guidance.md
   - Project:
       - Specification: spec.md
       - M0 report: m0-report.md
@@ -116,14 +161,33 @@ nav:
           - 0028 Resumable jobs: proposals/0028-resumable-jobs.md
           - 0029 API freeze: proposals/0029-api-freeze.md
 markdown_extensions:
+  - abbr
   - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
   - tables
-  - pymdownx.highlight
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
   - pymdownx.superfences
-  - pymdownx.tasklist
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.snippets:
       base_path: ["."]
       check_paths: true
+      dedent_subsections: true
 plugins:
   - search
   - mkdocstrings:

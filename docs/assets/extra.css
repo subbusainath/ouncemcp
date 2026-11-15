@@ -1,0 +1,23 @@
+/* OunceMCP docs: small refinements on top of Material. */
+:root {
+  --md-text-font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --md-code-font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* Readable line length for prose. */
+.md-grid { max-width: 1340px; }
+.md-typeset { font-size: 0.8rem; line-height: 1.7; }
+.md-typeset p, .md-typeset li { max-width: 46rem; }
+
+/* Tables span the content width and stay compact. */
+.md-typeset table:not([class]) { display: table; width: 100%; font-size: 0.74rem; }
+.md-typeset table:not([class]) th { white-space: nowrap; }
+
+/* File names above code blocks. */
+.md-typeset .highlight span.filename { font-size: 0.72rem; font-weight: 600; }
+
+/* Landing page. */
+.md-typeset .hero { margin: 0.5rem 0 1.5rem; }
+.md-typeset .hero h1 { margin-bottom: 0.4rem; font-weight: 700; }
+.md-typeset .hero p.tagline { font-size: 1.05rem; color: var(--md-default-fg-color--light); max-width: 40rem; }
+.md-typeset .grid.cards > ul > li { border-radius: 0.5rem; }
