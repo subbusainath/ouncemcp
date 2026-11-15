@@ -10,7 +10,7 @@ Project specification
 | Target protocol | MCP specification `2026-07-28`, with tested legacy compatibility |
 | Reference implementation | Python, built on FastMCP 4 and the official MCP Python SDK |
 | License (proposed) | Apache-2.0 |
-| Status | M0 and M1 done: host verification passed in Claude Desktop and Cursor (12 November 2026, [compatibility matrix](compatibility.md)); DX-8 user testing and the inventory pilot with real data remain. M2 merged ([PR #14](https://github.com/subbusainath/ouncemcp/pull/14), [M2 report](m2-report.md)): exit criteria and release gates 1 to 5 met. M3 in progress ([PR #16](https://github.com/subbusainath/ouncemcp/pull/16): trace viewer, task suites with the replay model, report UI); real-model runs, `bench` and the benchmark need API keys. M4: the P1 requirements that need no people or keys are built on branch `claude/loving-shannon-gm4zxr` (BUD-4, RES-11, EXE-5, SEC-9, SEC-10, DX-3, DX-4 web, AUD-10 HTML, conformance gating). See sections 15.3 and 15.4 |
+| Status | M0 to M2 complete. M3 and M4 built and merged ([PR #16](https://github.com/subbusainath/ouncemcp/pull/16), [PR #17](https://github.com/subbusainath/ouncemcp/pull/17), [PR #18](https://github.com/subbusainath/ouncemcp/pull/18), [PR #19](https://github.com/subbusainath/ouncemcp/pull/19)): eval kit, real-model runs, `bench` and the first benchmark, the P1 requirements, release gates 6 and 7, resumable jobs, the API reference and snapshot, the 1.0 API freeze draft (proposal 0029) and The OunceMCP Book. What remains needs people, outside systems or paid runs: see section 15.4 |
 | Repository | [github.com/subbusainath/ouncemcp](https://github.com/subbusainath/ouncemcp) (private), default branch `main`, last merge `ebe47c1` (PR #13) |
 
 This specification turns two research investigations into a buildable plan. Protocol facts are cited to primary sources. Requirements, default limits, interfaces, and milestones are proposals and are marked as such; numeric defaults must be validated experimentally before being presented as recommendations to users.
@@ -613,8 +613,8 @@ Durations are planning estimates for a small team (about 26 weeks to 1.0) and sh
 | **M0: Core spike** | `OunceServer` and tool decorator over FastMCP; typed inputs and outputs with declared effects; definition token counting; result budgets with concise and detailed formats and truncation; one read-only example server | Example server works in one named host; token counts match a manual recount; framework overhead measured against PERF-1. **Status: done, except host verification**, which was verified over a real stdio client only and moves to M1 ([M0 report](m0-report.md)) | 2 weeks |
 | **M1: Framework 0.1 (first public release)** | P0 requirements for CAP, BUD, DISC (`direct` and `search` with automatic switching), RES, ERR, EXE (except idempotency), and SEC; **M0 carry-over first: RES-8 to RES-10, SEC-12, BUD-6 to BUD-9, PERF-7 (section 15.2)**. **Status: in progress. RES-8 to RES-10, PERF-7 and SEC-12 done; BUD-6 done; BUD-7 (declared scope) and BUD-9 done; DISC-1 to DISC-5 and DISC-7 done (DISC-6 partly); ERR-1 to ERR-3, EXE-1 to EXE-3 and EXE-6 done (PR #11, merged); SEC-1 to SEC-8, SEC-11, BUD-5, DX-1, DX-2, DX-6, EVAL-1, EVAL-2, CAP-7 and the docs site done on branch `claude/loving-shannon-gm4zxr`, not yet merged; host verification, DX-8 user testing and the inventory pilot with real data still open (sections 15.3 and 15.4)**; `init`, `dev`, `check`, `context`; docs site and quickstart; read-only inventory pilot | Install to first passing server under 5 minutes with five testers (DX-8); release gates 1, 2, 5, 7, and 8 pass; the inventory example works in Claude Desktop and VS Code, with versions recorded | 6 weeks |
 | **M2: Framework 0.2** | Safe writes (preview, approval, commit, idempotency), result handles, client broker, migration guide from FastMCP; ticketing, long-running report, and migration pilots; **optional `ouncemcp audit` command** | Pilots pass release gates 1–5; migration guide works on one existing FastMCP server; audit totals match `check` within 1% for the same server. **Status: built on branch `claude/loving-shannon-gm4zxr`; gates 2 to 5 pass, migration guide works on markitdown-mcp, audit matches `check` exactly; gate 1 waits for the first conformance run ([M2 report](m2-report.md))** | 6 weeks |
-| **M3: Eval and benchmark 0.5** | Eval kit, `bench`, trace viewer, HTML reports; full benchmark of framework-built and migrated servers versus plain equivalents; public launch | Benchmark published with reproducible scripts; PERF-6 confirmed or revised | 6 weeks |
-| **M4: 1.0** | Remaining P1 requirements, external security review, host compatibility matrix, stable API | All release gates pass; security review complete; API frozen | 6 weeks |
+| **M3: Eval and benchmark 0.5** | Eval kit, `bench`, trace viewer, HTML reports; full benchmark of framework-built and migrated servers versus plain equivalents; public launch | Benchmark published with reproducible scripts; PERF-6 confirmed or revised. **Status: both met; public launch waits on the repository going public** | 6 weeks |
+| **M4: 1.0** | Remaining P1 requirements, external security review, host compatibility matrix, stable API | All release gates pass; security review complete; API frozen. **Status: built; gates 1 to 8 checked ([M4 report](m4-report.md)); external security review and accepting the API freeze (proposal 0029) open** | 6 weeks |
 | **Post-1.0** | TypeScript port of the framework, `code` discovery mode, more idempotency backends, `npx` audit wrapper | Driven by adoption data | Ongoing |
 
 ### 15.1 Pilots
@@ -680,7 +680,12 @@ If this document and the code disagree, the code on `main` wins. Update this doc
 | [#10](https://github.com/subbusainath/ouncemcp/pull/10) | DISC-1 to DISC-5 and DISC-7: automatic `direct`/`search` discovery, `auth=` on tools, `check` reports the mode, recall hook for DISC-6; proposal 0006 | Merged |
 | [#11](https://github.com/subbusainath/ouncemcp/pull/11) | ERR-1 to ERR-3 and EXE-1 to EXE-3, EXE-6: error categories and redaction, deadlines, bounded read retries, ambiguous writes with a resolver seam, request limits; proposal 0007 | Merged |
 | [#12](https://github.com/subbusainath/ouncemcp/pull/12) | Spec v0.6: section 15.4 milestone status (docs only) | Merged |
-| Branch `claude/loving-shannon-gm4zxr` | SEC-1 to SEC-8, SEC-11, BUD-5, DX-1, DX-2, DX-6, EVAL-1, EVAL-2, CAP-7, docs site, spec v0.7; proposals 0008 and 0009 | Pushed, no PR yet |
+| [#13](https://github.com/subbusainath/ouncemcp/pull/13) | M1: SEC-1 to SEC-8, SEC-11, BUD-5, DX-1, DX-2, DX-6, EVAL-1, EVAL-2, CAP-7, docs site; proposals 0008 and 0009 | Merged |
+| [#14](https://github.com/subbusainath/ouncemcp/pull/14) | M2: store and idempotency, safe writes, handles and jobs, resources and prompts, migration and `audit`, client broker, operations; proposals 0010 to 0017 | Merged |
+| [#16](https://github.com/subbusainath/ouncemcp/pull/16) | M3: trace viewer, OpenTelemetry, task suites with the replay model, report UI; proposals 0018 to 0020 | Merged |
+| [#17](https://github.com/subbusainath/ouncemcp/pull/17) | M3 and M4: real-model evals, `bench`, the first benchmark, the P1 requirements; proposals 0021 to 0027 | Merged |
+| [#18](https://github.com/subbusainath/ouncemcp/pull/18) | M4: release gates 6 and 7, resumable jobs, API reference and snapshot; proposal 0028 | Merged |
+| [#19](https://github.com/subbusainath/ouncemcp/pull/19) | PERF-2 and PERF-6 revisions accepted, API freeze draft, The OunceMCP Book, repository rules for going public; proposal 0029 | Merged |
 
 #### Public API today
 
@@ -844,15 +849,15 @@ These were measured on Python 3.12.15, x86_64, 2 vCPU.
 
 ### 15.4 Milestone status: completed and pending
 
-Status as of 12 November 2026. M1 ([PR #13](https://github.com/subbusainath/ouncemcp/pull/13)) and M2 ([PR #14](https://github.com/subbusainath/ouncemcp/pull/14)) are merged into `main`; the [M2 report](m2-report.md) checks M2's exit criteria and release gates, and the [compatibility matrix](compatibility.md) records the host runs. M0 requirement status is taken from the [M0 report](m0-report.md).
+Status as of 15 November 2026. Everything below is merged into `main`. M1 ([PR #13](https://github.com/subbusainath/ouncemcp/pull/13)) and M2 ([PR #14](https://github.com/subbusainath/ouncemcp/pull/14)) are checked in the [M2 report](m2-report.md); M3 and M4 ([PR #16](https://github.com/subbusainath/ouncemcp/pull/16) to [PR #19](https://github.com/subbusainath/ouncemcp/pull/19)) in the [M4 report](m4-report.md); host runs are in the [compatibility matrix](compatibility.md).
 
 | Milestone | State | Summary |
 | --- | --- | --- |
 | **M0: Core spike** | **Complete**; host verification done in M1 (Claude Desktop, Cursor) | Core, budgets, shaping, token counting, `check` and `context`, inventory example, overhead measured |
 | **M1: Framework 0.1** | **Merged; host verification passed** | Open: DX-8 user testing and the inventory pilot with real data |
 | **M2: Framework 0.2** | **Complete** ([PR #14](https://github.com/subbusainath/ouncemcp/pull/14)); exit criteria and gates 1 to 5 met | Store and idempotency, safe writes, handles and jobs, resources and prompts, migration adapter and guide, `audit`, client broker, `ouncemcp.toml`, health and metrics, description lints; ticketing, report and markitdown-mcp pilots |
-| **M3: Eval and benchmark 0.5** | **In progress**: trace viewer, OpenTelemetry, task suites and report UI merged ([PR #16](https://github.com/subbusainath/ouncemcp/pull/16)); real models through OpenRouter, `ouncemcp bench` and the first benchmark (four models, 840 runs) on branch `claude/loving-shannon-gm4zxr` (proposals 0026, 0027) | Open: decide the PERF-6 revision; open-source servers in the benchmark; desktop hosts; public launch |
-| **M4: 1.0** | **In progress**: P1 work that needs no people or keys built on branch `claude/loving-shannon-gm4zxr` (proposals 0021 to 0025) | Open: external security review, host matrix, accuracy gate (needs real-model runs), API freeze |
+| **M3: Eval and benchmark 0.5** | **Exit criteria met** ([PR #16](https://github.com/subbusainath/ouncemcp/pull/16), [PR #17](https://github.com/subbusainath/ouncemcp/pull/17), [PR #19](https://github.com/subbusainath/ouncemcp/pull/19)): trace viewer, OpenTelemetry, task suites, report UI, real models through OpenRouter, `ouncemcp bench`, the first benchmark (four models, 840 runs) published with its scripts; PERF-6 revised and accepted (proposal 0027) | Open: open-source servers, desktop hosts and larger catalogs in the benchmark (paid runs); public launch (repository visibility, PyPI, docs site) |
+| **M4: 1.0** | **Built** ([PR #17](https://github.com/subbusainath/ouncemcp/pull/17), [PR #18](https://github.com/subbusainath/ouncemcp/pull/18), [PR #19](https://github.com/subbusainath/ouncemcp/pull/19)): the P1 requirements that need no people or keys (proposals 0021 to 0025), release gates 6 and 7 checked, PERF-2 revised and met, resumable jobs (0028), API reference and snapshot test, the API freeze drafted (0029), The OunceMCP Book, repository rules for going public | Open: external security review; accepting the API freeze; host matrix follow-ups; a fresh benchmark run before release for gate 6 |
 | **Post-1.0** | Not started | TypeScript port, `code` discovery mode, more idempotency backends, `npx` audit wrapper |
 
 #### Completed
@@ -868,16 +873,19 @@ Status as of 12 November 2026. M1 ([PR #13](https://github.com/subbusainath/ounc
 | Discovery modes | DISC-1 to DISC-5, DISC-7 | [PR #10](https://github.com/subbusainath/ouncemcp/pull/10) |
 | Errors and execution limits | ERR-1 to ERR-3, EXE-1 to EXE-3, EXE-6 | [PR #11](https://github.com/subbusainath/ouncemcp/pull/11) |
 | Security and policy, traces, `init` and `dev`, lints and doc links, eval kit, composite tools, docs site | SEC-1 to SEC-8, SEC-11, BUD-5, DX-1, DX-2, DX-6, EVAL-1 (target and CI job), EVAL-2, CAP-7 | [PR #13](https://github.com/subbusainath/ouncemcp/pull/13) |
-| Policies over stdio | `stdio_policy` (proposal 0010, decision 3) | Branch `claude/loving-shannon-gm4zxr` |
-| Store, idempotency, dependencies | EXE-4; shared single use for SEC-6 | Branch ([proposal 0011](proposals/0011-store-and-idempotency.md)) |
-| Safe writes and the ticketing pilot | Section 10; gates 3 and 4 | Branch ([proposal 0012](proposals/0012-safe-writes.md)) |
-| Handles, jobs and the report pilot | RES-5 | Branch ([proposal 0013](proposals/0013-handles-and-jobs.md)) |
-| Resources and prompts | CAP-2 | Branch ([proposal 0014](proposals/0014-resources-and-prompts.md)) |
-| Migration, `audit`, URL checks, markitdown-mcp pilot | DX-7, AUD-1 to AUD-13 (HTML excepted), part of SEC-9 | Branch ([proposal 0015](proposals/0015-migration-and-audit.md)) |
-| Client broker | CLI-1 to CLI-8 | Branch ([proposal 0016](proposals/0016-client-broker.md)) |
-| Configuration, health and readiness, metrics, description lints | Spec 9.2, 9.4, CAP-5 | Branch ([proposal 0017](proposals/0017-operations.md)) |
+| Policies over stdio | `stdio_policy` (proposal 0010, decision 3) | [PR #14](https://github.com/subbusainath/ouncemcp/pull/14) |
+| Store, idempotency, dependencies | EXE-4; shared single use for SEC-6 | [PR #14](https://github.com/subbusainath/ouncemcp/pull/14) ([proposal 0011](proposals/0011-store-and-idempotency.md)) |
+| Safe writes and the ticketing pilot | Section 10; gates 3 and 4 | [PR #14](https://github.com/subbusainath/ouncemcp/pull/14) ([proposal 0012](proposals/0012-safe-writes.md)) |
+| Handles, jobs and the report pilot | RES-5 | [PR #14](https://github.com/subbusainath/ouncemcp/pull/14) ([proposal 0013](proposals/0013-handles-and-jobs.md)) |
+| Resources and prompts | CAP-2 | [PR #14](https://github.com/subbusainath/ouncemcp/pull/14) ([proposal 0014](proposals/0014-resources-and-prompts.md)) |
+| Migration, `audit`, URL checks, markitdown-mcp pilot | DX-7, AUD-1 to AUD-13 (HTML excepted), part of SEC-9 | [PR #14](https://github.com/subbusainath/ouncemcp/pull/14) ([proposal 0015](proposals/0015-migration-and-audit.md)) |
+| Client broker | CLI-1 to CLI-8 | [PR #14](https://github.com/subbusainath/ouncemcp/pull/14) ([proposal 0016](proposals/0016-client-broker.md)) |
+| Configuration, health and readiness, metrics, description lints | Spec 9.2, 9.4, CAP-5 | [PR #14](https://github.com/subbusainath/ouncemcp/pull/14) ([proposal 0017](proposals/0017-operations.md)) |
 | Trace viewer, OpenTelemetry, task suites with the replay model, report UI | DX-4 (results view), DX-5, EVAL-3 to EVAL-7 (replay model), DISC-6 | [PR #16](https://github.com/subbusainath/ouncemcp/pull/16) |
-| Budget overrides, handler hints, parallel-safe marks, safe fetch, schema lints, context and audit pages, OAuth, conformance gating | BUD-4, RES-11, EXE-5, SEC-9, DX-3, DX-4 (web), AUD-10 (HTML), SEC-10, EVAL-1 (gating) | Branch `claude/loving-shannon-gm4zxr` (proposals 0021 to 0025) |
+| Budget overrides, handler hints, parallel-safe marks, safe fetch, schema lints, context and audit pages, OAuth, conformance gating | BUD-4, RES-11, EXE-5, SEC-9, DX-3, DX-4 (web), AUD-10 (HTML), SEC-10, EVAL-1 (gating) | [PR #17](https://github.com/subbusainath/ouncemcp/pull/17) (proposals 0021 to 0025) |
+| Real-model evals, `bench`, the first benchmark | EVAL-3 to EVAL-7 with real models, PERF-6 | [PR #17](https://github.com/subbusainath/ouncemcp/pull/17) (proposals 0026, 0027) |
+| Release gates 6 and 7, resumable jobs, API reference and snapshot | Gates 6 and 7, PERF-1 to PERF-5 | [PR #18](https://github.com/subbusainath/ouncemcp/pull/18) (proposal 0028) |
+| PERF-2 and PERF-6 revisions accepted, API freeze draft, The OunceMCP Book, repository rules | PERF-2, PERF-6, section 16.3 | [PR #19](https://github.com/subbusainath/ouncemcp/pull/19) (proposal 0029) |
 
 #### Partly done
 
@@ -885,7 +893,7 @@ Status as of 12 November 2026. M1 ([PR #13](https://github.com/subbusainath/ounc
 | --- | --- | --- |
 | BUD-7 (per-host data, P1) | Declared counting scope | Host study in real hosts; decide the output-schema default |
 | BUD-6 (P1 part) | tiktoken encodings and callables | Provider counting adapters |
-| Section 16.3 docs | Quickstart, concepts, guides (including migration, safe writes, deployment, the broker), references, and an API reference generated from the code with mkdocstrings (M4) | Publishing the site |
+| Section 16.3 docs | Quickstart, concepts, guides (including migration, safe writes, deployment, the broker), references, an API reference generated from the code with mkdocstrings, and The OunceMCP Book (M4) | Publishing the site |
 | Jobs | Background jobs with leases; named jobs (`@server.job`) resume on the next `jobs.get` after a restart, on any replica, up to `max_attempts` ([proposal 0028](proposals/0028-resumable-jobs.md)) | Mapping onto the MCP tasks extension (needs the `fastmcp-tasks` package; owner decision) |
 
 #### Pending that needs people or real systems
@@ -895,13 +903,16 @@ Status as of 12 November 2026. M1 ([PR #13](https://github.com/subbusainath/ounc
 | Host verification follow-ups | BUD-7 per-host data | Claude Desktop and Cursor pass; record versions, run VS Code and the Claude mobile app, and note which definition fields reach the model, in `docs/compatibility.md` |
 | Five-minute setup | DX-8 | Needs five testers; publishing to PyPI first simplifies the quickstart |
 | Read-only inventory pilot | Section 15.1 | Needs real data and credentials |
+| External security review | M4 exit criteria | Needs a reviewer outside the project |
+| API freeze | M4 exit criteria | Owner review and acceptance of [proposal 0029](proposals/0029-api-freeze.md) |
+| Public launch | M3 scope | Owner: import the rulesets, apply [the repository settings](maintainers/repository-settings.md), make the repository public, publish to PyPI and the docs site |
 
 #### Pending in P1 and later
 
 | Group | Requirements |
 | --- | --- |
-| Eval | Release gate 6: run the benchmark again before each release and compare (about $2.20; the check itself is built) |
-| Benchmark | Open-source servers (10–20), desktop hosts, larger catalogs; the PERF-6 decision (proposal 0027) |
+| Eval | Release gate 6: run the benchmark again before each release and compare (about $2.20; the check itself is built and passes) |
+| Benchmark | Open-source servers (10–20), desktop hosts, larger catalogs |
 | Tokenizers | BUD-6 provider counting adapters (need API keys) |
 | Discovery | DISC-8 (`code` mode, post-1.0) |
 

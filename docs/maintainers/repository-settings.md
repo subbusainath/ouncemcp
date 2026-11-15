@@ -44,6 +44,7 @@ Choose **New ruleset → Import a ruleset** and import `.github/rulesets/main.js
 
 **Settings → Actions → General**
 
+- **Actions permissions:** allow GitHub's own actions and selected ones; the workflows also use `astral-sh/setup-uv`, so allow it by name. "Require actions to be pinned to a full-length commit SHA" can be on: every `uses:` line is pinned to a commit, with the tag in a comment, and Dependabot updates the pins. A workflow that breaks one of these policies fails at startup with no jobs.
 - **Workflow permissions:** "Read repository contents". The workflows also declare `contents: read`.
 - **Fork pull request workflows:** "Require approval for first-time contributors" or stricter.
 - **Pull requests from Actions:** don't allow GitHub Actions to create or approve them.
