@@ -105,6 +105,7 @@ def _aggregate(runs: Sequence[RunRecord], tasks: Mapping[str, Task]) -> dict[str
         "calls_per_task": _mean([len(r.calls) for r in runs]),
         "turns_per_task": _mean([r.turns for r in runs]),
         "tokens_per_task": _mean([r.tokens for r in runs]),
+        "result_tokens_per_task": _mean([sum(c.tokens for c in r.calls) for r in runs]),
         "definition_tokens": _mean([r.definition_tokens for r in runs]),
         "latency_ms_p50": round(statistics.median([r.latency_ms for r in runs]), 1)
         if runs

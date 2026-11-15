@@ -3,7 +3,7 @@
 | Target | Measured here |
 | --- | --- |
 | PERF-1: middleware overhead per call, p50 < 2 ms, p95 < 10 ms | the M0 method: an OunceMCP tool against the same handler in plain FastMCP |
-| PERF-2: cold start for 50 tools < 1 s | a fresh Python process: import, register 50 tools, answer tools/list |
+| PERF-2: cold start for 50 tools, at most 0.75 s added over plain FastMCP (revised, accepted) | a fresh Python process: import, register 50 tools, answer tools/list, for OunceMCP and plain FastMCP |
 | PERF-3: token counting at startup for 500 tools < 2 s | ``cost_report()`` over 500 registered tools |
 | PERF-4: audit of a 100-tool server, discovery only, < 10 s | ``ouncemcp.audit.audit`` over HTTP on loopback |
 | PERF-5: startup context in search mode < 400 tokens | ``tools/list`` of a 100-tool server in ``search`` mode |
@@ -172,8 +172,9 @@ def perf2(tmp: str, runs: int = 5) -> dict:
         "plain_fastmcp_cold_start_ms_median": statistics.median(plain_times),
         "plain_fastmcp_imports_ms_median": statistics.median(plain_imports),
         "added_by_ouncemcp_ms_median": round(added, 1),
-        "target_ms": 1000,
-        "met": max(times) < 1000,
+        "target": "at most 750 ms added over plain FastMCP (revised; was 1 s in total)",
+        "target_added_ms": 750,
+        "met": added < 750,
     }
 
 

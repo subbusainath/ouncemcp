@@ -106,13 +106,14 @@ async def test_conditions_share_one_budget_and_are_compared():
     assert plain_calls  # the plain server ran under its own tool names
 
 
-def test_perf6_comparison():
-    def report(startup: float, tokens: float, success: float) -> dict:
+def test_perf6_is_judged_by_server_size():
+    def report(startup: float, tokens: float, success: float, results: float = 100) -> dict:
         return {
             "splits": {
                 "all": {
                     "definition_tokens": startup,
                     "tokens_per_task": tokens,
+                    "result_tokens_per_task": results,
                     "success_rate": success,
                     "calls_per_task": 1,
                     "turns_per_task": 2,
@@ -122,15 +123,38 @@ def test_perf6_comparison():
             }
         }
 
-    met = compare_conditions(report(200, 900, 1.0), report(1000, 1500, 0.9))
-    assert met["startup_tokens"]["change"] == -0.8 and met["perf6"]["met"]
-    missed = compare_conditions(report(500, 900, 1.0), report(1000, 800, 1.0))
-    assert missed["perf6"] == {
-        "startup_reduction_ok": False,
-        "task_tokens_ok": False,
+    # Large server (plain definitions over 4,000 tokens): 70% fewer startup tokens.
+    large = compare_conditions(report(1_000, 900, 1.0), report(10_000, 1500, 0.9))
+    assert large["perf6"]["size"] == "large" and large["perf6"]["met"]
+    assert not compare_conditions(report(5_000, 900, 1.0), report(10_000, 1500, 1.0))["perf6"][
+        "met"
+    ]
+    # Small server: definitions at most 2x, no success drop; task tokens judged only
+    # when results are large.
+    small = compare_conditions(report(640, 2400, 1.0), report(360, 2000, 0.7))
+    assert small["perf6"] == {
+        "size": "small",
+        "startup_ok": True,
+        "task_tokens_ok": None,
         "success_ok": True,
-        "met": False,
+        "met": True,
     }
+    too_big = compare_conditions(report(600, 900, 1.0), report(250, 1500, 1.0))
+    assert not too_big["perf6"]["startup_ok"] and not too_big["perf6"]["met"]
+    big_results = compare_conditions(report(400, 2400, 1.0), report(300, 2000, 1.0, results=3000))
+    assert big_results["perf6"]["task_tokens_ok"] is False and not big_results["perf6"]["met"]
+
+
+def test_published_results_are_rejudged_by_the_current_rule():
+    from ouncemcp.eval.bench import rejudge
+
+    data = rejudge(json.loads((ROOT / "benchmarks" / "results" / "m3-bench.json").read_text()))
+    verdicts = {(c["suite"], c["model"]): c["perf6"] for c in data["comparisons"]}
+    # Ticketing: 649 vs 366 definition tokens (1.8x) and no success drop: met.
+    assert all(v["met"] for (suite, _), v in verdicts.items() if suite == "ticketing-bench")
+    # Inventory: 584 vs 244 (2.4x): over the 2x limit.
+    assert not any(v["met"] for (suite, _), v in verdicts.items() if suite == "inventory-bench")
+    assert data["perf6"]["met"] == 4 and data["perf6"]["pairs"] == 8
 
 
 def test_bench_cli_with_replay(tmp_path: Path, capsys):

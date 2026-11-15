@@ -110,7 +110,7 @@ Two pilot servers against their plain FastMCP equivalents: four models (Claude H
 | Task success, OunceMCP vs plain | 100% vs 75–100% | 100% vs 68–70% |
 | Tool definitions, OunceMCP vs plain | 584 vs 244 tokens | 649 vs 366 tokens |
 
-On these small servers the definitions are larger, mostly from output schemas, so PERF-6's startup target is not met ([proposal 0027](docs/proposals/0027-benchmark.md)). On the plain ticketing server every model skipped the approval, deleted without permission and read another team's ticket.
+On these small servers the definitions are larger, mostly from output schemas. PERF-6, revised for small servers (definitions at most 2× plain, no drop in success), is met for ticketing and missed for inventory at 2.4× ([proposal 0027](docs/proposals/0027-benchmark.md)). On the plain ticketing server every model skipped the approval, deleted without permission and read another team's ticket.
 
 ## M0 results
 

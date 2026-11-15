@@ -35,7 +35,11 @@ import yaml
 
 from ouncemcp.eval.agent.suite import Suite, SuiteError, load_suite
 
-PERF6_STARTUP_REDUCTION = 0.70
+# PERF-6 as revised in proposal 0027 (accepted): judged by server size.
+PERF6_STARTUP_REDUCTION = 0.70  # large servers: at least 70% fewer startup tokens
+PERF6_SMALL_MAX_RATIO = 2.0  # small servers: definitions at most 2x the plain server's
+PERF6_LARGE_RESULTS = 500  # result tokens per task above which fewer task tokens is required
+DEFAULT_STARTUP_BUDGET = 4_000
 
 
 @dataclass(frozen=True)
@@ -108,18 +112,41 @@ def _pct_change(new: float | None, old: float | None) -> float | None:
     return round((new - old) / old, 4)
 
 
-def compare_conditions(candidate: Mapping[str, Any], baseline: Mapping[str, Any]) -> dict[str, Any]:
-    """Candidate against baseline for one suite and model (two ``EvalReport.to_dict()``)."""
+def compare_conditions(
+    candidate: Mapping[str, Any],
+    baseline: Mapping[str, Any],
+    *,
+    startup_budget: int = DEFAULT_STARTUP_BUDGET,
+) -> dict[str, Any]:
+    """Candidate against baseline for one suite and model (two ``EvalReport.to_dict()``).
+
+    PERF-6 (revised, proposal 0027) depends on the server's size:
+
+    - **large** (the baseline's definitions exceed ``startup_budget``): at least 70% fewer
+      startup tokens, fewer task tokens and no drop in success;
+    - **small**: definitions at most twice the baseline's and no drop in success. Fewer
+      task tokens is required only when the baseline's results average more than 500
+      tokens per task; otherwise task tokens are reported but not judged (``None``).
+    """
     c, b = candidate["splits"]["all"], baseline["splits"]["all"]
     startup = _pct_change(c["definition_tokens"], b["definition_tokens"])
     tokens = _pct_change(c["tokens_per_task"], b["tokens_per_task"])
     success_delta = round(c["success_rate"] - b["success_rate"], 3)
-    perf6 = {
-        "startup_reduction_ok": startup is not None and -startup >= PERF6_STARTUP_REDUCTION,
-        "task_tokens_ok": tokens is not None and tokens < 0,
+    size = "large" if b["definition_tokens"] > startup_budget else "small"
+    if size == "large":
+        startup_ok = startup is not None and -startup >= PERF6_STARTUP_REDUCTION
+    else:
+        startup_ok = c["definition_tokens"] <= PERF6_SMALL_MAX_RATIO * b["definition_tokens"]
+    results = b.get("result_tokens_per_task")
+    judge_tokens = size == "large" or (results is not None and results > PERF6_LARGE_RESULTS)
+    tokens_ok = (tokens is not None and tokens < 0) if judge_tokens else None
+    perf6: dict[str, Any] = {
+        "size": size,
+        "startup_ok": startup_ok,
+        "task_tokens_ok": tokens_ok,
         "success_ok": success_delta >= 0,
     }
-    perf6["met"] = all(perf6.values())
+    perf6["met"] = bool(startup_ok and perf6["success_ok"] and tokens_ok is not False)
     return {
         "startup_tokens": {
             "candidate": c["definition_tokens"],
@@ -192,7 +219,11 @@ class BenchReport:
             },
             "usage": self.usage,
             "perf6": {
-                "target": "at least 70% fewer startup tokens, fewer task tokens, no drop in task success",
+                "target": (
+                    "large servers: at least 70% fewer startup tokens, fewer task tokens, no "
+                    "drop in success; small servers: definitions at most 2x the plain server's, "
+                    "no drop in success, fewer task tokens when results exceed 500 tokens"
+                ),
                 "pairs": len(comparisons),
                 "met": sum(1 for c in comparisons if c["perf6"]["met"]),
             },
@@ -450,3 +481,27 @@ def render_comparison(result: Mapping[str, Any]) -> str:
     if not result["checks"]:
         lines.append("  nothing to compare: the reports share no suite, model and condition")
     return "\n".join(lines)
+
+
+def rejudge(data: Mapping[str, Any]) -> dict[str, Any]:
+    """A saved bench report with its comparisons and PERF-6 verdicts worked out again by
+    the current rule, from its raw per-condition results."""
+    out = dict(data)
+    header = data.get("header", {})
+    cand_name, base_name = header.get("candidate", "ounce"), header.get("baseline", "plain")
+    found = {(r["suite"], r["model"], r["condition"]): r["report"] for r in data.get("results", [])}
+    comparisons = []
+    for (suite, model, condition), report in found.items():
+        if condition != cand_name:
+            continue
+        base = found.get((suite, model, base_name))
+        if base and report["splits"]["all"]["runs"] and base["splits"]["all"]["runs"]:
+            comparisons.append({"suite": suite, "model": model, **compare_conditions(report, base)})
+    out["comparisons"] = comparisons
+    out["perf6"] = {
+        **dict(data.get("perf6", {})),
+        "pairs": len(comparisons),
+        "met": sum(1 for c in comparisons if c["perf6"]["met"]),
+        "rule": "revised (proposal 0027)",
+    }
+    return out

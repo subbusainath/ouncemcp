@@ -530,6 +530,7 @@ def _bench(ns: argparse.Namespace) -> int:
         compare_releases,
         load_bench,
         load_bench_report,
+        rejudge,
         render_comparison,
         run_bench,
     )
@@ -544,7 +545,7 @@ def _bench(ns: argparse.Namespace) -> int:
     if ns.from_results:
         from ouncemcp.ui import render_report
 
-        data = load_bench_report(ns.from_results)
+        data = rejudge(load_bench_report(ns.from_results))
         if ns.html:
             page = render_report({"kind": "bench", "title": f"Benchmark: {data['name']}", **data})
             Path(ns.html).write_text(page, encoding="utf-8")

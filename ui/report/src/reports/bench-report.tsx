@@ -43,11 +43,11 @@ function Versus({ a, b, format }: { a: number | null; b: number | null; format: 
 }
 
 function PerfBadge({ c }: { c: BenchComparison }) {
-  const parts = [
-    ["startup", c.perf6.startup_reduction_ok],
+  const parts: [string, boolean | null][] = [
+    [c.perf6.size === "large" ? "startup −70%" : "startup ≤ 2×", c.perf6.startup_ok],
     ["tokens", c.perf6.task_tokens_ok],
     ["success", c.perf6.success_ok],
-  ] as const
+  ]
   return (
     <div className="flex flex-col gap-1">
       <Badge
@@ -58,8 +58,12 @@ function PerfBadge({ c }: { c: BenchComparison }) {
       </Badge>
       <ul className="text-xs leading-tight whitespace-nowrap">
         {parts.map(([label, ok]) => (
-          <li key={label} className={ok ? "text-success" : "text-destructive"}>
-            {ok ? "✓" : "✗"} {label}
+          <li
+            key={label}
+            className={ok == null ? "text-muted-foreground" : ok ? "text-success" : "text-destructive"}
+          >
+            {ok == null ? "–" : ok ? "✓" : "✗"} {label}
+            {ok == null && " (not judged)"}
           </li>
         ))}
       </ul>
