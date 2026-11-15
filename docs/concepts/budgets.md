@@ -14,6 +14,8 @@ server = OunceServer("inventory", budget=Budget(result_tokens=1_500))
 
 **Tokenizer.** Counts use `o200k_base` by default. Choose another tiktoken encoding or your own function with `OunceServer(tokenizer=...)`; every report names the tokenizer ([proposal 0004](../proposals/0004-pluggable-tokenizer.md)).
 
+**Provider counts.** For Claude models, `AnthropicCounter("claude-opus-5-5")` (or `--tokenizer anthropic:claude-opus-5-5` on `check`, `context` and `audit`) asks Anthropic's token-counting API through the official SDK; install `ouncemcp[anthropic]`. Each distinct text is one request, cached, so use it to measure and keep a local tokenizer for serving. OpenAI models count exactly with tiktoken; for another provider, pass its counting function to `get_counter(fn, name=...)`.
+
 **Output schemas.** Typed output schemas make definitions larger. Set `output_schemas="off"` or `"auto"` on the server, or `output_schema=` on a tool ([proposal 0005](../proposals/0005-counting-scope-and-output-schema-modes.md)).
 
 **In traces.** With `OunceServer(trace=...)`, each call records the result tokens it used against its budget ([traces](traces.md)).

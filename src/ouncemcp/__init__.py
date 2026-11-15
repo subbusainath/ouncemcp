@@ -38,6 +38,7 @@ from ouncemcp.core.errors import (
     RateLimited,
     TransientError,
 )
+from ouncemcp.core.provider_tokens import AnthropicCounter
 from ouncemcp.discovery import DiscoveryDecision, RecallCase, RecallReport
 from ouncemcp.execution import Limits, RetryPolicy, WriteAttempt, WriteResolver
 from ouncemcp.execution.approval import ApprovalRequest, Approver
@@ -49,6 +50,7 @@ __version__ = "0.0.1.dev0"
 
 __all__ = [
     "AmbiguousWrite",
+    "AnthropicCounter",
     "ApprovalRequest",
     "Approver",
     "AuthenticationRequired",

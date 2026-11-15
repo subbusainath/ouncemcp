@@ -5,6 +5,15 @@
       "kind": "class",
       "members": {}
     },
+    "AnthropicCounter": {
+      "init": "(model: 'str', *, client: 'Any' = None, cache_size: 'int' = 4096) -> 'None'",
+      "kind": "class",
+      "members": {
+        "__init__": "(self, model: 'str', *, client: 'Any' = None, cache_size: 'int' = 4096) -> 'None'",
+        "count": "(self, text: 'str') -> 'int'",
+        "framing_tokens": "property"
+      }
+    },
     "ApprovalRequest": {
       "init": "(tool: 'str', effect: 'Effect', arguments: 'Mapping[str, Any]', identity: 'Identity', summary: 'str') -> None",
       "kind": "class",

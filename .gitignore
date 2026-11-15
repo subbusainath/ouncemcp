@@ -13,3 +13,4 @@ htmlcov/
 .env
 ouncemcp-report.*
 site/
+.hypothesis/

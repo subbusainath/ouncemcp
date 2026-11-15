@@ -20,10 +20,10 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Topic :: Software Development :: Libraries :: Application Frameworks",
 ]
-# FastMCP and the tokenizer are pinned exactly and rechecked each release (spec 6.2).
-# FastMCP 4.1.6 brings the MCP Python SDK 2.3.0.
+# FastMCP is a tested range within one major (proposal 0029): CI tests 4.1.6 from the
+# lockfile and the newest 4.x release. The tokenizer is pinned exactly (spec 6.2).
 dependencies = [
-  "fastmcp==4.1.6",
+  "fastmcp>=4.1.6,<5",
   "tiktoken==0.14.0",
   "pydantic>=2.11,<3",
   "jsonschema>=4.20",
@@ -33,6 +33,7 @@ dependencies = [
 client = []
 eval = ["pyyaml>=6"]
 otel = ["opentelemetry-api>=1.28"]
+anthropic = ["anthropic>=2.3,<3"]
 ui = []
 docs = ["mkdocs==1.6.1", "mkdocs-material==9.8.1", "mkdocstrings==1.0.8", "mkdocstrings-python==2.0.11"]
 dev = [
@@ -44,6 +45,7 @@ dev = [
   "pyyaml>=6",
   "types-PyYAML",
   "opentelemetry-sdk>=1.28",
+  "anthropic>=2.3,<3",
 ]
 
 [project.scripts]
@@ -54,6 +56,26 @@ Repository = "https://github.com/subbusainath/ouncemcp"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ouncemcp"]
+
+[tool.hatch.build.targets.sdist]
+# Everything needed to build the package and run its tests, anchored to the root
+# (patterns follow .gitignore rules). The report UI's node_modules stay out.
+include = [
+  "/src/ouncemcp",
+  "/tests",
+  "/examples",
+  "/docs",
+  "/benchmarks",
+  "/conformance",
+  "/ui/report",
+  "/mkdocs.yml",
+  "/README.md",
+  "/LICENSE",
+  "/CHANGELOG.md",
+  "/SECURITY.md",
+  "/CONTRIBUTING.md",
+]
+exclude = ["**/__pycache__", "/ui/report/node_modules"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

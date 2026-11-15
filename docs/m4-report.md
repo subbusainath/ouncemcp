@@ -43,7 +43,11 @@ The same check runs on two saved reports with `ouncemcp bench --from new.json --
 - **Warnings that do not fail the gate.**
     - A task whose success fell. Five runs per task are too few to tell a real drop from chance, so these are for a person to read.
     - Tokens per task up by more than 10%.
-- **Status.** The check is in place and passes against itself. It needs a new paid run (about $2.20 at the current scale) before each release. Running it is the release owner's decision, because it spends money.
+- **Status: passed for 1.0.** A fresh run on 15 November 2026 (commit `46402fe`, results in `benchmarks/results/gate6-release-check.json`) was compared with the M3 baseline. It cost $2.20 against a $3.00 cap, owner-approved, and ran with the same four models, two suites and 5 repeats.
+    - **No significant drop** for any of the 16 suite, model and server combinations: every OunceMCP server stayed at 100%, and the plain servers moved by at most 2 points (p ≥ 0.5).
+    - **One warning:** on the plain inventory server, `openai/gpt-5.4-mini` fell from 80% to 40% on one task (`degraded-eu-west`). That is the plain FastMCP baseline, not OunceMCP, and five runs per task are too few to read it as a change.
+    - **PERF-6** is met for the same 4 of 8 pairs as at M3: ticketing yes, inventory no at 2.4× startup.
+    - Each later release needs another run of about $2.20.
 
 ## Preparing the API freeze
 

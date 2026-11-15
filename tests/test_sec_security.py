@@ -30,9 +30,9 @@ from ouncemcp.security import (
     passthrough_guard,
     require_scopes,
     require_tenant,
-    resolve_http_options,
     writes_require,
 )
+from ouncemcp.security.http import resolve_http_options
 from ouncemcp.testing import as_caller, make_token
 
 
@@ -79,6 +79,16 @@ def test_same_subject_from_two_issuers_is_two_callers():
     one = identity_from_token(make_token(subject="42", issuer="https://a.example"))
     two = identity_from_token(make_token(subject="42", issuer="https://b.example"))
     assert one.principal != two.principal
+
+
+def test_internal_helpers_still_work_but_warn():
+    import ouncemcp.security as sec
+    from ouncemcp.security import ANONYMOUS_IDENTITY
+
+    with pytest.warns(DeprecationWarning, match="internal and will be removed"):
+        assert sec.resolve_http_options({})["host"] == "127.0.0.1"
+    with pytest.warns(DeprecationWarning, match="internal and will be removed"):
+        assert sec.partition_key(ANONYMOUS_IDENTITY)
 
 
 @pytest.mark.anyio

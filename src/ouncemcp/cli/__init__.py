@@ -36,8 +36,9 @@ def _add_tokenizer_option(cmd: argparse.ArgumentParser) -> None:
         "--tokenizer",
         metavar="ENCODING",
         help=(
-            "tiktoken encoding to count with (for example cl100k_base). Default: the "
-            f"server's own tokenizer, else {DEFAULT_ENCODING}"
+            "tiktoken encoding to count with (for example cl100k_base), or "
+            "anthropic:MODEL for Anthropic's token-counting API (needs the anthropic "
+            f"extra). Default: the server's own tokenizer, else {DEFAULT_ENCODING}"
         ),
     )
 
