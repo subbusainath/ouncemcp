@@ -35,6 +35,9 @@ def _truncation_summary(note: Any) -> dict[str, Any] | None:
     }
 
 
+UNKNOWN_TOOL = "(unknown tool)"
+
+
 class OunceMiddleware(Middleware):
     """Wraps every tool call.
 
@@ -97,6 +100,10 @@ class OunceMiddleware(Middleware):
         assert self._tracer is not None
         name = context.message.name
         info: dict[str, Any] = dict((result.meta or {}).get("ouncemcp") or {})
+        if result.is_error and info.get("error") == "unknown_tool":
+            # The caller chose this name. Recording it would let anyone create unlimited
+            # metric series and trace labels, so every such call shares one name.
+            name = UNKNOWN_TOOL
         if isinstance(result, InputRequiredToolResult):
             outcome, tokens = "input_required", 0
         else:

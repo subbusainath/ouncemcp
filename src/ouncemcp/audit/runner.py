@@ -13,6 +13,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 from fastmcp import Client
 
@@ -152,6 +153,20 @@ class AuditReport:
 
 
 # ------------------------------------------------------------------ connecting (AUD-1, AUD-2)
+
+
+def display_target(target: str) -> str:
+    """``target`` as it is shown in reports: URL credentials and query strings, which
+    often carry tokens, are left out."""
+    if not re.match(r"^https?://", target):
+        return target
+    parts = urlsplit(target)
+    host = parts.hostname or ""
+    if ":" in host:
+        host = f"[{host}]"
+    if parts.port:
+        host = f"{host}:{parts.port}"
+    return urlunsplit((parts.scheme, host, parts.path, "", ""))
 
 
 def connect_target(
@@ -342,7 +357,7 @@ async def audit(
     )
     ordered_timings = sorted(timings)
     return AuditReport(
-        target=target,
+        target=display_target(target),
         transport=transport,
         protocol_version=protocol,
         server_name=getattr(getattr(init, "server_info", None), "name", None),

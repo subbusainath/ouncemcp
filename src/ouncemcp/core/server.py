@@ -1650,6 +1650,9 @@ class OunceServer:
             if raw:
                 data = ctx.verify_state(raw, "input_required", request=ctx._request_key())
                 if data.get("ouncemcp_approved") is True:
+                    # Single use, like the approval itself: a continuation token must
+                    # not carry one approval into several runs of the write.
+                    await ctx.consume_state(raw, "input_required", request=ctx._request_key())
                     ctx._approved = True
                     return
                 if data.get("ouncemcp_approval") is True and answer is not None:

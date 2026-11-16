@@ -62,6 +62,10 @@ The pre-review results below, from 15 November 2026, are a starting point for th
 - **pip-audit** over every locked dependency, all extras included, finds no known vulnerabilities.
 - **Dependabot** alerts and security updates are on. The report UI's dev-only `shadcn` CLI carries a low-severity `deepmerge` advisory that has no patched release; it is not in the shipped bundle.
 
+## Internal audit, 16 November 2026
+
+A full read of the security code, with attacks run against a live server, found one high-severity bug and several smaller ones. All are fixed and each has a regression test in `tests/test_security_hardening.py`. The details are in the [audit report](security-audit-2026-11.md).
+
 ## Known limits, stated in the docs
 
 - Over stdio, policies are trusted by default (`stdio_policy="trust"`), because the local user started the server. `ouncemcp check` warns about this, and `stdio_policy="enforce"` turns policies on.

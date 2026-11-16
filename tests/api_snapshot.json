@@ -138,10 +138,10 @@
       }
     },
     "MemoryStore": {
-      "init": "(*, clock: 'Callable[[], float]' = <built-in function monotonic>) -> 'None'",
+      "init": "(*, clock: 'Callable[[], float]' = <built-in function monotonic>, max_entries: 'int' = 100000) -> 'None'",
       "kind": "class",
       "members": {
-        "__init__": "(self, *, clock: 'Callable[[], float]' = <built-in function monotonic>) -> 'None'",
+        "__init__": "(self, *, clock: 'Callable[[], float]' = <built-in function monotonic>, max_entries: 'int' = 100000) -> 'None'",
         "delete": "(self, ns: 'str', key: 'str') -> 'bool'",
         "get": "(self, ns: 'str', key: 'str') -> 'Value | None'",
         "put": "(self, ns: 'str', key: 'str', value: 'Mapping[str, Any]', *, ttl_s: 'float') -> 'None'",

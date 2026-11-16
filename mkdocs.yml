@@ -131,6 +131,7 @@ nav:
       - Repository settings: maintainers/repository-settings.md
       - Releasing: maintainers/releasing.md
       - Security review brief: maintainers/security-review.md
+      - Security audit (Nov 2026): maintainers/security-audit-2026-11.md
       - Performance research: performance-research.md
       - Proposals:
           - Overview: proposals/README.md

@@ -2,6 +2,19 @@
 
 All notable changes to OunceMCP. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [semantic versioning](https://semver.org/) with the promises in [proposal 0029](https://github.com/subbusainath/ouncemcp/blob/main/docs/proposals/0029-api-freeze.md).
 
+## 1.0.0rc3 (16 November 2026)
+
+### Security
+
+Found by an internal audit ([report](https://subbusainath.github.io/ouncemcp/maintainers/security-audit-2026-11/)); upgrading is recommended.
+
+- **High:** error redaction could take minutes on a long argument echoed in an error message, letting one request stall the server. The patterns are now linear and the scanned text is capped.
+- `check_url` and `safe_client` refuse IPv6 addresses that carry a private IPv4 address (NAT64, IPv4-compatible, 6to4, Teredo).
+- Calls to unknown tool names share one `(unknown tool)` metric series; the metrics sink is bounded.
+- `MemoryStore` removes expired records on writes and is bounded (`max_entries`, default 100,000).
+- A continuation token that carries an approval works once.
+- Audit reports leave out URL credentials and query strings.
+
 ## 1.0.0rc2 (15 November 2026)
 
 ### Fixed
