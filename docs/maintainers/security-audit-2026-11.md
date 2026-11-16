@@ -71,4 +71,4 @@ An internal audit of the whole repository on 16 November 2026, against release `
 
 ## Release
 
-The fixes change no public signature except one addition: `MemoryStore(max_entries=...)`. They should ship as `1.0.0rc3`.
+The fixes change no public signature except one addition: `MemoryStore(max_entries=...)`. They ship in `1.0.0rc3`.
