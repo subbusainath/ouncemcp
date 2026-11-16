@@ -13,20 +13,20 @@ theme:
   font: false
   icon:
     repo: fontawesome/brands/github
-    logo: material/scale-balance
-  favicon: assets/favicon.svg
+  logo: assets/logo-icon-dark.png
+  favicon: assets/favicon.png
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: indigo
-      accent: indigo
+      primary: custom
+      accent: custom
       toggle:
         icon: material/weather-night
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: indigo
-      accent: indigo
+      primary: custom
+      accent: custom
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode
