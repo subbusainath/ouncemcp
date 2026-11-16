@@ -1670,7 +1670,7 @@ requires-dist = [
     { name = "anthropic", marker = "extra == 'anthropic'", specifier = ">=2.3,<3" },
     { name = "anthropic", marker = "extra == 'dev'", specifier = ">=2.3,<3" },
     { name = "anyio", marker = "extra == 'dev'", specifier = ">=4" },
-    { name = "fastmcp", specifier = ">=4.1.6,<5" },
+    { name = "fastmcp", specifier = ">=4.1.8,<5" },
     { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.100" },
     { name = "jsonschema", specifier = ">=4.20" },
     { name = "mkdocs", marker = "extra == 'docs'", specifier = "==1.6.1" },

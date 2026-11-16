@@ -42,7 +42,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: uv venv
-      - run: uv pip install -e ".[dev]" "fastmcp>=4.1.6,<5" --upgrade-package fastmcp
+      - run: uv pip install -e ".[dev]" "fastmcp>=4.1.8,<5" --upgrade-package fastmcp
       - run: uv run --no-sync python -c "import fastmcp; print('FastMCP', fastmcp.__version__)"
       - run: uv run --no-sync pytest
 
