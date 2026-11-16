@@ -2,6 +2,12 @@
 
 All notable changes to OunceMCP. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [semantic versioning](https://semver.org/) with the promises in [proposal 0029](https://github.com/subbusainath/ouncemcp/blob/main/docs/proposals/0029-api-freeze.md).
 
+## Unreleased
+
+### Changed
+
+- The lowest supported FastMCP is now 4.1.8 (`>=4.1.8,<5`), the version CI tests from the lockfile. FastMCP 4.1.6 and 4.1.7 are no longer tested.
+
 ## 1.0.0rc3 (16 November 2026)
 
 ### Security

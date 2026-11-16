@@ -20,10 +20,10 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Topic :: Software Development :: Libraries :: Application Frameworks",
 ]
-# FastMCP is a tested range within one major (proposal 0029): CI tests 4.1.6 from the
+# FastMCP is a tested range within one major (proposal 0029): CI tests 4.1.8 from the
 # lockfile and the newest 4.x release. The tokenizer is pinned exactly (spec 6.2).
 dependencies = [
-  "fastmcp>=4.1.6,<5",
+  "fastmcp>=4.1.8,<5",
   "tiktoken==0.14.0",
   "pydantic>=2.11,<3",
   "jsonschema>=4.20",

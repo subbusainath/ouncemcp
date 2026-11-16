@@ -662,7 +662,7 @@ If this document and the code disagree, the code on `main` wins. Update this doc
 | Item | Value |
 | --- | --- |
 | Repository | [github.com/subbusainath/ouncemcp](https://github.com/subbusainath/ouncemcp) (private), default branch `main`, last merge `ebe47c1` (PR #13) |
-| Stack | Python 3.11 to 3.13, FastMCP 4.1.6, MCP Python SDK 2.3.0, Pydantic 2.14, tiktoken 0.14 (`o200k_base`), jsonschema 4.26 |
+| Stack | Python 3.11 to 3.13, FastMCP 4.1.8, MCP Python SDK 2.3.0, Pydantic 2.14, tiktoken 0.14 (`o200k_base`), jsonschema 4.26 |
 | CI | GitHub Actions on Python 3.11, 3.12 and 3.13: `ruff check`, `ruff format --check`, `mypy`, `pytest`; a `docs` job (`mkdocs build --strict`); a separate, not yet required `Conformance` workflow |
 | Tests | 540 collected on `claude/loving-shannon-gm4zxr`, including Hypothesis property tests. Five need network access to tiktoken's download host (the `gpt2` encoding and the stdio subprocess tests) |
 
