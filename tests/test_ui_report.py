@@ -69,7 +69,9 @@ def test_page_is_offline_and_escapes_report_values():
     assert csp is not None
     policy = csp.group(1)
     assert "default-src 'none'" in policy and "connect-src" not in policy
-    scripts = re.findall(r"<script(?![^>]*application/json)[^>]*>(.*?)</script>", page, re.DOTALL)
+    scripts = re.findall(
+        r"<script(?![^>]*application/json)[^>]*>(.*?)</script>", page, re.DOTALL | re.IGNORECASE
+    )
     assert len(scripts) == 1
     digest = base64.b64encode(hashlib.sha256(scripts[0].encode()).digest()).decode()
     assert f"'sha256-{digest}'" in policy
