@@ -60,6 +60,7 @@ The pre-review results below, from 15 November 2026, are a starting point for th
     - **B105**: the canary token that the security catalog plants on purpose.
     - **B311**: retry jitter, not a security use.
 - **pip-audit** over every locked dependency, all extras included, finds no known vulnerabilities.
+- **zizmor** checks the GitHub Actions workflows on every pull request (the `workflows` CI job). Every action is pinned to a commit, checkouts do not keep the token, and the release workflow never restores a cache, so a poisoned cache cannot reach a published package.
 - **Dependabot** alerts and security updates are on. The report UI's dev-only `shadcn` CLI carries a low-severity `deepmerge` advisory that has no patched release; it is not in the shipped bundle.
 
 ## Internal audit, 16 November 2026
