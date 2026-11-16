@@ -383,7 +383,7 @@ def _print_result(result: dict[str, Any], counter: TokenCounter) -> None:
 def _audit(ns: argparse.Namespace) -> int:
     import shlex
 
-    from ouncemcp.audit.runner import audit, compare, load_report
+    from ouncemcp.audit.runner import audit, compare, display_target, load_report
     from ouncemcp.core.budget import Budget
 
     target = ns.target[0] if len(ns.target) == 1 else shlex.join(ns.target)
@@ -433,7 +433,7 @@ def _audit(ns: argparse.Namespace) -> int:
         )
     except Exception as exc:  # noqa: BLE001 - report connection problems plainly
         print(
-            f"ouncemcp audit: could not audit {target}: {type(exc).__name__}: {exc}",
+            f"ouncemcp audit: could not audit {display_target(target)}: {type(exc).__name__}: {exc}",
             file=sys.stderr,
         )
         return 2
@@ -446,7 +446,7 @@ def _audit(ns: argparse.Namespace) -> int:
         from ouncemcp.ui import render_report
         from ouncemcp.ui.views import audit_data
 
-        page = render_report(audit_data(data, title=f"Audit: {target}"))
+        page = render_report(audit_data(data, title=f"Audit: {display_target(target)}"))
         Path(ns.html).write_text(page, encoding="utf-8")
     if ns.json:
         print(json.dumps(data, indent=2))

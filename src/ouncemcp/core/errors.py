@@ -158,9 +158,12 @@ class RequestTooDeep(Exception):
 
 # ------------------------------------------------------------------ redaction (ERR-3)
 
+MAX_REDACT_CHARS = 8_192
+_REDACT_TAIL = 512
+
 _TRACEBACK = re.compile(r"Traceback \(most recent call last\).*", re.DOTALL)
 _TRACE_FILE = re.compile(r'File "[^"]*", line \d+(?:, in \S+)?')
-_URL = re.compile(r"\b[A-Za-z][A-Za-z0-9+.\-]*://[^\s'\"<>)]+")
+_URL = re.compile(r"(?<![A-Za-z0-9+.\-])[A-Za-z][A-Za-z0-9+.\-]*://[^\s'\"<>)]+")
 _BEARER = re.compile(r"(?i)\b(bearer|basic)\s+[A-Za-z0-9._~+/=\-]{6,}")
 _KEYED_SECRET = re.compile(
     r"(?i)\b(pass(?:word|wd)?|pwd|secret|token|api[_\-]?key|access[_\-]?key|"
@@ -174,8 +177,10 @@ _TOKEN_SHAPES = re.compile(
 _OPAQUE = re.compile(r"(?<![A-Za-z0-9+/_\-])[A-Za-z0-9+/_\-]{32,}={0,2}(?![A-Za-z0-9+/_\-])")
 _IPV4 = re.compile(r"\b\d{1,3}(?:\.\d{1,3}){3}(?::\d{2,5})?\b")
 _IPV6 = re.compile(r"\b(?:[0-9A-Fa-f]{1,4}:){3,7}[0-9A-Fa-f]{1,4}\b")
+# The lookbehind lets a match start only at the beginning of a host-like run, so the
+# pattern is tried once per run and stays linear on long hostile input.
 _INTERNAL_HOST = re.compile(
-    r"\b(?:[A-Za-z0-9\-]+\.)*[A-Za-z0-9\-]+\."
+    r"(?<![A-Za-z0-9\-.])(?:[A-Za-z0-9\-]+\.)*[A-Za-z0-9\-]+\."
     r"(?:internal|local|localdomain|lan|corp|intranet|svc|home|"
     r"com|net|org|io|dev|cloud|app|ai|co|in|uk|de|us|eu)(?::\d{2,5})?\b"
 )
@@ -188,7 +193,15 @@ def redact(text: str) -> str:
 
     Best effort, meant for messages a tool author wrote. Unexpected exceptions never
     reach this function: their text is not shown at all.
+
+    Only the first ``MAX_REDACT_CHARS`` characters are scanned, because messages often
+    echo an argument the caller chose and every result is clipped far below that. The
+    cut is made at whitespace, so a secret is never left half inside the kept text.
     """
+    if len(text) > MAX_REDACT_CHARS:
+        kept = text[:MAX_REDACT_CHARS]
+        space = max(kept.rfind(" "), kept.rfind("\n"), kept.rfind("\t"))
+        text = kept[:space] if space >= MAX_REDACT_CHARS - _REDACT_TAIL else kept[:-_REDACT_TAIL]
     text = _TRACEBACK.sub("", text)
     text = _TRACE_FILE.sub("<trace>", text)
     text = _URL.sub("<url>", text)

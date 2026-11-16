@@ -31,7 +31,8 @@ jobs:
           uv venv /tmp/smoke
           VIRTUAL_ENV=/tmp/smoke uv pip install dist/*.whl
           /tmp/smoke/bin/ouncemcp --version
-          /tmp/smoke/bin/python -c "import ouncemcp, sys; v = ouncemcp.__version__; print(v); sys.exit(0 if 'v' + v == '$GITHUB_REF_NAME' else 'ouncemcp.__version__ does not match the tag')"
+          # The tag name is passed as an argument, never pasted into the program text.
+          /tmp/smoke/bin/python -c "import ouncemcp, sys; v = ouncemcp.__version__; print(v); sys.exit(0 if 'v' + v == sys.argv[1] else 'ouncemcp.__version__ does not match the tag')" "$GITHUB_REF_NAME"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: dist

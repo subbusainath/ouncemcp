@@ -19,6 +19,10 @@ from ouncemcp.trace import CallTrace
 WINDOW = 1000
 
 
+MAX_TOOLS = 2_000
+OVERFLOW = "(other)"
+
+
 @dataclass
 class _ToolStats:
     calls: int = 0
@@ -44,13 +48,17 @@ def _quantile(values: list[float], q: float) -> float:
 class MetricsSink:
     """Aggregates traces into per-tool metrics. Thread-safe."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, max_tools: int = MAX_TOOLS) -> None:
         self._stats: dict[str, _ToolStats] = defaultdict(_ToolStats)
         self._lock = threading.Lock()
+        self._max_tools = max_tools
 
     def emit(self, trace: CallTrace) -> None:
         with self._lock:
-            stats = self._stats[trace.tool]
+            name = trace.tool
+            if name not in self._stats and len(self._stats) >= self._max_tools:
+                name = OVERFLOW  # bounded memory and label count, whatever is called
+            stats = self._stats[name]
             stats.calls += 1
             stats.tokens += trace.result_tokens
             stats.max_tokens = max(stats.max_tokens, trace.result_tokens)

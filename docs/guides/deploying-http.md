@@ -34,6 +34,8 @@ and set `OUNCEMCP_CURSOR_KEYS` (comma-separated, newest first) to the same value
 
 Probes send the `Host` header too, so include the name or address they use in `allowed_hosts`.
 
+`/healthz`, `/readyz` and `/metrics` need no token, so that probes and scrapers can reach them. `/metrics` lists your tool names and call counts: expose these three paths only to your own network (a proxy rule or a network policy), not to the internet. Calls to names that are not tools are counted together as `(unknown tool)`, so a caller cannot inflate the metrics.
+
 ## Configuration file
 
 Keep budgets, limits, discovery and security settings in `ouncemcp.toml` and build the server with `OunceServer.from_config("tickets", "ouncemcp.toml")`; keyword arguments override the file. See `ouncemcp.core.config` for every key.

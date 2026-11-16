@@ -127,15 +127,19 @@ SECRET_KEY = re.compile(
     r"(?i)(pass(word|wd)?|pwd|secret|token|api[_\-]?key|access[_\-]?key|private[_\-]?key|"
     r"authorization|auth|credential|cookie|session|ssn|card|cvv|iban|account[_\-]?number)"
 )
-_EMAIL = re.compile(r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b")
+# The lookbehind keeps the pattern linear: it is tried once per run of name characters.
+_EMAIL = re.compile(r"(?<![A-Za-z0-9._%+\-])[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b")
 _PHONE = re.compile(r"(?<![\w.])\+?\d[\d\s().\-]{7,}\d(?![\w.])")
 MAX_TRACE_STRING = 200
+MAX_SCAN_CHARS = 4_096
 MAX_TRACE_ITEMS = 20
 MAX_TRACE_DEPTH = 4
 
 
 def redact_text(text: str) -> str:
     """``errors.redact`` plus personal data: email addresses and phone numbers."""
+    if len(text) > MAX_SCAN_CHARS:  # the output keeps MAX_TRACE_STRING characters
+        text = text[:MAX_SCAN_CHARS]
     text = _EMAIL.sub("<email>", text)
     text = _PHONE.sub("<phone>", text)
     text = redact(text)

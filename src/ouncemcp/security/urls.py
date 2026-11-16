@@ -47,10 +47,38 @@ def _system_resolver(host: str) -> list[str]:
     return sorted({str(info[4][0]) for info in infos})
 
 
+# IPv6 ranges that carry an IPv4 address in their last 32 bits. A gateway may deliver
+# them to that IPv4 address, so the embedded address must be public too: NAT64
+# (RFC 6052 well-known and RFC 8215 local-use prefixes) and the deprecated
+# IPv4-compatible form (::a.b.c.d).
+_EMBEDDED_V4 = tuple(ipaddress.ip_network(n) for n in ("64:ff9b::/96", "64:ff9b:1::/48", "::/96"))
+
+
+def _embedded_v4(ip: ipaddress.IPv6Address) -> ipaddress.IPv4Address | None:
+    if ip.ipv4_mapped is not None:
+        return ip.ipv4_mapped
+    if ip.sixtofour is not None:
+        return ip.sixtofour
+    if ip.teredo is not None:
+        return ip.teredo[1]
+    if any(ip in net for net in _EMBEDDED_V4):
+        return ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF)
+    return None
+
+
 def _public(address: str) -> bool:
     ip = ipaddress.ip_address(address.split("%", 1)[0])
-    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped is not None:
-        ip = ip.ipv4_mapped
+    if isinstance(ip, ipaddress.IPv6Address):
+        inner = _embedded_v4(ip)
+        if inner is not None:
+            # Mapped addresses are the IPv4 address; for the tunnelling forms both the
+            # IPv6 address and the IPv4 address inside it must be public.
+            if ip.ipv4_mapped is not None:
+                return inner.is_global and not inner.is_multicast
+            if not (inner.is_global and not inner.is_multicast):
+                return False
+            if any(ip in net for net in _EMBEDDED_V4):
+                return True  # the prefix itself is a translation prefix, not a host range
     return ip.is_global and not ip.is_multicast
 
 

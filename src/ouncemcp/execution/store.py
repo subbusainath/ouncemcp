@@ -64,15 +64,33 @@ def _plain(value: Mapping[str, Any]) -> Value:
     return out
 
 
+MAX_MEMORY_ENTRIES = 100_000
+SWEEP_INTERVAL_S = 30.0
+
+
 class MemoryStore:
-    """In-process store. Atomic within one event loop; lost on restart."""
+    """In-process store. Atomic within one event loop; lost on restart.
+
+    Expired records are removed on reads and, every ``SWEEP_INTERVAL_S``, on writes.
+    At most ``max_entries`` records are kept; when full, the record that expires
+    soonest is dropped, so a caller cannot grow the process without bound.
+    """
 
     shared = False
 
-    def __init__(self, *, clock: Callable[[], float] = time.monotonic) -> None:
+    def __init__(
+        self,
+        *,
+        clock: Callable[[], float] = time.monotonic,
+        max_entries: int = MAX_MEMORY_ENTRIES,
+    ) -> None:
+        if max_entries < 1:
+            raise ValueError("max_entries must be at least 1")
         self._clock = clock
         self._data: dict[tuple[str, str], tuple[float, Value]] = {}
         self._lock = asyncio.Lock()
+        self._max_entries = max_entries
+        self._next_sweep = 0.0
 
     def __len__(self) -> int:
         self._expire()
@@ -93,7 +111,15 @@ class MemoryStore:
         return json.loads(json.dumps(entry[1]))
 
     async def put(self, ns: str, key: str, value: Mapping[str, Any], *, ttl_s: float) -> None:
-        self._data[(ns, key)] = (self._clock() + ttl_s, _plain(value))
+        now = self._clock()
+        if now >= self._next_sweep or len(self._data) >= self._max_entries:
+            # Records that are never read again would otherwise stay for ever.
+            self._expire()
+            self._next_sweep = now + SWEEP_INTERVAL_S
+        self._data[(ns, key)] = (now + ttl_s, _plain(value))
+        while len(self._data) > self._max_entries:
+            # Still full of live records: drop the one that expires soonest.
+            del self._data[min(self._data, key=lambda slot: self._data[slot][0])]
 
     async def put_if_absent(
         self, ns: str, key: str, value: Mapping[str, Any], *, ttl_s: float
