@@ -6,7 +6,9 @@ hide:
 
 <div class="hero" markdown>
 
-# OunceMCP
+<p class="hero-logo"><img src="assets/logo.png#only-light" alt="OunceMCP"><img src="assets/logo-dark.png#only-dark" alt="OunceMCP"></p>
+
+# OunceMCP { .visually-hidden }
 
 <p class="tagline">Build MCP servers that agents use well: small tool definitions, results that fit the context window, writes that never happen twice, and security that holds when the model is wrong.</p>
 

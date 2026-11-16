@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://subbusainath.github.io/ouncemcp/assets/logo-dark.png">
+    <img src="https://subbusainath.github.io/ouncemcp/assets/logo.png" alt="OunceMCP" width="420">
+  </picture>
+</p>
+
 # OunceMCP
 
 **Every token counts.** OunceMCP is a framework for building Model Context Protocol (MCP) servers and clients that are fast, low-noise, and safe for agents by default. It builds on [FastMCP](https://gofastmcp.com) and the official MCP Python SDK, and targets the MCP `2026-07-28` specification.
