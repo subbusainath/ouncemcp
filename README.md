@@ -209,4 +209,4 @@ See [CONTRIBUTING.md](https://github.com/subbusainath/ouncemcp/blob/main/CONTRIB
 
 ## License
 
-[Apache-2.0](https://github.com/subbusainath/ouncemcp/blob/main/LICENSE)
+Copyright 2026 Subbusainath Rengasamy and the OunceMCP contributors. Licensed under [Apache-2.0](https://github.com/subbusainath/ouncemcp/blob/main/LICENSE); see [NOTICE](https://github.com/subbusainath/ouncemcp/blob/main/NOTICE).
