@@ -79,3 +79,5 @@ async def close(args: CloseInput, ctx: ToolContext) -> Closed:
 ```
 
 Next: [budgets](concepts/budgets.md), [securing tools](guides/securing-tools.md).
+
+Stuck? Ask in `#help` on the [OunceMCP Discord](https://discord.gg/mQz4ZuZe3u).

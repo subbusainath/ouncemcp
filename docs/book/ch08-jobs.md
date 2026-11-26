@@ -53,3 +53,6 @@ Handles, like cursors, are signed and bound to the tenant that created them, and
 - `handles=True` adds `jobs.get` and `handles.read`.
 - Register slow work with `@server.job(name)` and start it with `ctx.start_job(name, args)`; it restarts after a crash.
 - Return a small summary for the model and keep the rows behind a handle.
+
+!!! question "Questions about this chapter?"
+    Ask in `#help` on the [OunceMCP Discord](https://discord.gg/mQz4ZuZe3u), one post per question.

@@ -64,3 +64,6 @@ Tools that fetch a URL the model gave them can be tricked into reading internal 
 - Identity comes from `ctx.identity`, never from arguments.
 - Filter every query by tenant; answer `not_found` for other tenants' data.
 - Policies refuse calls and hide tools; enforce them on stdio too when it matters.
+
+!!! question "Questions about this chapter?"
+    Ask in `#help` on the [OunceMCP Discord](https://discord.gg/mQz4ZuZe3u), one post per question.

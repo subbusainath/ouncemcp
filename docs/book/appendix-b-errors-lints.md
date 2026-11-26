@@ -31,3 +31,5 @@ The category pages list the error codes, such as `approval_declined`, `unknown_t
 | [input-after-effect](../rules/input-after-effect.md) | Asking for input after a write started | 6 |
 | [destructive-without-policy](../rules/destructive-without-policy.md) | A destructive tool anyone can call | 7 |
 | [stdio-skips-policy](../rules/stdio-skips-policy.md) | Policies that do not run over stdio | 7 |
+
+Did not find your error? Ask in `#help` on the [OunceMCP Discord](https://discord.gg/mQz4ZuZe3u) with the full message.

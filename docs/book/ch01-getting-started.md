@@ -67,3 +67,6 @@ The [quickstart](../quickstart.md) walks through that project and connecting it 
 - `check`, `dev` and `context` are the tools you will reach for most.
 
 Next, we write the first version of Shelf.
+
+!!! question "Questions about this chapter?"
+    Ask in `#help` on the [OunceMCP Discord](https://discord.gg/mQz4ZuZe3u), one post per question.

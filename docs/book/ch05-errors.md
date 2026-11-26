@@ -58,3 +58,6 @@ Transient failures of **read** tools are retried with bounded backoff, inside th
 - Reads are retried for you; writes never are.
 
 The [error reference](../errors/validation.md) has a page for each category.
+
+!!! question "Questions about this chapter?"
+    Ask in `#help` on the [OunceMCP Discord](https://discord.gg/mQz4ZuZe3u), one post per question.

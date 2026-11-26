@@ -87,3 +87,6 @@ The viewer shows the slowest and largest calls, every truncation, and the errors
 - Run them with `replay` in CI, and with real models before you ship a description change.
 - Keep held-out tasks you never tune on.
 - Trace production calls and read the viewer.
+
+!!! question "Questions about this chapter?"
+    Ask in `#help` on the [OunceMCP Discord](https://discord.gg/mQz4ZuZe3u), one post per question.

@@ -201,6 +201,8 @@ python server.py                 # run over stdio for an MCP host
 
 Tools: `notes.search` (read) and `notes.add` (write). Replace them with your own; keep an
 `effect` on every tool and a Pydantic model for every input and output.
+
+Questions: `#help` on the [OunceMCP Discord](https://discord.gg/mQz4ZuZe3u). Docs: https://subbusainath.github.io/ouncemcp/
 """
 
 _GITIGNORE = """__pycache__/

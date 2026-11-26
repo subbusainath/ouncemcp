@@ -76,3 +76,6 @@ Clients that want their own key, such as a host retrying after a network error, 
 - `idempotency=True` makes retries safe: the second call replays the first result.
 - Writes are never retried for you; a write past its deadline is reported as `ambiguous_write`.
 - Use `deps=` and a `build()` function so tests get fresh state.
+
+!!! question "Questions about this chapter?"
+    Ask in `#help` on the [OunceMCP Discord](https://discord.gg/mQz4ZuZe3u), one post per question.

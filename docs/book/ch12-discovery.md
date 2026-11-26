@@ -53,3 +53,6 @@ Low recall usually means descriptions that do not use the words people use. Fix 
 - Below 4,000 tokens, send every definition; above it, discovery switches to three meta-tools automatically.
 - Pin the handful of tools almost every session needs.
 - Measure search recall with cases from real tasks.
+
+!!! question "Questions about this chapter?"
+    Ask in `#help` on the [OunceMCP Discord](https://discord.gg/mQz4ZuZe3u), one post per question.

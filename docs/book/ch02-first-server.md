@@ -110,3 +110,6 @@ Every one of those characters is in the model's context for the whole session. T
 - Descriptions and field descriptions are written for the model: what, returns, where values come from, what to call next.
 - Bound every input and every list.
 - `ouncemcp dev` runs the server; `ouncemcp context` shows what the model receives.
+
+!!! question "Questions about this chapter?"
+    Ask in `#help` on the [OunceMCP Discord](https://discord.gg/mQz4ZuZe3u), one post per question.

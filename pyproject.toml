@@ -57,6 +57,7 @@ Documentation = "https://subbusainath.github.io/ouncemcp/"
 Repository = "https://github.com/subbusainath/ouncemcp"
 Changelog = "https://github.com/subbusainath/ouncemcp/blob/main/CHANGELOG.md"
 Issues = "https://github.com/subbusainath/ouncemcp/issues"
+Discord = "https://discord.gg/mQz4ZuZe3u"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ouncemcp"]

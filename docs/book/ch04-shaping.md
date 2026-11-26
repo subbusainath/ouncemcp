@@ -75,3 +75,6 @@ Also on the context:
 - Page lists with `Paginated`, `Cursor` and `ctx.page`; cursors are signed and survive truncation.
 - Results over budget are shaped, never broken; the model is told what was cut.
 - Use `ctx.includes` to skip work for fields that will not be returned.
+
+!!! question "Questions about this chapter?"
+    Ask in `#help` on the [OunceMCP Discord](https://discord.gg/mQz4ZuZe3u), one post per question.

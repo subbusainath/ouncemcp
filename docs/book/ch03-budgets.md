@@ -98,3 +98,6 @@ Counts use the `o200k_base` tokenizer by default. Different models tokenize diff
 - Override a budget only with a reason.
 
 Next, we make search results that stay small however large the library grows.
+
+!!! question "Questions about this chapter?"
+    Ask in `#help` on the [OunceMCP Discord](https://discord.gg/mQz4ZuZe3u), one post per question.
