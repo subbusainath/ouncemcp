@@ -22,6 +22,15 @@ Most MCP slowdowns don't come from the protocol. They come from loading every to
 - **Visibility:** see exactly what the model received and what it cost.
 - **Optional audit:** measure any MCP server, including ones not built with OunceMCP.
 
+## Read the series
+
+An eight-part series on building MCP servers with OunceMCP, from the why to production:
+
+1. [Your MCP server is burning tokens, and trust](https://www.subbusainath.com/journal/ouncemcp-mcp-servers-burning-tokens)
+2. [Build your first OunceMCP server in 15 minutes](https://www.subbusainath.com/journal/ouncemcp-first-server-in-15-minutes)
+
+New parts every Thursday. Subscribe at [subbusainath.com/journal](https://www.subbusainath.com/journal).
+
 ## Quickstart
 
 ```bash
