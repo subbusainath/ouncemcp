@@ -14,6 +14,7 @@ hide:
 
 [Read the Book](book/index.md){ .md-button .md-button--primary }
 [Quickstart](quickstart.md){ .md-button }
+[Join the Discord](https://discord.gg/mQz4ZuZe3u){ .md-button }
 
 </div>
 

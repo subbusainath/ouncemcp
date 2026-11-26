@@ -75,3 +75,6 @@ OunceMCP itself is checked against the official MCP conformance suite in CI (`ou
 - Build a fresh server per test; answer approvals with `approver=`.
 - `as_caller` signs in as anyone; test every tenant boundary from both sides.
 - Run the security catalog and `check` in your test suite.
+
+!!! question "Questions about this chapter?"
+    Ask in `#help` on the [OunceMCP Discord](https://discord.gg/mQz4ZuZe3u), one post per question.

@@ -53,3 +53,6 @@ A member never sees `loans.open` or `reports.start`, so they pay even less. The 
 - Resources are data the host attaches; prompts are tasks the user picks.
 - Templates (`shelf://books/{book_id}`) expose one resource per record.
 - Move anything static out of tools and into resources.
+
+!!! question "Questions about this chapter?"
+    Ask in `#help` on the [OunceMCP Discord](https://discord.gg/mQz4ZuZe3u), one post per question.

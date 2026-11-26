@@ -31,3 +31,6 @@ You have built, secured, tested, measured and deployed a complete MCP server. Fr
 - The [concepts](../concepts/budgets.md) pages explain each mechanism in more depth.
 - The [API reference](../reference/index.md) lists every public name.
 - The [examples](https://github.com/subbusainath/ouncemcp/tree/main/examples) show larger servers: inventory (discovery and composite tools), ticketing (approvals and tenants), report (jobs) and markitdown (migration).
+
+!!! question "Questions about this chapter?"
+    Ask in `#help` on the [OunceMCP Discord](https://discord.gg/mQz4ZuZe3u), one post per question.

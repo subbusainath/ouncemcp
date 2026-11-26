@@ -61,3 +61,6 @@ Keyword arguments override the file.
 - [ ] Every write has `idempotency=True`; every destructive tool has a policy and an approval.
 
 The [deployment guide](../guides/deploying-http.md) has the details.
+
+!!! question "Questions about this chapter?"
+    Ask in `#help` on the [OunceMCP Discord](https://discord.gg/mQz4ZuZe3u), one post per question.

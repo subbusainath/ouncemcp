@@ -50,3 +50,8 @@
 [data-md-color-scheme=slate] .md-typeset .md-button { color: #F4F6F8; border-color: #F4F6F8; }
 [data-md-color-scheme=slate] .md-typeset .md-button--primary { background-color: #E79A0B; border-color: #E79A0B; color: #15161A; }
 .md-typeset .md-button:focus, .md-typeset .md-button:hover { background-color: #E79A0B; border-color: #E79A0B; color: #15161A; }
+
+/* "Questions about this chapter?" boxes in the brand amber. */
+.md-typeset .admonition.question, .md-typeset details.question { border-color: #E79A0B; }
+.md-typeset .question > .admonition-title, .md-typeset .question > summary { background-color: rgba(231, 154, 11, 0.1); }
+.md-typeset .question > .admonition-title::before, .md-typeset .question > summary::before { background-color: #E79A0B; }

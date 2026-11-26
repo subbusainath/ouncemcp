@@ -36,3 +36,6 @@ ouncemcp audit server.py --compare before.json
 ```
 
 The repository's [markitdown example](https://github.com/subbusainath/ouncemcp/tree/main/examples/markitdown) goes through all four steps on a real server. The [migration guide](../guides/migrating-from-fastmcp.md) covers the MCP Python SDK's server too.
+
+!!! question "Questions about this chapter?"
+    Ask in `#help` on the [OunceMCP Discord](https://discord.gg/mQz4ZuZe3u), one post per question.
