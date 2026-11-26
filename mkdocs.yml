@@ -44,6 +44,14 @@ theme:
     - content.code.copy
     - content.code.annotate
     - content.action.edit
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/subbusainath/ouncemcp
+      name: OunceMCP on GitHub
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/mQz4ZuZe3u
+      name: OunceMCP Discord
 extra_css:
   - assets/extra.css
 nav:
