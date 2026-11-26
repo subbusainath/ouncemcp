@@ -2,11 +2,18 @@
 
 All notable changes to OunceMCP. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [semantic versioning](https://semver.org/) with the promises in [proposal 0029](https://github.com/subbusainath/ouncemcp/blob/main/docs/proposals/0029-api-freeze.md).
 
-## Unreleased
+## 1.0.0rc4 (26 November 2026)
+
+### Added
+
+- A `NOTICE` file naming the copyright holder, shipped in the wheel and the source package next to `LICENSE`.
+- `ouncemcp init` writes a README that links the docs and the community Discord.
+- The PyPI page links the community [Discord](https://discord.gg/mQz4ZuZe3u).
 
 ### Changed
 
 - The lowest supported FastMCP is now 4.1.8 (`>=4.1.8,<5`), the version CI tests from the lockfile. FastMCP 4.1.6 and 4.1.7 are no longer tested.
+- The project description on PyPI (the README) gains badges, a link to the blog series and a Community section.
 
 ## 1.0.0rc3 (16 November 2026)
 

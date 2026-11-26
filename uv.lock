@@ -1628,7 +1628,7 @@ wheels = [
 
 [[package]]
 name = "ouncemcp"
-version = "1.0.0rc3"
+version = "1.0.0rc4"
 source = { editable = "." }
 dependencies = [
     { name = "fastmcp" },
