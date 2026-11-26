@@ -5,6 +5,16 @@
   </picture>
 </p>
 
+<p align="center">
+  <a href="https://pypi.org/project/ouncemcp/"><img src="https://img.shields.io/pypi/v/ouncemcp?label=PyPI" alt="PyPI version"></a>
+  <a href="https://pypi.org/project/ouncemcp/"><img src="https://img.shields.io/pypi/pyversions/ouncemcp" alt="Python versions"></a>
+  <a href="https://github.com/subbusainath/ouncemcp/actions/workflows/ci.yml"><img src="https://github.com/subbusainath/ouncemcp/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI status"></a>
+  <a href="https://pypistats.org/packages/ouncemcp"><img src="https://img.shields.io/pypi/dm/ouncemcp" alt="Monthly PyPI downloads"></a>
+  <a href="https://github.com/subbusainath/ouncemcp/blob/main/LICENSE"><img src="https://img.shields.io/github/license/subbusainath/ouncemcp" alt="License: Apache-2.0"></a>
+  <a href="https://subbusainath.github.io/ouncemcp/"><img src="https://img.shields.io/badge/docs-OunceMCP%20Book-E79A0B" alt="Documentation"></a>
+  <a href="https://discord.gg/mQz4ZuZe3u"><img src="https://img.shields.io/badge/Discord-join%20the%20community-5865F2?logo=discord&amp;logoColor=white" alt="Join the OunceMCP Discord"></a>
+</p>
+
 # OunceMCP
 
 **Every token counts.** OunceMCP is a framework for building Model Context Protocol (MCP) servers and clients that are fast, low-noise, and safe for agents by default. It builds on [FastMCP](https://gofastmcp.com) and the official MCP Python SDK, and targets the MCP `2026-07-28` specification.
