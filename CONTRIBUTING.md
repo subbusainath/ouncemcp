@@ -2,6 +2,8 @@
 
 OunceMCP is pre-alpha. The best contributions right now are feedback on the [specification](docs/spec.md) through issues.
 
+To discuss an idea before opening an issue or a pull request, join `#contributing` on the [OunceMCP Discord](https://discord.gg/mQz4ZuZe3u).
+
 ## Good first contributions
 
 These are designed to be small and self-contained:

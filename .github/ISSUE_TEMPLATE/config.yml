@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Questions and help
+    url: https://discord.gg/mQz4ZuZe3u
+    about: Ask usage and setup questions in #help on the OunceMCP Discord.
+  - name: Report a security vulnerability
+    url: https://github.com/subbusainath/ouncemcp/security/advisories/new
+    about: Report vulnerabilities privately, never in a public issue.
+  - name: Documentation and The OunceMCP Book
+    url: https://subbusainath.github.io/ouncemcp/
+    about: Guides, the API reference and a step-by-step tutorial.

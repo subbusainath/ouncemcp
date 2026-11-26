@@ -189,6 +189,10 @@ python benchmarks/scripts/m0_compare.py     # token comparison
 python benchmarks/scripts/m0_overhead.py    # per-call overhead
 ```
 
+## Community
+
+Questions and discussion: join the [OunceMCP Discord](https://discord.gg/mQz4ZuZe3u) and ask in `#help`. Report bugs and request features on [GitHub issues](https://github.com/subbusainath/ouncemcp/issues). See [SUPPORT.md](https://github.com/subbusainath/ouncemcp/blob/main/SUPPORT.md) for where each kind of question goes.
+
 ## Contributing
 
 See [CONTRIBUTING.md](https://github.com/subbusainath/ouncemcp/blob/main/CONTRIBUTING.md). Security issues: see [SECURITY.md](https://github.com/subbusainath/ouncemcp/blob/main/SECURITY.md).
